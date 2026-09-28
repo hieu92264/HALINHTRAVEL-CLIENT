@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { ChevronRightIcon, LayoutDashboardIcon, LogOutIcon, PanelLeftCloseIcon } from '@lucide/vue'
+import {
+  ChevronRightIcon,
+  LayoutDashboardIcon,
+  LogOutIcon,
+  PanelLeftCloseIcon,
+  BusFrontIcon,
+} from '@lucide/vue'
 import { useAuthStore } from '@/modules/auth/auth.store'
 import { AuthService } from '@/services/auth.service'
 import { useSidebarStore } from '@/stores/sidebar.store'
@@ -47,33 +53,25 @@ async function logout(): Promise<void> {
   >
     <!-- Logo -->
     <div
-      class="flex h-14 shrink-0 items-center border-b border-white/10 px-3"
+      class="flex h-16 shrink-0 items-center border-b border-white/10 px-3"
       :class="sidebarStore.isCollapsed ? 'justify-center' : 'gap-2.5'"
     >
       <RouterLink
-        class="flex items-center gap-2.5 overflow-hidden"
+        class="group flex items-center gap-2.5 overflow-hidden"
         to="/"
         @click="sidebarStore.setMobileOpen(false)"
       >
-        <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-blue-500 text-white">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M3 7l9-5 9 5v10l-9 5-9-5V7z" />
-            <path d="M12 2v20" />
-            <path d="M3 7l9 5 9-5" />
-          </svg>
+        <span
+          class="travel-logo-mark relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-950/40 transition-shadow duration-300 group-hover:shadow-blue-500/30"
+        >
+          <span class="absolute inset-1 rounded-lg border border-white/20" />
+          <BusFrontIcon class="travel-logo-vehicle relative size-5" stroke-width="2.25" />
         </span>
         <div v-if="!sidebarStore.isCollapsed" class="min-w-0 overflow-hidden">
-          <p class="truncate text-sm font-bold leading-tight text-white">Hà Linh</p>
-          <p class="truncate text-[10px] leading-tight text-blue-300">Vững bước muôn nơi</p>
+          <p class="truncate text-[15px] font-extrabold tracking-tight leading-tight text-white">Hà Linh</p>
+          <p class="mt-0.5 truncate text-[10px] font-medium tracking-wide leading-tight text-sky-300">
+            Vững bước muôn nơi
+          </p>
         </div>
       </RouterLink>
     </div>
@@ -136,3 +134,30 @@ async function logout(): Promise<void> {
     </div>
   </aside>
 </template>
+
+<style scoped>
+@keyframes travel-logo-roll {
+  0%,
+  100% {
+    transform: translateX(-0.5px) translateY(0);
+  }
+
+  50% {
+    transform: translateX(1px) translateY(-1px);
+  }
+}
+
+.travel-logo-vehicle {
+  animation: travel-logo-roll 3.5s ease-in-out infinite;
+}
+
+.group:hover .travel-logo-vehicle {
+  animation-duration: 1.25s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .travel-logo-vehicle {
+    animation: none;
+  }
+}
+</style>
