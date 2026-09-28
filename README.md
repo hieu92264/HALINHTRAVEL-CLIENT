@@ -1,48 +1,31 @@
-# halinhtravel-client
+# Hà Linh Travel — Operations Client
 
-This template should help get you started developing with Vue 3 in Vite.
+Web vận hành nội bộ cho điều phối xe, quản lý tài xế và các nghiệp vụ liên quan.
 
-## Recommended IDE Setup
-
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
+## Khởi chạy
 
 ```sh
 pnpm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
+Copy-Item .env.example .env.development
 pnpm dev
 ```
 
-### Type-Check, Compile and Minify for Production
+`VITE_API_BASE_URL` phải trỏ tới Laravel API. Cấu hình thiếu hoặc sai định dạng sẽ được báo ngay khi ứng dụng khởi động.
 
-```sh
-pnpm build
-```
+## JWT session
 
-### Lint with [ESLint](https://eslint.org/)
+- Đăng nhập nhận access token và lưu qua Pinia persist.
+- Mọi API, bao gồm `POST /auth/refresh`, gửi token hiện tại qua `Authorization: Bearer <token>`.
+- Khi API trả 401, client chỉ refresh một lần cho các request đồng thời, nhận token mới rồi thử lại request ban đầu.
+- Refresh thất bại sẽ xóa session và đưa người dùng về trang đăng nhập.
+
+## Kiểm tra chất lượng
 
 ```sh
 pnpm lint
+pnpm type-check
+pnpm test
+pnpm build
 ```
+
+`pnpm lint` chỉ kiểm tra. Dùng `pnpm lint:fix` khi muốn tự động sửa các lỗi có thể sửa được.
