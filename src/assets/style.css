@@ -125,3 +125,31 @@
     @apply font-sans;
     }
 }
+
+/* Route loading indicator — a slim, Vben-style dashboard treatment. */
+#nprogress {
+  pointer-events: none;
+}
+
+#nprogress .bar {
+  background: linear-gradient(90deg, #2563eb 0%, #3b82f6 48%, #8b5cf6 100%);
+  border-radius: 0 999px 999px 0;
+  box-shadow: 0 1px 6px rgb(59 130 246 / 55%);
+  height: 3px;
+  left: 0;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 9999;
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px #8b5cf6, 0 0 5px #8b5cf6;
+  display: block;
+  height: 100%;
+  opacity: 1;
+  position: absolute;
+  right: 0;
+  transform: rotate(2deg) translateY(-1px);
+  width: 100px;
+}
