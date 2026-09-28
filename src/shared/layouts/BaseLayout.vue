@@ -10,14 +10,16 @@ const sidebarStore = useSidebarStore()
 </script>
 
 <template>
-  <div class="min-h-svh bg-muted/35">
+  <div
+    class="min-h-svh bg-muted/35"
+    :style="{ '--layout-sidebar-width': sidebarStore.isCollapsed ? '60px' : '180px' }"
+  >
     <!-- Sidebar (includes mobile overlay) -->
     <LayoutSidebar />
 
     <!-- Content area -->
     <div
-      class="flex min-h-svh flex-col transition-[padding-left] duration-300 ease-in-out"
-      :class="sidebarStore.isCollapsed ? 'lg:pl-[60px]' : 'lg:pl-[160px]'"
+      class="flex min-h-svh flex-col transition-[padding-left] duration-300 ease-in-out lg:pl-[var(--layout-sidebar-width)]"
     >
       <!-- Top header -->
       <LayoutHeader />

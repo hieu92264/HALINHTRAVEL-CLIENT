@@ -41,7 +41,7 @@ async function logout(): Promise<void> {
   <aside
     class="fixed inset-y-0 left-0 z-40 flex flex-col border-r border-white/10 bg-[#0f1623] text-white transition-[width,transform] duration-300 ease-in-out"
     :class="[
-      sidebarStore.isCollapsed ? 'lg:w-[60px]' : 'lg:w-[160px]',
+      'lg:w-[var(--layout-sidebar-width)]',
       sidebarStore.isMobileOpen ? 'translate-x-0 w-[160px]' : '-translate-x-full lg:translate-x-0',
     ]"
   >
@@ -50,12 +50,25 @@ async function logout(): Promise<void> {
       class="flex h-14 shrink-0 items-center border-b border-white/10 px-3"
       :class="sidebarStore.isCollapsed ? 'justify-center' : 'gap-2.5'"
     >
-      <RouterLink class="flex items-center gap-2.5 overflow-hidden" to="/" @click="sidebarStore.setMobileOpen(false)">
+      <RouterLink
+        class="flex items-center gap-2.5 overflow-hidden"
+        to="/"
+        @click="sidebarStore.setMobileOpen(false)"
+      >
         <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-blue-500 text-white">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 7l9-5 9 5v10l-9 5-9-5V7z"/>
-            <path d="M12 2v20"/>
-            <path d="M3 7l9 5 9-5"/>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M3 7l9-5 9 5v10l-9 5-9-5V7z" />
+            <path d="M12 2v20" />
+            <path d="M3 7l9 5 9-5" />
           </svg>
         </span>
         <div v-if="!sidebarStore.isCollapsed" class="min-w-0 overflow-hidden">
