@@ -1,17 +1,10 @@
 <script setup lang="ts" generic="TData extends RowData">
 import {
-  ChevronDownIcon,
-  ChevronLeftIcon,
   ChevronRightIcon,
-  ChevronsLeftIcon,
-  ChevronsRightIcon,
   CircleAlertIcon,
-  Columns3Icon,
   GripVerticalIcon,
   InboxIcon,
   LoaderCircleIcon,
-  SearchIcon,
-  SlidersHorizontalIcon,
 } from '@lucide/vue'
 import {
   FlexRender,
@@ -42,6 +35,9 @@ import {
 import { useVirtualizer, type VirtualItem } from '@tanstack/vue-virtual'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Button } from '@/shared/components/ui/button'
+import DataGridContextMenuPartial from './partials/DataGridContextMenu.vue'
+import DataGridPagination from './partials/DataGridPagination.vue'
+import DataGridToolbar from './partials/DataGridToolbar.vue'
 import type {
   DataGridCellUpdate,
   DataGridColumnDef,
@@ -700,70 +696,23 @@ function focusEditInput(): void {
 
 <template>
   <section ref="gridRoot" class="min-w-0 overflow-hidden rounded-xl border border-border bg-card" aria-label="Bảng dữ liệu">
-    <div
-      v-if="globalFilter || enableGrouping || $slots['toolbar-start'] || $slots['toolbar-end']"
-      class="flex flex-col gap-3 border-b border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+    <DataGridToolbar
+      :table="table"
+      :global-filter="Boolean(globalFilter)"
+      :enable-grouping="enableGrouping"
+      :grouping="grouping"
+      :has-toolbar-start="Boolean($slots['toolbar-start'])"
+      :has-toolbar-end="Boolean($slots['toolbar-end'])"
+      :get-column-label="(column) => getColumnMeta(column)?.label || column.id"
+      :set-global-filter="setGlobalFilter"
     >
-      <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-        <slot name="toolbar-start" :table="table" :selected-rows="table.getSelectedRowModel().flatRows" />
-
-        <label v-if="globalFilter" class="relative min-w-52 max-w-sm flex-1 sm:flex-none">
-          <SearchIcon class="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <span class="sr-only">Tìm nhanh</span>
-          <input
-            :value="String(table.getState().globalFilter || '')"
-            class="h-8 w-full rounded-lg border border-input bg-background py-1 pl-8 pr-2.5 text-sm outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-3 focus:ring-ring/20"
-            placeholder="Tìm nhanh"
-            type="search"
-            @input="setGlobalFilter"
-          />
-        </label>
-
-        <label v-if="enableGrouping" class="flex h-8 items-center gap-1.5 rounded-lg border border-input bg-background px-2 text-sm text-muted-foreground">
-          <SlidersHorizontalIcon class="size-3.5" />
-          <span class="sr-only">Nhóm theo</span>
-          <select
-            :value="grouping[0] || ''"
-            class="max-w-40 bg-transparent text-sm text-foreground outline-none"
-            @change="table.setGrouping(($event.target as HTMLSelectElement).value ? [($event.target as HTMLSelectElement).value] : [])"
-          >
-            <option value="">Không nhóm</option>
-            <option v-for="column in table.getAllLeafColumns().filter((item) => item.getCanGroup())" :key="column.id" :value="column.id">
-              {{ getColumnMeta(column)?.label || column.id }}
-            </option>
-          </select>
-        </label>
-      </div>
-
-      <div class="flex items-center gap-2 self-end sm:self-auto">
-        <details class="group relative">
-          <summary
-            class="flex h-8 cursor-pointer list-none items-center gap-1.5 rounded-lg border border-input bg-background px-2.5 text-sm font-medium text-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/30 [&::-webkit-details-marker]:hidden"
-          >
-            <Columns3Icon class="size-4 text-muted-foreground" />
-            Cột
-            <ChevronDownIcon class="size-3.5 text-muted-foreground transition-transform group-open:rotate-180" />
-          </summary>
-          <div class="absolute right-0 z-50 mt-1.5 w-56 rounded-lg border border-border bg-popover p-1.5 text-popover-foreground shadow-lg">
-            <p class="px-2 py-1.5 text-xs font-medium text-muted-foreground">Hiển thị cột</p>
-            <label
-              v-for="column in table.getAllLeafColumns().filter((item) => item.getCanHide())"
-              :key="column.id"
-              class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
-            >
-              <input
-                :checked="column.getIsVisible()"
-                class="size-3.5 rounded border-input text-primary focus:ring-ring"
-                type="checkbox"
-                @change="column.toggleVisibility(($event.target as HTMLInputElement).checked)"
-              />
-              <span class="truncate">{{ getColumnMeta(column)?.label || column.id }}</span>
-            </label>
-          </div>
-        </details>
-        <slot name="toolbar-end" :table="table" :selected-rows="table.getSelectedRowModel().flatRows" />
-      </div>
-    </div>
+      <template #toolbar-start="slotProps">
+        <slot name="toolbar-start" v-bind="slotProps" />
+      </template>
+      <template #toolbar-end="slotProps">
+        <slot name="toolbar-end" v-bind="slotProps" />
+      </template>
+    </DataGridToolbar>
 
     <div
       ref="scrollContainer"
@@ -1112,48 +1061,26 @@ function focusEditInput(): void {
       </div>
     </div>
 
-    <footer v-if="paginationOptions" class="flex flex-col gap-3 border-t border-border bg-card px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-      <p class="tabular-nums text-muted-foreground">
-        {{ visibleFrom }}–{{ visibleTo }} trong {{ totalRows }} bản ghi
-      </p>
-      <div class="flex flex-wrap items-center gap-2">
-        <label class="flex items-center gap-2 text-muted-foreground">
-          <span class="whitespace-nowrap">Mỗi trang</span>
-          <select
-            :value="pagination.pageSize"
-            class="h-8 rounded-lg border border-input bg-background px-2 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-            @change="table.setPageSize(Number(($event.target as HTMLSelectElement).value))"
-          >
-            <option v-for="size in paginationOptions.pageSizeOptions" :key="size" :value="size">{{ size }}</option>
-          </select>
-        </label>
-        <span class="hidden tabular-nums text-muted-foreground sm:inline">Trang {{ pagination.pageIndex + 1 }} / {{ pageCount }}</span>
-        <div class="flex items-center gap-1">
-          <Button size="icon-xs" variant="outline" :disabled="!table.getCanPreviousPage()" aria-label="Trang đầu" @click="table.setPageIndex(0)">
-            <ChevronsLeftIcon />
-          </Button>
-          <Button size="icon-xs" variant="outline" :disabled="!table.getCanPreviousPage()" aria-label="Trang trước" @click="table.previousPage()">
-            <ChevronLeftIcon />
-          </Button>
-          <Button size="icon-xs" variant="outline" :disabled="!table.getCanNextPage()" aria-label="Trang sau" @click="table.nextPage()">
-            <ChevronRightIcon />
-          </Button>
-          <Button size="icon-xs" variant="outline" :disabled="!table.getCanNextPage()" aria-label="Trang cuối" @click="table.setPageIndex(pageCount - 1)">
-            <ChevronsRightIcon />
-          </Button>
-        </div>
-      </div>
-    </footer>
+    <DataGridPagination
+      v-if="paginationOptions"
+      :table="table"
+      :pagination="pagination"
+      :page-size-options="paginationOptions.pageSizeOptions"
+      :page-count="pageCount"
+      :visible-from="visibleFrom"
+      :visible-to="visibleTo"
+      :total-rows="totalRows"
+    />
 
-    <div
-      v-if="contextMenu && $slots['context-menu']"
-      class="fixed z-[60] min-w-44 rounded-lg border border-border bg-popover p-1.5 text-sm text-popover-foreground shadow-lg"
-      role="menu"
-      :style="{ left: `${contextMenu.clientX}px`, top: `${contextMenu.clientY}px` }"
-      @click.stop
+    <DataGridContextMenuPartial
+      :context-menu="contextMenu"
+      :has-content="Boolean($slots['context-menu'])"
+      :close="closeContextMenu"
     >
-      <slot name="context-menu" :row="contextMenu.row" :row-id="contextMenu.rowId" :close="closeContextMenu" />
-    </div>
+      <template #default="slotProps">
+        <slot name="context-menu" v-bind="slotProps" />
+      </template>
+    </DataGridContextMenuPartial>
   </section>
 </template>
 
