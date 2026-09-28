@@ -24,7 +24,7 @@ const queryClient = new QueryClient({
   },
 })
 
-export function setupVueQuery(app: App) {
+export function setupVueQuery(app: App): void {
   app.use(VueQueryPlugin, {
     queryClient,
     enableDevtoolsV6Plugin: import.meta.env.DEV,

@@ -123,6 +123,11 @@
   body {
     @apply bg-background text-foreground;
     @apply font-sans;
+    min-width: 320px;
+  }
+
+  #app {
+    min-height: 100svh;
     }
 }
 

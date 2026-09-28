@@ -14,4 +14,8 @@ export const AuthService = {
   getMe(): Promise<AuthUser> {
     return httpService.get<AuthUser>('/auth/me')
   },
+
+  logout(): Promise<void> {
+    return httpService.post<void>('/auth/logout')
+  },
 }
