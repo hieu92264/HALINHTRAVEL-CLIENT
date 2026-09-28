@@ -5,6 +5,7 @@ export type AppTab = {
   title: string
   to: string
   closable: boolean
+  icon?: string
 }
 
 export const useTabsStore = defineStore('tabs', () => {
@@ -32,6 +33,28 @@ export const useTabsStore = defineStore('tabs', () => {
     return activePath.value || undefined
   }
 
+  function closeOthers(path: string): void {
+    tabs.value = tabs.value.filter((tab) => !tab.closable || tab.to === path)
+    if (!tabs.value.some((tab) => tab.to === activePath.value)) {
+      activePath.value = path
+    }
+  }
+
+  function closeToRight(path: string): void {
+    const index = tabs.value.findIndex((tab) => tab.to === path)
+    if (index < 0) return
+    const removed = tabs.value.splice(index + 1)
+    if (removed.some((tab) => tab.to === activePath.value)) {
+      activePath.value = path
+    }
+  }
+
+  function closeAll(): void {
+    const pinned = tabs.value.filter((tab) => !tab.closable)
+    tabs.value = pinned
+    activePath.value = pinned[0]?.to ?? ''
+  }
+
   function reset(): void {
     tabs.value = []
     activePath.value = ''
@@ -43,6 +66,9 @@ export const useTabsStore = defineStore('tabs', () => {
     activeTab,
     visit,
     close,
+    closeOthers,
+    closeToRight,
+    closeAll,
     reset,
   }
 })

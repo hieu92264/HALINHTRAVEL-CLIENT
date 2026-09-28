@@ -158,3 +158,26 @@
   transform: rotate(2deg) translateY(-1px);
   width: 100px;
 }
+
+/* ─── View Transition: dark / light mode ripple ─── */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* When switching TO dark: new layer reveals via clip-path (handled in JS) */
+.dark::view-transition-old(root) {
+  z-index: 1;
+}
+.dark::view-transition-new(root) {
+  z-index: 9999;
+}
+
+/* When switching TO light: old layer fades out via clip-path (handled in JS) */
+::view-transition-old(root) {
+  z-index: 9999;
+}
+::view-transition-new(root) {
+  z-index: 1;
+}

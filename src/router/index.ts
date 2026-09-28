@@ -23,7 +23,7 @@ const router = createRouter({
     },
     {
       path: '/',
-      component: () => import('@/shared/layouts/AdminLayout.vue'),
+      component: () => import('@/shared/layouts/BaseLayout.vue'),
       meta: { requiresAuth: true },
       children: [
         {
