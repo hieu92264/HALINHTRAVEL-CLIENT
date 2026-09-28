@@ -1,16 +1,34 @@
 import type { AxiosRequestConfig } from 'axios'
 
 import { apiClient } from '@/configs/axios.config'
+import { toApiError } from '@/shared/lib/api-error'
 
 type RequestBody = unknown
 
-async function unwrapMetadata<TMetadata>(request: Promise<{ data: ResponseBody<TMetadata> }>) {
-  const response = await request
-  return response.data.metadata
+async function unwrapMetadata<TMetadata>(
+  request: Promise<{ data: ResponseBody<TMetadata> }>,
+): Promise<TMetadata> {
+  try {
+    const response = await request
+    return response.data.metadata
+  } catch (error) {
+    throw toApiError(error)
+  }
+}
+
+async function unwrapResponseBody<TMetadata>(
+  request: Promise<{ data: ResponseBody<TMetadata> }>,
+): Promise<ResponseBody<TMetadata>> {
+  try {
+    const response = await request
+    return response.data
+  } catch (error) {
+    throw toApiError(error)
+  }
 }
 
 export const httpService = {
-  async get<TMetadata>(url: string, config?: AxiosRequestConfig) {
+  async get<TMetadata>(url: string, config?: AxiosRequestConfig): Promise<TMetadata> {
     return unwrapMetadata<TMetadata>(apiClient.get<ResponseBody<TMetadata>>(url, config))
   },
 
@@ -18,7 +36,7 @@ export const httpService = {
     url: string,
     body?: TBody,
     config?: AxiosRequestConfig,
-  ) {
+  ): Promise<TMetadata> {
     return unwrapMetadata<TMetadata>(apiClient.post<ResponseBody<TMetadata>>(url, body, config))
   },
 
@@ -26,7 +44,7 @@ export const httpService = {
     url: string,
     body?: TBody,
     config?: AxiosRequestConfig,
-  ) {
+  ): Promise<TMetadata> {
     return unwrapMetadata<TMetadata>(apiClient.put<ResponseBody<TMetadata>>(url, body, config))
   },
 
@@ -34,48 +52,49 @@ export const httpService = {
     url: string,
     body?: TBody,
     config?: AxiosRequestConfig,
-  ) {
+  ): Promise<TMetadata> {
     return unwrapMetadata<TMetadata>(apiClient.patch<ResponseBody<TMetadata>>(url, body, config))
   },
 
-  async delete<TMetadata>(url: string, config?: AxiosRequestConfig) {
+  async delete<TMetadata>(url: string, config?: AxiosRequestConfig): Promise<TMetadata> {
     return unwrapMetadata<TMetadata>(apiClient.delete<ResponseBody<TMetadata>>(url, config))
   },
 
-  async getResponseBody<TMetadata>(url: string, config?: AxiosRequestConfig) {
-    const response = await apiClient.get<ResponseBody<TMetadata>>(url, config)
-    return response.data
+  async getResponseBody<TMetadata>(
+    url: string,
+    config?: AxiosRequestConfig,
+  ): Promise<ResponseBody<TMetadata>> {
+    return unwrapResponseBody(apiClient.get<ResponseBody<TMetadata>>(url, config))
   },
 
   async postResponseBody<TMetadata, TBody = RequestBody>(
     url: string,
     body?: TBody,
     config?: AxiosRequestConfig,
-  ) {
-    const response = await apiClient.post<ResponseBody<TMetadata>>(url, body, config)
-    return response.data
+  ): Promise<ResponseBody<TMetadata>> {
+    return unwrapResponseBody(apiClient.post<ResponseBody<TMetadata>>(url, body, config))
   },
 
   async putResponseBody<TMetadata, TBody = RequestBody>(
     url: string,
     body?: TBody,
     config?: AxiosRequestConfig,
-  ) {
-    const response = await apiClient.put<ResponseBody<TMetadata>>(url, body, config)
-    return response.data
+  ): Promise<ResponseBody<TMetadata>> {
+    return unwrapResponseBody(apiClient.put<ResponseBody<TMetadata>>(url, body, config))
   },
 
   async patchResponseBody<TMetadata, TBody = RequestBody>(
     url: string,
     body?: TBody,
     config?: AxiosRequestConfig,
-  ) {
-    const response = await apiClient.patch<ResponseBody<TMetadata>>(url, body, config)
-    return response.data
+  ): Promise<ResponseBody<TMetadata>> {
+    return unwrapResponseBody(apiClient.patch<ResponseBody<TMetadata>>(url, body, config))
   },
 
-  async deleteResponseBody<TMetadata>(url: string, config?: AxiosRequestConfig) {
-    const response = await apiClient.delete<ResponseBody<TMetadata>>(url, config)
-    return response.data
+  async deleteResponseBody<TMetadata>(
+    url: string,
+    config?: AxiosRequestConfig,
+  ): Promise<ResponseBody<TMetadata>> {
+    return unwrapResponseBody(apiClient.delete<ResponseBody<TMetadata>>(url, config))
   },
 }

@@ -1,14 +1,22 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { LayoutDashboardIcon, LogOutIcon, MenuIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, XIcon } from '@lucide/vue'
+import {
+  BellIcon,
+  CheckCheckIcon,
+  LayoutDashboardIcon,
+  LogOutIcon,
+  MenuIcon,
+  PanelLeftCloseIcon,
+  PanelLeftOpenIcon,
+  XIcon,
+} from '@lucide/vue'
 import { useAuthStore } from '@/modules/auth/auth.store'
 import { AuthService } from '@/services/auth.service'
 import { useAppStore } from '@/stores/app.store'
 import { useNotificationStore } from '@/stores/notification.store'
 import { useSidebarStore } from '@/stores/sidebar.store'
 import { useTabsStore } from '@/stores/tabs.store'
-import { toApiError } from '@/shared/lib/api-error'
 
 const route = useRoute()
 const router = useRouter()
@@ -17,6 +25,7 @@ const authStore = useAuthStore()
 const sidebarStore = useSidebarStore()
 const tabsStore = useTabsStore()
 const notificationStore = useNotificationStore()
+const isNotificationsOpen = ref(false)
 
 const navigation = [
   {
@@ -29,18 +38,10 @@ const navigation = [
 const displayName = computed(() => authStore.user?.user_name || authStore.user?.email || 'Tài khoản')
 
 async function logout(): Promise<void> {
-  try {
-    await AuthService.logout()
-  } catch (error) {
-    notificationStore.notify('Không thể thông báo đăng xuất đến máy chủ.', {
-      description: toApiError(error).message,
-      variant: 'warning',
-    })
-  } finally {
-    authStore.clearSession()
-    tabsStore.reset()
-    await router.replace({ name: 'login' })
-  }
+  await AuthService.logout().catch(() => undefined)
+  authStore.clearSession()
+  tabsStore.reset()
+  await router.replace({ name: 'login' })
 }
 
 function closeTab(path: string): void {
@@ -144,7 +145,85 @@ function closeTab(path: string): void {
             <p class="text-xs text-muted-foreground">Trung tâm điều hành</p>
           </div>
         </div>
-        <div class="max-w-44 truncate text-right text-sm font-medium">{{ displayName }}</div>
+        <div class="flex items-center gap-3">
+          <div class="relative">
+            <button
+              class="relative rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              :aria-expanded="isNotificationsOpen"
+              aria-haspopup="dialog"
+              aria-label="Mở thông báo"
+              type="button"
+              @click="isNotificationsOpen = !isNotificationsOpen"
+            >
+              <BellIcon class="size-5" />
+              <span
+                v-if="notificationStore.unreadCount"
+                data-testid="notification-badge"
+                class="absolute top-1 right-1 grid min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] leading-4 font-semibold text-white"
+              >
+                {{ notificationStore.unreadCount > 99 ? '99+' : notificationStore.unreadCount }}
+              </span>
+            </button>
+
+            <section
+              v-if="isNotificationsOpen"
+              class="absolute top-12 right-0 z-30 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border bg-card shadow-xl"
+              aria-label="Danh sách thông báo"
+              role="dialog"
+            >
+              <header class="flex items-center justify-between border-b px-4 py-3">
+                <div>
+                  <h2 class="text-sm font-semibold">Thông báo</h2>
+                  <p class="text-xs text-muted-foreground">
+                    {{ notificationStore.unreadCount ? `${notificationStore.unreadCount} chưa đọc` : 'Đã đọc tất cả' }}
+                  </p>
+                </div>
+                <button
+                  v-if="notificationStore.unreadCount"
+                  class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
+                  type="button"
+                  @click="notificationStore.markAllAsRead"
+                >
+                  <CheckCheckIcon class="size-3.5" />
+                  Đọc tất cả
+                </button>
+              </header>
+
+              <div v-if="notificationStore.items.length" class="max-h-96 overflow-y-auto p-1.5">
+                <button
+                  v-for="notification in notificationStore.items"
+                  :key="notification.id"
+                  data-testid="notification-item"
+                  class="w-full rounded-lg px-3 py-2.5 text-left transition hover:bg-muted"
+                  :class="notification.isRead ? 'text-muted-foreground' : 'bg-blue-50/70 dark:bg-blue-500/10'"
+                  type="button"
+                  @click="notificationStore.markAsRead(notification.id)"
+                >
+                  <div class="flex items-start gap-2">
+                    <span
+                      class="mt-1.5 size-2 shrink-0 rounded-full bg-blue-600"
+                      :class="notification.isRead ? 'invisible' : ''"
+                    />
+                    <div class="min-w-0 flex-1">
+                      <p class="truncate text-sm font-medium text-foreground">{{ notification.title }}</p>
+                      <p class="mt-0.5 line-clamp-2 text-xs leading-5">{{ notification.body }}</p>
+                      <p class="mt-1 text-[11px]">{{ notification.createdAt }}</p>
+                    </div>
+                  </div>
+                </button>
+              </div>
+
+              <div v-else data-testid="notification-empty-state" class="px-5 py-10 text-center">
+                <BellIcon class="mx-auto size-7 text-muted-foreground/60" />
+                <p class="mt-3 text-sm font-medium">Chưa có thông báo</p>
+                <p class="mt-1 text-xs leading-5 text-muted-foreground">
+                  Các thông báo duyệt xe, chuyến và lương sẽ xuất hiện tại đây.
+                </p>
+              </div>
+            </section>
+          </div>
+          <div class="max-w-44 truncate text-right text-sm font-medium">{{ displayName }}</div>
+        </div>
       </header>
 
       <div v-if="tabsStore.tabs.length" class="flex items-center gap-1 overflow-x-auto border-b bg-card px-4 py-2 sm:px-6">

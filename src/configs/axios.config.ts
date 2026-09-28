@@ -2,12 +2,14 @@ import { useAuthStore } from '@/modules/auth/auth.store'
 import type { AuthPayload } from '@/modules/auth/auth.type'
 import { AuthService } from '@/services/auth.service'
 import { useLocaleStore } from '@/stores/locale.store'
+import { apiBaseUrl } from '@/configs/env.config'
+import { emitSessionExpired } from '@/shared/lib/auth-events'
 import axios, { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
 import type { Pinia } from 'pinia'
 import qs from 'qs'
 
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: apiBaseUrl,
   timeout: 15_000,
   headers: {
     Accept: 'application/json',
@@ -97,6 +99,7 @@ export function setupAxiosInterceptors(pinia: Pinia): void {
 
       if (!payload?.access_token) {
         authStore.clearSession()
+        emitSessionExpired()
         return Promise.reject(error)
       }
 
