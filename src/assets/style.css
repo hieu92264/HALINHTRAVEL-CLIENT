@@ -166,18 +166,11 @@
   mix-blend-mode: normal;
 }
 
-/* When switching TO dark: new layer reveals via clip-path (handled in JS) */
-.dark::view-transition-old(root) {
-  z-index: 1;
-}
-.dark::view-transition-new(root) {
-  z-index: 9999;
-}
-
-/* When switching TO light: old layer fades out via clip-path (handled in JS) */
+/* The new theme expands from the toggle; the previous snapshot stays below it. */
 ::view-transition-old(root) {
-  z-index: 9999;
+  z-index: 1;
 }
 ::view-transition-new(root) {
-  z-index: 1;
+  z-index: 9999;
+  clip-path: circle(0px at var(--theme-transition-x) var(--theme-transition-y));
 }

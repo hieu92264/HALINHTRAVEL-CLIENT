@@ -1,4 +1,4 @@
-import { ref, watch } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 
 const STORAGE_KEY = 'hl-theme'
 
@@ -15,6 +15,7 @@ document.documentElement.classList.toggle('dark', isDark.value)
 
 watch(isDark, (value) => {
   document.documentElement.classList.toggle('dark', value)
+  document.documentElement.style.colorScheme = value ? 'dark' : 'light'
   localStorage.setItem(STORAGE_KEY, value ? 'dark' : 'light')
 })
 
@@ -36,14 +37,18 @@ export function useTheme() {
     const x = event?.clientX ?? window.innerWidth / 2
     const y = event?.clientY ?? window.innerHeight / 2
 
+    document.documentElement.style.setProperty('--theme-transition-x', `${x}px`)
+    document.documentElement.style.setProperty('--theme-transition-y', `${y}px`)
+
     // Calculate max radius from the click point
     const endRadius = Math.hypot(
       Math.max(x, window.innerWidth - x),
       Math.max(y, window.innerHeight - y),
     )
 
-    const transition = document.startViewTransition(() => {
+    const transition = document.startViewTransition(async () => {
       isDark.value = nextDark
+      await nextTick()
     })
 
     transition.ready.then(() => {
@@ -53,13 +58,12 @@ export function useTheme() {
       ]
 
       document.documentElement.animate(
-        { clipPath: nextDark ? clipPath : [...clipPath].reverse() },
+        { clipPath },
         {
           duration: 400,
           easing: 'ease-in-out',
-          pseudoElement: nextDark
-            ? '::view-transition-new(root)'
-            : '::view-transition-old(root)',
+          fill: 'forwards',
+          pseudoElement: '::view-transition-new(root)',
         },
       )
     })
