@@ -100,7 +100,7 @@ const canCloseAll = computed(() => tabsStore.tabs.some((t) => t.closable))
 <template>
   <div
     v-if="tabsStore.tabs.length"
-    class="flex items-center gap-0 overflow-x-auto border-b bg-card"
+    class="flex items-center gap-0 overflow-x-auto border-b border-border/80 bg-background/95"
     style="scrollbar-width: none"
   >
     <!-- Tab items -->
@@ -111,7 +111,7 @@ const canCloseAll = computed(() => tabsStore.tabs.some((t) => t.closable))
       class="group relative flex shrink-0 h-9 items-center gap-1.5 px-4 text-xs font-medium transition select-none"
       :class="
         tab.to === route.fullPath
-          ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-500/10'
+          ? 'border-b-2 border-primary bg-primary/[0.08] text-primary'
           : 'border-b-2 border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
       "
       @contextmenu.prevent="(e) => openContextMenu(e, tab.to)"

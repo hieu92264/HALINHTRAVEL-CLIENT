@@ -30,7 +30,7 @@ const userInitials = computed(() => displayName.value.slice(0, 2).toUpperCase())
 </script>
 
 <template>
-  <header class="flex h-14 shrink-0 items-center justify-between border-b bg-card px-4 sm:px-6">
+  <header class="flex h-16 shrink-0 items-center justify-between border-b border-border/80 bg-background/95 px-4 backdrop-blur-sm sm:px-6 lg:px-8">
     <!-- Left: sidebar toggle + breadcrumb -->
     <div class="flex items-center gap-2">
       <!-- Mobile hamburger -->
@@ -55,7 +55,7 @@ const userInitials = computed(() => displayName.value.slice(0, 2).toUpperCase())
       </button>
 
       <!-- Breadcrumb -->
-      <nav class="flex items-center gap-1 text-sm" aria-label="Breadcrumb">
+      <nav class="flex items-center gap-1.5 text-sm" aria-label="Breadcrumb">
         <span class="text-muted-foreground">Trang chủ</span>
         <span class="text-muted-foreground/50">/</span>
         <span class="font-medium text-foreground">{{ route.meta.title || 'Hà Linh Travel' }}</span>

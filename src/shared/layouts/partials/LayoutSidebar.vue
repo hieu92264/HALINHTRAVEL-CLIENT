@@ -45,7 +45,7 @@ async function logout(): Promise<void> {
 
   <!-- Sidebar -->
   <aside
-    class="fixed inset-y-0 left-0 z-40 flex flex-col border-r border-white/10 bg-[#0f1623] text-white transition-[width,transform] duration-300 ease-in-out"
+    class="fixed inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width,transform] duration-300 ease-in-out"
     :class="[
       'lg:w-[var(--layout-sidebar-width)]',
       sidebarStore.isMobileOpen ? 'translate-x-0 w-[160px]' : '-translate-x-full lg:translate-x-0',
@@ -53,8 +53,8 @@ async function logout(): Promise<void> {
   >
     <!-- Logo -->
     <div
-      class="flex h-16 shrink-0 items-center border-b border-white/10 px-3"
-      :class="sidebarStore.isCollapsed ? 'justify-center' : 'gap-2.5'"
+      class="flex h-16 shrink-0 items-center border-b border-sidebar-border"
+      :class="sidebarStore.isCollapsed ? 'justify-center' : 'gap-2.5 px-4'"
     >
       <RouterLink
         class="group flex items-center gap-2.5 overflow-hidden"
@@ -77,16 +77,17 @@ async function logout(): Promise<void> {
     </div>
 
     <!-- Navigation -->
-    <nav class="flex-1 space-y-0.5 overflow-y-auto p-2" aria-label="Điều hướng chính">
+    <nav class="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Điều hướng chính">
+      <p v-if="!sidebarStore.isCollapsed" class="px-2 py-2 text-xs font-medium text-sky-200/65">Vận hành</p>
       <RouterLink
         v-for="item in navigation"
         :key="item.to"
         :to="item.to"
-        class="group flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-xs font-medium text-slate-400 transition-all hover:bg-white/10 hover:text-white"
+        class="group flex h-10 items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium text-sky-100/70 transition-colors hover:bg-white/[0.08] hover:text-white"
         :class="[
           route.path === item.to
-            ? 'border-l-2 border-blue-400 bg-blue-600/20 text-blue-300'
-            : 'border-l-2 border-transparent',
+            ? 'bg-white/12 text-white shadow-sm ring-1 ring-white/10'
+            : '',
           sidebarStore.isCollapsed ? 'justify-center px-0' : '',
         ]"
         @click="sidebarStore.setMobileOpen(false)"
@@ -101,15 +102,15 @@ async function logout(): Promise<void> {
     </nav>
 
     <!-- Version -->
-    <div v-if="!sidebarStore.isCollapsed" class="px-3 pb-1">
-      <p class="text-[10px] text-slate-600">Phiên bản 1.0.0</p>
+    <div v-if="!sidebarStore.isCollapsed" class="px-4 pb-2">
+      <p class="text-xs text-sky-200/45">Phiên bản 1.0.0</p>
     </div>
 
     <!-- Bottom actions -->
-    <div class="border-t border-white/10 p-2 space-y-0.5">
+    <div class="space-y-0.5 border-t border-sidebar-border p-3">
       <!-- Collapse toggle (desktop only) -->
       <button
-        class="hidden w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs text-slate-400 transition-all hover:bg-white/10 hover:text-white lg:flex"
+        class="hidden w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm text-sky-100/70 transition-colors hover:bg-white/[0.08] hover:text-white lg:flex"
         :class="sidebarStore.isCollapsed ? 'justify-center px-0' : ''"
         type="button"
         :aria-label="sidebarStore.isCollapsed ? 'Mở rộng' : 'Thu gọn'"
@@ -123,7 +124,7 @@ async function logout(): Promise<void> {
       </button>
       <!-- Logout -->
       <button
-        class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs text-slate-400 transition-all hover:bg-white/10 hover:text-white"
+        class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm text-sky-100/70 transition-colors hover:bg-white/[0.08] hover:text-white"
         :class="sidebarStore.isCollapsed ? 'justify-center px-0' : ''"
         type="button"
         @click="logout"

@@ -11,15 +11,15 @@ const sidebarStore = useSidebarStore()
 
 <template>
   <div
-    class="min-h-svh bg-muted/35"
-    :style="{ '--layout-sidebar-width': sidebarStore.isCollapsed ? '60px' : '180px' }"
+    class="h-svh overflow-hidden bg-background"
+    :style="{ '--layout-sidebar-width': sidebarStore.isCollapsed ? '64px' : '240px' }"
   >
     <!-- Sidebar (includes mobile overlay) -->
     <LayoutSidebar />
 
     <!-- Content area -->
     <div
-      class="flex min-h-svh flex-col transition-[padding-left] duration-300 ease-in-out lg:pl-[var(--layout-sidebar-width)]"
+      class="flex h-svh min-h-0 min-w-0 flex-col transition-[padding-left] duration-300 ease-in-out lg:pl-[var(--layout-sidebar-width)]"
     >
       <!-- Top header -->
       <LayoutHeader />
@@ -28,7 +28,7 @@ const sidebarStore = useSidebarStore()
       <LayoutTabBar />
 
       <!-- Main page content -->
-      <main class="flex-1 p-4 sm:p-6">
+      <main class="operations-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 lg:p-8">
         <RouterView />
       </main>
     </div>

@@ -1,5 +1,5 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -8,7 +8,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --font-sans: 'Geist Variable', sans-serif;
+    --font-sans: 'Be Vietnam Pro', sans-serif;
     --font-heading: var(--font-sans);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
@@ -48,72 +48,72 @@
 }
 
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    --background: #f5f7fa;
+    --foreground: #10233b;
+    --card: #ffffff;
+    --card-foreground: #10233b;
+    --popover: #ffffff;
+    --popover-foreground: #10233b;
+    --primary: #1769c2;
+    --primary-foreground: #ffffff;
+    --secondary: #e8eef4;
+    --secondary-foreground: #10233b;
+    --muted: #eef3f7;
+    --muted-foreground: #5d7087;
+    --accent: #e8f1fc;
+    --accent-foreground: #125aa6;
+    --destructive: #c84c46;
+    --border: #d7e0e9;
+    --input: #d7e0e9;
+    --ring: #1769c2;
+    --chart-1: #1769c2;
+    --chart-2: #2f8a68;
+    --chart-3: #e6a93d;
+    --chart-4: #c84c46;
+    --chart-5: #5d7087;
+    --radius: 0.75rem;
+    --sidebar: #10233b;
+    --sidebar-foreground: #edf5fc;
+    --sidebar-primary: #2f8ee5;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #173657;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #294563;
+    --sidebar-ring: #5da9ef;
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --background: #0b1726;
+    --foreground: #eef5fb;
+    --card: #10233b;
+    --card-foreground: #eef5fb;
+    --popover: #132a45;
+    --popover-foreground: #eef5fb;
+    --primary: #5da9ef;
+    --primary-foreground: #0b1726;
+    --secondary: #193552;
+    --secondary-foreground: #eef5fb;
+    --muted: #162c46;
+    --muted-foreground: #a9bbcc;
+    --accent: #173b62;
+    --accent-foreground: #dceefe;
+    --destructive: #e87972;
+    --border: #294563;
+    --input: #294563;
+    --ring: #5da9ef;
+    --chart-1: #5da9ef;
+    --chart-2: #59af8c;
+    --chart-3: #f0bf5c;
+    --chart-4: #e87972;
+    --chart-5: #a9bbcc;
+    --sidebar: #091522;
+    --sidebar-foreground: #edf5fc;
+    --sidebar-primary: #5da9ef;
+    --sidebar-primary-foreground: #091522;
+    --sidebar-accent: #173657;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #294563;
+    --sidebar-ring: #5da9ef;
 }
 
 @layer base {
@@ -131,15 +131,51 @@
     }
 }
 
+/* The dispatch workspace owns its scroll area; keep the control quiet but easy to grab. */
+.operations-scrollbar {
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 52%, transparent) transparent;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+
+.operations-scrollbar::-webkit-scrollbar {
+  width: 12px;
+}
+
+.operations-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  margin-block: 10px;
+}
+
+.operations-scrollbar::-webkit-scrollbar-thumb {
+  background-clip: content-box;
+  background-color: color-mix(in srgb, var(--muted-foreground) 52%, transparent);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  min-height: 48px;
+}
+
+.operations-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--primary) 72%, transparent);
+}
+
+.operations-scrollbar:hover {
+  scrollbar-color: color-mix(in srgb, var(--primary) 72%, transparent) transparent;
+}
+
+.operations-scrollbar::-webkit-scrollbar-thumb:active {
+  background-color: var(--primary);
+}
+
 /* Route loading indicator — a slim, Vben-style dashboard treatment. */
 #nprogress {
   pointer-events: none;
 }
 
 #nprogress .bar {
-  background: linear-gradient(90deg, #2563eb 0%, #3b82f6 48%, #8b5cf6 100%);
+  background: linear-gradient(90deg, #1769c2 0%, #2f8ee5 55%, #5da9ef 100%);
   border-radius: 0 999px 999px 0;
-  box-shadow: 0 1px 6px rgb(59 130 246 / 55%);
+  box-shadow: 0 1px 6px rgb(23 105 194 / 45%);
   height: 3px;
   left: 0;
   position: fixed;
@@ -149,7 +185,7 @@
 }
 
 #nprogress .peg {
-  box-shadow: 0 0 10px #8b5cf6, 0 0 5px #8b5cf6;
+  box-shadow: 0 0 10px #2f8ee5, 0 0 5px #2f8ee5;
   display: block;
   height: 100%;
   opacity: 1;
