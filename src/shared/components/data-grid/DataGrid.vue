@@ -62,6 +62,10 @@ interface Props {
   dataSource: DataGridDataSource<TData>
   /** Khai báo ở file `column.ts` cạnh module nghiệp vụ. */
   columns: DataGridColumnDef<TData>[]
+  /** Chiều rộng khung bảng; số được hiểu là pixel. */
+  width?: number | string
+  /** Chiều cao toàn bộ khung bảng; số được hiểu là pixel. */
+  height?: number | string
   /** Bật phân trang và chọn chế độ client/server. */
   pagination?: DataGridPaginationOptions | false
   filteringMode?: DataGridOperationMode
@@ -226,6 +230,20 @@ const columnOrder = ref<ColumnOrderState>(initialState.columnOrder || [])
 const columnSizing = ref<ColumnSizingState>(initialState.columnSizing || {})
 const grouping = ref<GroupingState>(initialState.grouping || [])
 const rowSelection = ref<RowSelectionState>(props.selectedRowIds || {})
+
+function toCssSize(value: number | string | undefined): string | undefined {
+  if (value === undefined) return undefined
+  return typeof value === 'number' ? `${value}px` : value
+}
+
+const gridSizeStyle = computed(() => ({
+  width: toCssSize(props.width),
+  height: toCssSize(props.height),
+}))
+const scrollContainerStyle = computed(() => {
+  if (props.height !== undefined || !virtualOptions.value) return undefined
+  return { maxHeight: `${virtualOptions.value.height}px` }
+})
 
 const tableData = computed(() => props.dataSource.data)
 
@@ -506,13 +524,16 @@ function getColumnStyle(column: Column<TData, unknown>): Record<string, string |
 
 function getColumnClasses(column: Column<TData, unknown>, surface: 'head' | 'body' | 'filter'): string {
   const pinned = column.getIsPinned()
-  const base = surface === 'head' ? 'bg-muted/90' : surface === 'filter' ? 'bg-muted/65' : 'bg-card'
+  const base = [
+    surface === 'head' ? 'bg-muted/90' : surface === 'filter' ? 'bg-muted/65' : 'bg-card',
+    'border-r border-border/70 last:border-r-0',
+  ].join(' ')
   if (!pinned) return base
 
   return [
     base,
     'sticky z-10',
-    pinned === 'left' ? 'border-r border-border/80' : 'border-l border-border/80',
+    pinned === 'left' ? 'border-r border-border' : 'border-l border-border',
     surface === 'head' ? 'z-30' : surface === 'filter' ? 'z-20' : '',
   ].join(' ')
 }
@@ -696,6 +717,7 @@ function focusEditInput(): void {
 
 <template>
   <section ref="gridRoot" class="min-w-0 overflow-hidden rounded-xl border border-border bg-card" aria-label="Bảng dữ liệu">
+    <div class="flex min-h-0 min-w-0 flex-col" :style="gridSizeStyle">
     <DataGridToolbar
       :table="table"
       :global-filter="Boolean(globalFilter)"
@@ -716,8 +738,8 @@ function focusEditInput(): void {
 
     <div
       ref="scrollContainer"
-      class="operations-scrollbar relative overflow-auto"
-      :style="virtualOptions ? { maxHeight: `${virtualOptions.height}px` } : undefined"
+      class="operations-scrollbar relative min-h-0 flex-1 overflow-auto"
+      :style="scrollContainerStyle"
     >
       <table
         class="w-full table-fixed border-separate border-spacing-0 text-left text-[13px]"
@@ -882,7 +904,7 @@ function focusEditInput(): void {
               <td
                 v-for="cell in getRowAt(virtualRow)?.getVisibleCells() || []"
                 :key="cell.id"
-                class="h-[46px] border-b border-border px-3 align-middle text-foreground"
+                class="h-[46px] border-b border-border px-3 align-middle text-foreground group-hover:bg-muted/55 group-focus-within:bg-muted/55"
                 :class="getColumnClasses(cell.column, 'body')"
                 :style="getColumnStyle(cell.column)"
                 @dblclick.stop="startEditing(cell); focusEditInput()"
@@ -970,7 +992,7 @@ function focusEditInput(): void {
               <td
                 v-for="cell in row.getVisibleCells()"
                 :key="cell.id"
-                class="h-[46px] border-b border-border px-3 align-middle text-foreground"
+                class="h-[46px] border-b border-border px-3 align-middle text-foreground group-hover:bg-muted/55 group-focus-within:bg-muted/55"
                 :class="getColumnClasses(cell.column, 'body')"
                 :style="getColumnStyle(cell.column)"
                 @dblclick.stop="startEditing(cell); focusEditInput()"
@@ -1081,6 +1103,7 @@ function focusEditInput(): void {
         <slot name="context-menu" v-bind="slotProps" />
       </template>
     </DataGridContextMenuPartial>
+    </div>
   </section>
 </template>
 

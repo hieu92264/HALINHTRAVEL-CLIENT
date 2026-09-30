@@ -1,13 +1,14 @@
 <template>
-  <h1>User Account</h1>
-  <span>Manage user account and view their detail</span>
+  <section class="space-y-5">
+    <header>
+      <h1 class="text-2xl font-semibold tracking-tight text-foreground">Tài khoản người dùng</h1>
+      <p class="mt-1 text-sm text-muted-foreground">Tra cứu, lọc và sắp xếp danh sách tài khoản.</p>
+    </header>
+
+    <UserTable />
+  </section>
 </template>
 
 <script setup lang="ts">
-import { useUserQuery } from '@/modules/organization/user/composables/useUserMutations'
-// import { computed } from 'vue'
-
-const usersQuery = useUserQuery()
-
-console.log('usersQuery', usersQuery)
+import UserTable from './components/UserTable.vue'
 </script>

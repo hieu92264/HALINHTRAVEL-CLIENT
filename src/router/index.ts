@@ -27,6 +27,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
       children: [
         {
+          path: 'users',
+          name: 'users',
+          component: () => import('@/modules/organization/user/UserPage.vue'),
+          meta: { title: 'Tài khoản người dùng' },
+        },
+        {
           path: '',
           name: 'dashboard',
           component: () => import('@/modules/dashboard/DashboardPage.vue'),
