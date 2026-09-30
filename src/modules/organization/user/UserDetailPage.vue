@@ -1,0 +1,25 @@
+<script setup lang="ts">
+import { computed, ref, watch } from 'vue'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useRoute } from 'vue-router'
+import { toast } from 'vue-sonner'
+import { UserService } from '@/services/user.service'
+import { RoleService } from '@/services/role.service'
+import { PermissionService } from '@/services/permission.service'
+import { Button } from '@/shared/components/ui/button'
+import { useAuthStore } from '@/modules/auth/auth.store'
+
+const route = useRoute(); const client = useQueryClient(); const auth = useAuthStore(); const id = String(route.params.id)
+const userQuery = useQuery({ queryKey: ['users', id], queryFn: () => UserService.getUser(id) })
+const rolesQuery = useQuery({ queryKey: ['roles'], queryFn: RoleService.getRoles, enabled: () => auth.user?.permissions.includes('roles.manage') ?? false })
+const permissionsQuery = useQuery({ queryKey: ['permissions'], queryFn: PermissionService.getPermissions, enabled: () => auth.user?.permissions.includes('permissions.view') ?? false })
+const roleIds = ref<number[]>([]); const permissionIds = ref<number[]>([])
+watch(() => userQuery.data.value, (user) => { if (!user) return; roleIds.value = rolesQuery.data.value?.filter(r => user.roles?.includes(r.name)).map(r => r.id) ?? []; permissionIds.value = permissionsQuery.data.value?.filter(p => user.direct_permissions?.includes(p.name)).map(p => p.id) ?? [] }, { immediate: true })
+const saveRoles = useMutation({ mutationFn: () => UserService.syncRoles(id, roleIds.value), onSuccess: async () => { toast.success('Đã cập nhật vai trò.'); await client.invalidateQueries({ queryKey: ['users'] }) } })
+const savePermissions = useMutation({ mutationFn: () => UserService.syncPermissions(id, permissionIds.value), onSuccess: async () => { toast.success('Đã cập nhật quyền trực tiếp.'); await client.invalidateQueries({ queryKey: ['users'] }) } })
+const user = computed(() => userQuery.data.value)
+const activeRoles = computed(() => rolesQuery.data.value?.filter((role) => role.is_active) ?? [])
+const activePermissions = computed(() => permissionsQuery.data.value?.filter((permission) => permission.is_active) ?? [])
+function toggle(ids: number[], value: number) { const index = ids.indexOf(value); index < 0 ? ids.push(value) : ids.splice(index, 1) }
+</script>
+<template><section v-if="user" class="space-y-5"><header><h1 class="text-2xl font-semibold">{{ user.user_name }}</h1><p class="text-sm text-muted-foreground">{{ user.email }} · {{ user.is_active ? 'Đang hoạt động' : 'Đã vô hiệu hóa' }}</p></header><div class="grid gap-5 lg:grid-cols-[280px_1fr]"><aside class="rounded-xl border bg-card p-4 text-sm"><p class="font-semibold">Tài khoản</p><dl class="mt-4 space-y-3 text-muted-foreground"><div><dt>Tên đăng nhập</dt><dd class="mt-1 font-medium text-foreground">{{ user.user_name }}</dd></div><div><dt>Đăng nhập gần nhất</dt><dd class="mt-1 text-foreground">{{ user.last_login_at || 'Chưa đăng nhập' }}</dd></div></dl></aside><div class="space-y-4"><section class="rounded-xl border bg-card"><header class="border-b px-4 py-3"><h2 class="font-semibold">Vai trò trực tiếp</h2></header><div v-if="rolesQuery.data.value" class="max-h-52 overflow-auto p-3"><label v-for="role in activeRoles" :key="role.id" class="flex items-center gap-2 border-b py-2 text-sm last:border-0"><input type="checkbox" :checked="roleIds.includes(role.id)" @change="toggle(roleIds, role.id)"><span>{{ role.name }}</span></label></div><p v-else class="p-4 text-sm text-muted-foreground">Không có quyền xem danh mục vai trò để thay đổi.</p><footer v-if="rolesQuery.data.value" class="border-t p-3 text-right"><Button size="sm" :disabled="saveRoles.isPending.value" @click="saveRoles.mutate()">Lưu vai trò</Button></footer></section><section class="rounded-xl border bg-card"><header class="border-b px-4 py-3"><h2 class="font-semibold">Quyền trực tiếp</h2></header><div v-if="permissionsQuery.data.value" class="max-h-56 overflow-auto p-3"><label v-for="permission in activePermissions" :key="permission.id" class="flex items-center gap-2 border-b py-2 text-sm last:border-0"><input type="checkbox" :checked="permissionIds.includes(permission.id)" @change="toggle(permissionIds, permission.id)"><span>{{ permission.name }}</span></label></div><p v-else class="p-4 text-sm text-muted-foreground">Không có quyền xem danh mục để thay đổi.</p><footer v-if="permissionsQuery.data.value" class="border-t p-3 text-right"><Button size="sm" :disabled="savePermissions.isPending.value" @click="savePermissions.mutate()">Lưu quyền trực tiếp</Button></footer></section><section class="rounded-xl border bg-card"><header class="border-b px-4 py-3"><h2 class="font-semibold">Quyền hiệu lực</h2></header><div class="flex flex-wrap gap-2 p-4"><span v-for="permission in user.permissions" :key="permission" class="rounded-md bg-muted px-2 py-1 text-xs">{{ permission }}</span></div></section></div></div></section><p v-else class="p-6 text-muted-foreground">Đang tải tài khoản…</p></template>

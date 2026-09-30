@@ -5,6 +5,9 @@ import {
   LogOutIcon,
   PanelLeftCloseIcon,
   BusFrontIcon,
+  UsersIcon,
+  ShieldCheckIcon,
+  KeyRoundIcon,
 } from '@lucide/vue'
 import { useAuthStore } from '@/modules/auth/auth.store'
 import { AuthService } from '@/services/auth.service'
@@ -20,6 +23,9 @@ const sidebarStore = useSidebarStore()
 const tabsStore = useTabsStore()
 
 const navigation = [
+  { label: 'Tài khoản', to: '/users', icon: UsersIcon, permission: 'users.view' },
+  { label: 'Vai trò', to: '/roles', icon: ShieldCheckIcon, permission: 'roles.manage' },
+  { label: 'Quyền', to: '/permissions', icon: KeyRoundIcon, permission: 'permissions.view' },
   {
     label: 'Tổng quan',
     to: '/',
@@ -80,7 +86,7 @@ async function logout(): Promise<void> {
     <nav class="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Điều hướng chính">
       <p v-if="!sidebarStore.isCollapsed" class="px-2 py-2 text-xs font-medium text-sky-200/65">Vận hành</p>
       <RouterLink
-        v-for="item in navigation"
+        v-for="item in navigation.filter((item) => !item.permission || authStore.user?.permissions.includes(item.permission))"
         :key="item.to"
         :to="item.to"
         class="group flex h-10 items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium text-sky-100/70 transition-colors hover:bg-white/[0.08] hover:text-white"
