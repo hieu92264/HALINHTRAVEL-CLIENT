@@ -1,25 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useQuery } from '@tanstack/vue-query'
-import { useRouter } from 'vue-router'
-import { DataGrid, type DataGridColumnDef, type DataGridDataSource } from '@/shared/components/data-grid'
-import { RoleService, type RoleRow } from '@/services/role.service'
-import { Button } from '@/shared/components/ui/button'
-
-const router = useRouter()
-const query = useQuery({ queryKey: ['roles'], queryFn: RoleService.getRoles })
-const dataSource = computed<DataGridDataSource<RoleRow>>(() => ({ data: query.data.value ?? [], isLoading: query.isLoading.value, isFetching: query.isFetching.value, error: query.error.value }))
-const columns: DataGridColumnDef<RoleRow>[] = [
-  { accessorKey: 'name', header: 'Vai trò', meta: { label: 'Vai trò' } },
-  { accessorKey: 'is_system', header: 'Loại', cell: ({ getValue }) => getValue() ? 'Hệ thống' : 'Tùy chỉnh', meta: { label: 'Loại' } },
-  { accessorKey: 'is_active', header: 'Trạng thái', cell: ({ getValue }) => getValue() ? 'Đang dùng' : 'Ngừng dùng', meta: { label: 'Trạng thái' } },
-  { accessorKey: 'permissions', header: 'Số quyền', cell: ({ getValue }) => `${(getValue() as string[]).length} quyền`, meta: { label: 'Số quyền' } },
-]
+import { computed, ref } from 'vue'; import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'; import { useRouter } from 'vue-router'; import { toast } from 'vue-sonner'; import { DataGrid, type DataGridColumnDef, type DataGridDataSource } from '@/shared/components/data-grid'; import { Button } from '@/shared/components/ui/button'; import AccessDialog from '@/shared/components/feedback/AccessDialog.vue'; import { RoleService, type RoleRow } from '@/services/role.service'
+const router=useRouter(); const client=useQueryClient(); const query=useQuery({queryKey:['roles'],queryFn:RoleService.getRoles}); const name=ref(''); const edit=ref<RoleRow|null>(null); const removeRow=ref<RoleRow|null>(null); const form=ref(false); const error=ref('')
+const data=computed<DataGridDataSource<RoleRow>>(()=>({data:query.data.value??[],isLoading:query.isLoading.value,isFetching:query.isFetching.value,error:query.error.value})); const columns:DataGridColumnDef<RoleRow>[]=[{accessorKey:'name',header:'Vai trò'},{accessorKey:'is_system',header:'Loại',cell:({getValue})=>getValue()?'Hệ thống':'Tùy chỉnh'},{accessorKey:'permissions',header:'Số quyền',cell:({getValue})=>`${(getValue() as string[]).length} quyền`}]
+const save=useMutation({mutationFn:()=>edit.value?RoleService.updateRole(edit.value.id,{name:name.value}):RoleService.createRole({name:name.value}),onSuccess:async()=>{form.value=false;toast.success('Đã lưu vai trò.');await client.invalidateQueries({queryKey:['roles']})},onError:(e)=>error.value=e instanceof Error?e.message:'Không thể lưu.'}); const remove=useMutation({mutationFn:()=>RoleService.deleteRole(removeRow.value!.id),onSuccess:async()=>{removeRow.value=null;toast.success('Đã xóa vai trò.');await client.invalidateQueries({queryKey:['roles']})}})
+function open(row?:RoleRow){edit.value=row??null;name.value=row?.name??'';error.value='';form.value=true} function submit(){if(!/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)*$/.test(name.value)){error.value='Tên vai trò không hợp lệ.';return}save.mutate()}
 </script>
-<template>
-  <section class="space-y-5"><header><h1 class="text-2xl font-semibold">Vai trò</h1><p class="mt-1 text-sm text-muted-foreground">Quản lý nhóm quyền dùng trong vận hành.</p></header>
-    <DataGrid :columns="columns" :data-source="dataSource" :pagination="{ mode: 'client', pageSize: 10 }" filtering-mode="client" sorting-mode="client" filter-row global-filter show-actions :get-row-id="(row) => String(row.id)" @retry="query.refetch()">
-      <template #actions="{ row }"><Button size="xs" variant="ghost" @click="router.push({ name: 'role-detail', params: { id: row.id } })">Xem</Button></template>
-    </DataGrid>
-  </section>
-</template>
+<template><section class="space-y-5"><header class="flex items-end justify-between"><div><h1 class="text-2xl font-semibold">Vai trò</h1><p class="mt-1 text-sm text-muted-foreground">Quản lý nhóm quyền dùng trong vận hành.</p></div><Button @click="open()">Thêm vai trò</Button></header><DataGrid :columns="columns" :data-source="data" :pagination="{mode:'client',pageSize:10}" filtering-mode="client" sorting-mode="client" filter-row global-filter show-actions :get-row-id="r=>String(r.id)" @retry="query.refetch()"><template #actions="{row}"><Button size="xs" variant="ghost" @click="router.push({name:'role-detail',params:{id:row.id}})">Xem</Button><template v-if="!row.is_system"><Button size="xs" variant="ghost" @click="open(row)">Sửa</Button><Button size="xs" variant="ghost" class="text-destructive" @click="removeRow=row">Xóa</Button></template></template></DataGrid><AccessDialog :open="form" :title="edit?'Sửa vai trò':'Thêm vai trò'" :pending="save.isPending.value" @close="form=false" @confirm="submit"><label class="text-sm font-medium">Tên vai trò<input v-model="name" class="mt-1 h-9 w-full rounded-md border bg-background px-3" placeholder="dispatcher"></label><p v-if="error" class="mt-2 text-sm text-destructive">{{error}}</p></AccessDialog><AccessDialog :open="Boolean(removeRow)" title="Xóa vai trò" description="Thao tác này không thể hoàn tác." confirm-label="Xóa" destructive :pending="remove.isPending.value" @close="removeRow=null" @confirm="remove.mutate()" /></section></template>
