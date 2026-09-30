@@ -39,6 +39,14 @@ export const userColumns: DataGridColumnDef<UserRow>[] = [
     meta: { label: 'Vai trò' },
   },
   {
+    accessorKey: 'is_active',
+    header: 'Trạng thái',
+    size: 120,
+    cell: ({ getValue }) => (getValue() as boolean | null) ? 'Hoạt động' : 'Vô hiệu',
+    enableColumnFilter: false,
+    meta: { label: 'Trạng thái' },
+  },
+  {
     accessorKey: 'created_at',
     header: 'Ngày tạo',
     cell: ({ getValue }) => (getValue() as string | null) || '—',
