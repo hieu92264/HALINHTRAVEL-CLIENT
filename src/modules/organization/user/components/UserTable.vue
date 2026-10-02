@@ -46,7 +46,11 @@ function doToggle() {
   if (!confirmUser.value) return
   toggleActive.mutate(
     { user: confirmUser.value },
-    { onSettled: () => { confirmUser.value = null } },
+    {
+      onSettled: () => {
+        confirmUser.value = null
+      },
+    },
   )
 }
 </script>
@@ -70,22 +74,39 @@ function doToggle() {
     @retry="usersQuery.refetch()"
   >
     <template #actions="{ row }">
-      <Button
-        size="xs"
-        variant="ghost"
-        @click="router.push({ name: 'user-detail', params: { id: row.id } })"
-      >
-        Xem
-      </Button>
-      <Button size="xs" variant="ghost" @click="openEdit(row)">Sửa</Button>
-      <Button
-        size="xs"
-        variant="ghost"
-        :class="row.is_active ? 'text-destructive hover:text-destructive' : 'text-[#2F8A68] hover:text-[#2F8A68]'"
-        @click="openConfirmToggle(row)"
-      >
-        {{ row.is_active ? 'Vô hiệu hoá' : 'Kích hoạt' }}
-      </Button>
+      <div class="flex flex-col items-start gap-1 py-1">
+        <div class="flex items-center gap-1">
+          <Button
+            size="xs"
+            variant="ghost"
+            class="whitespace-nowrap rounded-md border border-slate-200 bg-white px-2.5 text-slate-700 shadow-sm transition-colors hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
+            @click="router.push({ name: 'user-detail', params: { id: row.id } })"
+          >
+            Xem
+          </Button>
+          <Button
+            size="xs"
+            variant="ghost"
+            class="whitespace-nowrap rounded-md border border-slate-200 bg-white px-2.5 text-slate-600 shadow-sm transition-colors hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700"
+            @click="openEdit(row)"
+          >
+            Sửa
+          </Button>
+        </div>
+        <Button
+          size="xs"
+          variant="ghost"
+          :class="[
+            'whitespace-nowrap rounded-md border border-slate-200 bg-white px-2.5 text-slate-600 shadow-sm transition-colors',
+            row.is_active
+              ? 'hover:border-red-300 hover:bg-red-50 hover:text-red-600'
+              : 'hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700',
+          ]"
+          @click="openConfirmToggle(row)"
+        >
+          {{ row.is_active ? 'Vô hiệu hoá' : 'Kích hoạt' }}
+        </Button>
+      </div>
     </template>
   </DataGrid>
 
