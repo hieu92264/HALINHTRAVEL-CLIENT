@@ -71,9 +71,16 @@ export function useUserDetail(id: string) {
     return q ? activeRoles.value.filter((r) => r.name.toLowerCase().includes(q)) : activeRoles.value
   })
 
+  const rolePermissionNames = computed(() => {
+    const directPermissions = new Set(user.value?.direct_permissions ?? [])
+    return new Set((user.value?.permissions ?? []).filter((name) => !directPermissions.has(name)))
+  })
+
   /** Permission được nhóm theo prefix (phần trước dấu chấm đầu tiên) */
   const groupedPermissions = computed<PermissionGroup[]>(() => {
-    const all = (permissionsQuery.data.value ?? []).filter((p) => p.is_active)
+    const all = (permissionsQuery.data.value ?? [])
+      .filter((p) => p.is_active)
+      .filter((p) => !rolePermissionNames.value.has(p.name))
     const q = permissionSearch.value.trim().toLowerCase()
     const filtered = q ? all.filter((p) => p.name.toLowerCase().includes(q)) : all
 
