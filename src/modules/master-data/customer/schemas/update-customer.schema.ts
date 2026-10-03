@@ -7,9 +7,7 @@ export const updateCustomerSchema = customerFieldsSchema
   .extend({
     type: z.nativeEnum(CustomerTypeEnum).optional(),
     opening_balance: openingBalanceSchema.optional(),
-  })
-  .refine((customer) => Object.values(customer).some((value) => value !== undefined), {
-    message: 'Cần cập nhật ít nhất một thông tin khách hàng',
+    is_active: z.boolean().optional(),
   })
 
 export type UpdateCustomerDto = z.infer<typeof updateCustomerSchema>

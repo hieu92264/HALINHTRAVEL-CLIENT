@@ -1,6 +1,15 @@
 import { CustomerTypeEnum } from '@/modules/master-data/master-data.enum'
-import { optionalNullableText } from '@/shared/helpers/zod.helper'
 import z from 'zod'
+
+const nullableText = (maxLength: number, label: string) =>
+  z.preprocess(
+    (value) => {
+      if (typeof value !== 'string') return value
+
+      return value.trim() || null
+    },
+    z.string().max(maxLength, { message: `${label} không được vượt quá ${maxLength} ký tự` }).nullable().optional(),
+  )
 
 const optionalNullableEmail = z.preprocess(
   (value) => {
@@ -17,18 +26,27 @@ export const openingBalanceSchema = z.preprocess(
     if (typeof value !== 'string' || !value.trim()) return value
     return Number(value)
   },
-  z.number().finite(),
+  z
+    .number()
+    .finite({ message: 'Số dư đầu kỳ phải là số hợp lệ' })
+    .refine((value) => Number.isInteger(value * 100), {
+      message: 'Số dư đầu kỳ chỉ được có tối đa 2 chữ số thập phân',
+    }),
 )
 
 export const customerFieldsSchema = z.object({
   type: z.nativeEnum(CustomerTypeEnum).default(CustomerTypeEnum.INDIVIDUAL),
-  name: z.string().trim().min(1, { message: 'Tên khách hàng không được để trống' }),
-  phone: optionalNullableText,
+  name: z
+    .string()
+    .trim()
+    .min(1, { message: 'Tên khách hàng không được để trống' })
+    .max(255, { message: 'Tên khách hàng không được vượt quá 255 ký tự' }),
+  phone: nullableText(20, 'Số điện thoại'),
   email: optionalNullableEmail,
-  cccd: optionalNullableText,
-  tax_code: optionalNullableText,
-  address: optionalNullableText,
-  contact_name: optionalNullableText,
+  cccd: nullableText(20, 'CCCD'),
+  tax_code: nullableText(30, 'Mã số thuế'),
+  address: nullableText(500, 'Địa chỉ'),
+  contact_name: nullableText(255, 'Tên người liên hệ'),
   opening_balance: openingBalanceSchema.default(0),
 })
 
