@@ -9,7 +9,7 @@ export const useStoreCustomerMutation = () => {
     mutationFn: CustomerService.storeCustomer,
     onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: [customerQueryKeys.all],
+        queryKey: customerQueryKeys.all,
       })
     },
   })
@@ -22,7 +22,7 @@ export const useUpdateCustomerMutation = () => {
       CustomerService.updateCustomer(payload.id, payload.data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: [customerQueryKeys.all],
+        queryKey: customerQueryKeys.all,
       })
     },
   })
@@ -34,7 +34,7 @@ export const useDeleteCustomerMutation = () => {
     mutationFn: (id: number) => CustomerService.deactiveCustomer(id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: [customerQueryKeys.all],
+        queryKey: customerQueryKeys.all,
       })
     },
   })
