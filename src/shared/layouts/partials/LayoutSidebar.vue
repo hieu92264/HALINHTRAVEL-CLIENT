@@ -1,20 +1,21 @@
 <script setup lang="ts">
 import {
   ChevronRightIcon,
-  LayoutDashboardIcon,
   LogOutIcon,
   PanelLeftCloseIcon,
   BusFrontIcon,
-  UsersIcon,
-  ShieldCheckIcon,
-  KeyRoundIcon,
 } from '@lucide/vue'
 import { useAuthStore } from '@/modules/auth/auth.store'
 import { AuthService } from '@/services/auth.service'
+import {
+  sidebarNavigation,
+  type SidebarLeaf,
+  type SidebarNavigationNode,
+} from '@/shared/layouts/sidebar-data'
 import { useSidebarStore } from '@/stores/sidebar.store'
 import { useTabsStore } from '@/stores/tabs.store'
-import { useRouter } from 'vue-router'
-import { useRoute } from 'vue-router'
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 const router = useRouter()
 const route = useRoute()
@@ -22,16 +23,25 @@ const authStore = useAuthStore()
 const sidebarStore = useSidebarStore()
 const tabsStore = useTabsStore()
 
-const navigation = [
-  { label: 'Tài khoản', to: '/users', icon: UsersIcon, permission: 'users.view' },
-  { label: 'Vai trò', to: '/roles', icon: ShieldCheckIcon, permission: 'roles.manage' },
-  { label: 'Quyền', to: '/permissions', icon: KeyRoundIcon, permission: 'permissions.view' },
-  {
-    label: 'Tổng quan',
-    to: '/',
-    icon: LayoutDashboardIcon,
-  },
-]
+function canShowItem(item: SidebarLeaf): boolean {
+  return (
+    router.hasRoute(item.routeName) &&
+    (!item.permission || authStore.user?.permissions.includes(item.permission) === true)
+  )
+}
+
+const visibleNavigation = computed<SidebarNavigationNode[]>(() => {
+  return sidebarNavigation.reduce<SidebarNavigationNode[]>((nodes, node) => {
+    if (node.kind === 'item') {
+      if (canShowItem(node)) nodes.push(node)
+      return nodes
+    }
+
+    const items = node.items.filter(canShowItem)
+    if (items.length) nodes.push({ ...node, items })
+    return nodes
+  }, [])
+})
 
 async function logout(): Promise<void> {
   await AuthService.logout().catch(() => undefined)
@@ -84,27 +94,56 @@ async function logout(): Promise<void> {
 
     <!-- Navigation -->
     <nav class="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Điều hướng chính">
-      <p v-if="!sidebarStore.isCollapsed" class="px-2 py-2 text-xs font-medium text-sky-200/65">Vận hành</p>
-      <RouterLink
-        v-for="item in navigation.filter((item) => !item.permission || authStore.user?.permissions.includes(item.permission))"
-        :key="item.to"
-        :to="item.to"
-        class="group flex h-10 items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium text-sky-100/70 transition-colors hover:bg-white/[0.08] hover:text-white"
-        :class="[
-          route.path === item.to
-            ? 'bg-white/12 text-white shadow-sm ring-1 ring-white/10'
-            : '',
-          sidebarStore.isCollapsed ? 'justify-center px-0' : '',
-        ]"
-        @click="sidebarStore.setMobileOpen(false)"
-      >
-        <component :is="item.icon" class="size-4 shrink-0" />
-        <span v-if="!sidebarStore.isCollapsed" class="flex-1 truncate">{{ item.label }}</span>
-        <ChevronRightIcon
-          v-if="!sidebarStore.isCollapsed"
-          class="size-3 opacity-0 transition-opacity group-hover:opacity-40"
-        />
-      </RouterLink>
+      <template v-for="node in visibleNavigation" :key="node.kind === 'item' ? node.routeName : node.label">
+        <RouterLink
+          v-if="node.kind === 'item'"
+          :to="node.to"
+          :title="sidebarStore.isCollapsed ? node.label : undefined"
+          :aria-current="route.name === node.routeName ? 'page' : undefined"
+          class="group flex h-10 items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium text-sky-100/70 transition-colors hover:bg-white/[0.08] hover:text-white"
+          :class="[
+            route.name === node.routeName ? 'bg-white/12 text-white shadow-sm ring-1 ring-white/10' : '',
+            sidebarStore.isCollapsed ? 'justify-center px-0' : '',
+          ]"
+          @click="sidebarStore.setMobileOpen(false)"
+        >
+          <component :is="node.icon" class="size-4 shrink-0" />
+          <span v-if="!sidebarStore.isCollapsed" class="flex-1 truncate">{{ node.label }}</span>
+          <ChevronRightIcon
+            v-if="!sidebarStore.isCollapsed"
+            class="size-3 opacity-0 transition-opacity group-hover:opacity-40"
+          />
+        </RouterLink>
+
+        <template v-else>
+          <p
+            v-if="!sidebarStore.isCollapsed"
+            class="px-2 pb-1 pt-4 text-xs font-medium text-sky-200/65 first:pt-2"
+          >
+            {{ node.label }}
+          </p>
+          <RouterLink
+            v-for="item in node.items"
+            :key="item.routeName"
+            :to="item.to"
+            :title="sidebarStore.isCollapsed ? item.label : undefined"
+            :aria-current="route.name === item.routeName ? 'page' : undefined"
+            class="group flex h-10 items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium text-sky-100/70 transition-colors hover:bg-white/[0.08] hover:text-white"
+            :class="[
+              route.name === item.routeName ? 'bg-white/12 text-white shadow-sm ring-1 ring-white/10' : '',
+              sidebarStore.isCollapsed ? 'justify-center px-0' : '',
+            ]"
+            @click="sidebarStore.setMobileOpen(false)"
+          >
+            <component :is="item.icon" class="size-4 shrink-0" />
+            <span v-if="!sidebarStore.isCollapsed" class="flex-1 truncate">{{ item.label }}</span>
+            <ChevronRightIcon
+              v-if="!sidebarStore.isCollapsed"
+              class="size-3 opacity-0 transition-opacity group-hover:opacity-40"
+            />
+          </RouterLink>
+        </template>
+      </template>
     </nav>
 
     <!-- Version -->
