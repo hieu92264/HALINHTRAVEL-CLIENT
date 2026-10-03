@@ -1,10 +1,5 @@
 <script setup lang="ts">
-import {
-  ChevronRightIcon,
-  LogOutIcon,
-  PanelLeftCloseIcon,
-  BusFrontIcon,
-} from '@lucide/vue'
+import { ChevronRightIcon, LogOutIcon, PanelLeftCloseIcon, BusFrontIcon } from '@lucide/vue'
 import { useAuthStore } from '@/modules/auth/auth.store'
 import { AuthService } from '@/services/auth.service'
 import {
@@ -63,7 +58,7 @@ async function logout(): Promise<void> {
   <aside
     class="fixed inset-y-0 left-0 z-40 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width,transform] duration-300 ease-in-out"
     :class="[
-      'lg:w-[var(--layout-sidebar-width)]',
+      'lg:w-(--layout-sidebar-width)',
       sidebarStore.isMobileOpen ? 'translate-x-0 w-[160px]' : '-translate-x-full lg:translate-x-0',
     ]"
   >
@@ -84,8 +79,12 @@ async function logout(): Promise<void> {
           <BusFrontIcon class="travel-logo-vehicle relative size-5" stroke-width="2.25" />
         </span>
         <div v-if="!sidebarStore.isCollapsed" class="min-w-0 overflow-hidden">
-          <p class="truncate text-[15px] font-extrabold tracking-tight leading-tight text-white">Hà Linh</p>
-          <p class="mt-0.5 truncate text-[10px] font-medium tracking-wide leading-tight text-sky-300">
+          <p class="truncate text-[15px] font-extrabold tracking-tight leading-tight text-white">
+            Hà Linh
+          </p>
+          <p
+            class="mt-0.5 truncate text-[10px] font-medium tracking-wide leading-tight text-sky-300"
+          >
             Vững bước muôn nơi
           </p>
         </div>
@@ -94,7 +93,10 @@ async function logout(): Promise<void> {
 
     <!-- Navigation -->
     <nav class="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Điều hướng chính">
-      <template v-for="node in visibleNavigation" :key="node.kind === 'item' ? node.routeName : node.label">
+      <template
+        v-for="node in visibleNavigation"
+        :key="node.kind === 'item' ? node.routeName : node.label"
+      >
         <RouterLink
           v-if="node.kind === 'item'"
           :to="node.to"
@@ -102,7 +104,9 @@ async function logout(): Promise<void> {
           :aria-current="route.name === node.routeName ? 'page' : undefined"
           class="group flex h-10 items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium text-sky-100/70 transition-colors hover:bg-white/[0.08] hover:text-white"
           :class="[
-            route.name === node.routeName ? 'bg-white/12 text-white shadow-sm ring-1 ring-white/10' : '',
+            route.name === node.routeName
+              ? 'bg-white/12 text-white shadow-sm ring-1 ring-white/10'
+              : '',
             sidebarStore.isCollapsed ? 'justify-center px-0' : '',
           ]"
           @click="sidebarStore.setMobileOpen(false)"
@@ -130,7 +134,9 @@ async function logout(): Promise<void> {
             :aria-current="route.name === item.routeName ? 'page' : undefined"
             class="group flex h-10 items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium text-sky-100/70 transition-colors hover:bg-white/[0.08] hover:text-white"
             :class="[
-              route.name === item.routeName ? 'bg-white/12 text-white shadow-sm ring-1 ring-white/10' : '',
+              route.name === item.routeName
+                ? 'bg-white/12 text-white shadow-sm ring-1 ring-white/10'
+                : '',
               sidebarStore.isCollapsed ? 'justify-center px-0' : '',
             ]"
             @click="sidebarStore.setMobileOpen(false)"
