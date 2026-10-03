@@ -284,6 +284,8 @@ Khai báo `fixed: 'left'` hoặc `fixed: 'right'` trực tiếp trên cột đ�
 
 `persist` lưu pagination, sorting, filters, global filter, visibility, thứ tự cột, kích thước cột và grouping vào localStorage. Khi đặt `url: true`, page, pageSize, sort, filters, cột ẩn và tìm nhanh cũng đồng bộ vào URL để F5 hoặc chia sẻ link vẫn giữ ngữ cảnh.
 
+Khi kéo để đổi độ rộng cột, bảng cập nhật trực tiếp để giữ thao tác mượt; kích thước cuối cùng và event `state-change` chỉ được lưu/phát sau khi thả chuột hoặc kết thúc thao tác cảm ứng.
+
 ```vue
 <DataGrid
   :columns="userColumns"

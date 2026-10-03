@@ -129,6 +129,7 @@ const emit = defineEmits<{
 
 const gridRoot = ref<HTMLElement | null>(null)
 const scrollContainer = ref<HTMLElement | null>(null)
+const tableElement = ref<HTMLTableElement | null>(null)
 const draggedColumnId = ref<string | null>(null)
 const editingCell = ref<{ rowId: string; columnId: string } | null>(null)
 const editingValue = ref('')
@@ -230,6 +231,8 @@ const globalFilter = ref(initialState.globalFilter || '')
 const columnVisibility = ref<VisibilityState>(initialState.columnVisibility || {})
 const columnOrder = ref<ColumnOrderState>(initialState.columnOrder || [])
 const columnSizing = ref<ColumnSizingState>(initialState.columnSizing || {})
+let liveColumnSizing: ColumnSizingState = { ...columnSizing.value }
+let columnSizingAnimationFrame: number | null = null
 const grouping = ref<GroupingState>(initialState.grouping || [])
 const rowSelection = ref<RowSelectionState>(props.selectedRowIds || {})
 
@@ -410,7 +413,7 @@ const table = useVueTable({
       return columnOrder.value
     },
     get columnSizing() {
-      return columnSizing.value
+      return isResizingColumn.value ? liveColumnSizing : columnSizing.value
     },
     get grouping() {
       return grouping.value
@@ -445,7 +448,14 @@ const table = useVueTable({
     columnOrder.value = applyUpdater(updater, columnOrder.value)
   },
   onColumnSizingChange: (updater) => {
-    columnSizing.value = applyUpdater(updater, columnSizing.value)
+    liveColumnSizing = applyUpdater(updater, liveColumnSizing)
+
+    if (isResizingColumn.value) {
+      scheduleColumnSizingDomUpdate()
+      return
+    }
+
+    commitColumnSizing()
   },
   onGroupingChange: (updater) => {
     grouping.value = applyUpdater(updater, grouping.value)
@@ -532,23 +542,96 @@ function measureRow(element: Element | null): void {
   if (element && virtualOptions.value) virtualizer.value.measureElement(element as HTMLTableRowElement)
 }
 
+const TABLE_TOTAL_SIZE_VARIABLE = '--data-grid-total-size'
+
+function getColumnCssToken(column: Column<TData, unknown>): string {
+  return Array.from(column.id)
+    .map((character) => (character.codePointAt(0) || 0).toString(36))
+    .join('-')
+}
+
+function getColumnSizeVariable(column: Column<TData, unknown>): string {
+  return `--data-grid-column-${getColumnCssToken(column)}-size`
+}
+
+function getColumnStartVariable(column: Column<TData, unknown>): string {
+  return `--data-grid-column-${getColumnCssToken(column)}-start`
+}
+
+function getColumnEndVariable(column: Column<TData, unknown>): string {
+  return `--data-grid-column-${getColumnCssToken(column)}-end`
+}
+
+function getTableSizingStyle(): Record<string, string | number> {
+  const style: Record<string, string | number> = {
+    minWidth: `max(720px, calc(var(${TABLE_TOTAL_SIZE_VARIABLE}) * 1px))`,
+    [TABLE_TOTAL_SIZE_VARIABLE]: table.getTotalSize(),
+  }
+
+  table.getAllColumns().forEach((column) => {
+    style[getColumnSizeVariable(column)] = column.getSize()
+  })
+
+  table.getVisibleLeafColumns().forEach((column) => {
+    if (column.getIsPinned() === 'left') style[getColumnStartVariable(column)] = column.getStart('left')
+    if (column.getIsPinned() === 'right') style[getColumnEndVariable(column)] = column.getAfter('right')
+  })
+
+  return style
+}
+
+function syncColumnSizingCssVariables(): void {
+  const element = tableElement.value
+  if (!element) return
+
+  element.style.setProperty(TABLE_TOTAL_SIZE_VARIABLE, String(table.getTotalSize()))
+  table.getAllColumns().forEach((column) => {
+    element.style.setProperty(getColumnSizeVariable(column), String(column.getSize()))
+  })
+  table.getVisibleLeafColumns().forEach((column) => {
+    if (column.getIsPinned() === 'left') {
+      element.style.setProperty(getColumnStartVariable(column), String(column.getStart('left')))
+    }
+    if (column.getIsPinned() === 'right') {
+      element.style.setProperty(getColumnEndVariable(column), String(column.getAfter('right')))
+    }
+  })
+}
+
+function scheduleColumnSizingDomUpdate(): void {
+  if (!isBrowser() || columnSizingAnimationFrame !== null) return
+
+  columnSizingAnimationFrame = window.requestAnimationFrame(() => {
+    columnSizingAnimationFrame = null
+    syncColumnSizingCssVariables()
+  })
+}
+
+function flushColumnSizingDomUpdate(): void {
+  if (isBrowser() && columnSizingAnimationFrame !== null) {
+    window.cancelAnimationFrame(columnSizingAnimationFrame)
+    columnSizingAnimationFrame = null
+  }
+  syncColumnSizingCssVariables()
+}
+
 function getColumnMeta(column: Column<TData, unknown>): DataGridColumnMeta<TData, unknown> | undefined {
   return column.columnDef.meta as DataGridColumnMeta<TData, unknown> | undefined
 }
 
 function getColumnStyle(column: Column<TData, unknown>): Record<string, string | number> {
   const pinned = column.getIsPinned()
-  const size = column.getSize()
+  const sizeVariable = getColumnSizeVariable(column)
   const style: Record<string, string | number> = {
-    width: `${size}px`,
-    minWidth: `${size}px`,
+    width: `calc(var(${sizeVariable}) * 1px)`,
+    minWidth: `calc(var(${sizeVariable}) * 1px)`,
   }
 
   if (pinned === 'left') {
-    style.left = `${column.getStart('left')}px`
+    style.left = `calc(var(${getColumnStartVariable(column)}) * 1px)`
   }
   if (pinned === 'right') {
-    style.right = `${column.getAfter('right')}px`
+    style.right = `calc(var(${getColumnEndVariable(column)}) * 1px)`
   }
 
   return style
@@ -777,28 +860,42 @@ function persistState(): void {
 }
 
 watch(
-  [pagination, sorting, columnFilters, globalFilter, columnVisibility, columnOrder, columnSizing, grouping],
+  [pagination, sorting, columnFilters, globalFilter, columnVisibility, columnOrder, grouping],
   () => persistState(),
   { deep: true },
 )
 
+function commitColumnSizing(): void {
+  columnSizing.value = { ...liveColumnSizing }
+  persistState()
+}
+
 function onResizeStart(columnId: string): void {
+  liveColumnSizing = { ...columnSizing.value }
   isResizingColumn.value = columnId
   if (isBrowser()) document.body.style.cursor = 'col-resize'
 }
 
 function onResizeEnd(): void {
+  if (isResizingColumn.value !== null) {
+    flushColumnSizingDomUpdate()
+    commitColumnSizing()
+  }
   isResizingColumn.value = null
   if (isBrowser()) document.body.style.cursor = ''
+}
+
+function onDocumentResizeEnd(): void {
+  queueMicrotask(onResizeEnd)
 }
 
 onMounted(() => {
   window.addEventListener('click', closeContextMenu)
   window.addEventListener('keydown', onDocumentKeydown)
   window.addEventListener('blur', onResizeEnd)
-  document.addEventListener('mouseup', onResizeEnd)
-  document.addEventListener('touchend', onResizeEnd)
-  document.addEventListener('touchcancel', onResizeEnd)
+  document.addEventListener('mouseup', onDocumentResizeEnd)
+  document.addEventListener('touchend', onDocumentResizeEnd)
+  document.addEventListener('touchcancel', onDocumentResizeEnd)
 })
 
 onBeforeUnmount(() => {
@@ -806,9 +903,9 @@ onBeforeUnmount(() => {
   window.removeEventListener('click', closeContextMenu)
   window.removeEventListener('keydown', onDocumentKeydown)
   window.removeEventListener('blur', onResizeEnd)
-  document.removeEventListener('mouseup', onResizeEnd)
-  document.removeEventListener('touchend', onResizeEnd)
-  document.removeEventListener('touchcancel', onResizeEnd)
+  document.removeEventListener('mouseup', onDocumentResizeEnd)
+  document.removeEventListener('touchend', onDocumentResizeEnd)
+  document.removeEventListener('touchcancel', onDocumentResizeEnd)
   onResizeEnd()
 })
 
@@ -848,8 +945,9 @@ function focusEditInput(): void {
       :style="scrollContainerStyle"
     >
       <table
+        ref="tableElement"
         class="w-full table-fixed border-separate border-spacing-0 text-left text-[13px]"
-        :style="{ minWidth: `${Math.max(table.getTotalSize(), 720)}px` }"
+        :style="getTableSizingStyle()"
       >
         <thead class="sticky top-0 z-20 text-xs text-muted-foreground">
           <tr v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">

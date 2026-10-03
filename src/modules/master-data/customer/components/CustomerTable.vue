@@ -18,7 +18,7 @@
     <template #actions="{ row }">
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
-          <Button variant="ghost" class="h-full min-h-[46px] w-full rounded-none p-0" @click.stop>
+          <Button variant="ghost" class="h-full min-h-11.5 w-full rounded-none p-0" @click.stop>
             <span class="sr-only">Mở thao tác khách hàng</span>
             <MoreHorizontal class="h-4 w-4" />
           </Button>
