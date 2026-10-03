@@ -5,6 +5,9 @@ import { useAuthStore } from '@/modules/auth/auth.store'
 import { useAppStore } from '@/stores/app.store'
 import { useTabsStore } from '@/stores/tabs.store'
 import { SESSION_EXPIRED_EVENT } from '@/shared/lib/auth-events'
+import { AuthRoute } from '@/modules/auth/auth.route'
+import { OrganizationRoute } from '@/modules/organization/org.route'
+import { MasterDataRoute } from '@/modules/master-data/master-data.route'
 
 NProgress.configure({
   showSpinner: false,
@@ -15,33 +18,20 @@ NProgress.configure({
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    {
-      path: '/login',
-      name: 'login',
-      component: () => import('@/modules/auth/login/LoginPage.vue'),
-      meta: { title: 'Đăng nhập', guestOnly: true },
-    },
+    ...AuthRoute,
     {
       path: '/',
       component: () => import('@/shared/layouts/BaseLayout.vue'),
       meta: { requiresAuth: true },
       children: [
-        { path: 'users/:id', name: 'user-detail', component: () => import('@/modules/organization/user/UserDetailPage.vue'), meta: { permission: 'users.view', title: 'Chi tiết tài khoản' } },
-        { path: 'roles', name: 'roles', component: () => import('@/modules/organization/role/RolePage.vue'), meta: { permission: 'roles.manage', title: 'Vai trò' } },
-        { path: 'roles/:id', name: 'role-detail', component: () => import('@/modules/organization/role/RoleDetailPage.vue'), meta: { permission: 'roles.manage', title: 'Chi tiết vai trò' } },
-        { path: 'permissions', name: 'permissions', component: () => import('@/modules/organization/permission/PermissionPage.vue'), meta: { permission: 'permissions.view', title: 'Quyền' } },
-        {
-          path: 'users',
-          name: 'users',
-          component: () => import('@/modules/organization/user/UserPage.vue'),
-          meta: { title: 'Tài khoản người dùng' },
-        },
         {
           path: '',
           name: 'dashboard',
           component: () => import('@/modules/dashboard/DashboardPage.vue'),
           meta: { title: 'Tổng quan' },
         },
+        ...OrganizationRoute,
+        ...MasterDataRoute,
       ],
     },
     {
