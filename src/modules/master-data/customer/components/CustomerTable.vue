@@ -7,7 +7,7 @@
     :pagination="{ mode: 'client', pageSize: 25 }"
     filtering-mode="client"
     sorting-mode="client"
-    filter-row
+    :filter-row="isFilterRowVisible"
     show-actions
     :get-row-id="(customer) => String(customer.id)"
     :persist="{ key: 'master-data-customers', url: true }"
@@ -15,6 +15,24 @@
     empty-description="Danh sách khách hàng sẽ hiển thị tại đây khi có dữ liệu."
     @retry="customersQuery.refetch()"
   >
+    <template #toolbar-start>
+      <Button
+        variant="outline"
+        :class="isFilterRowVisible ? 'border-primary/30 bg-primary/10 text-primary hover:bg-primary/15' : ''"
+        @click="isFilterRowVisible = !isFilterRowVisible"
+      >
+        <Filter class="size-4" />
+        Lọc
+      </Button>
+    </template>
+
+    <template #toolbar-end>
+      <Button @click="emit('create')">
+        <Plus class="size-4" />
+        Thêm khách hàng
+      </Button>
+    </template>
+
     <template #actions="{ row }">
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
@@ -27,18 +45,19 @@
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem class="min-w-40 gap-2" @click="() => console.log(row)">
+          <DropdownMenuItem class="min-w-40 gap-2" @click="emit('edit', row)">
             <PencilLine class="size-4" />
             Cập nhật
           </DropdownMenuItem>
 
           <DropdownMenuItem
+            v-if="row.is_active"
             variant="destructive"
             class="min-w-40 gap-2"
-            @click="() => console.log(row)"
+            @click="emit('deactivate', row)"
           >
             <Trash2 class="size-4" />
-            Xóa
+            Ngừng hoạt động
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -60,10 +79,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu'
-import { MoreHorizontal, PencilLine, Trash2 } from '@lucide/vue'
-import { computed } from 'vue'
+import { Filter, MoreHorizontal, PencilLine, Plus, Trash2 } from '@lucide/vue'
+import { computed, ref } from 'vue'
+
+const emit = defineEmits<{
+  create: []
+  edit: [customer: Customer]
+  deactivate: [customer: Customer]
+}>()
 
 const customersQuery = useCustomerQuery()
+
+const isFilterRowVisible = ref(true)
 
 const dataSource = computed<DataGridDataSource<Customer>>(() => ({
   data: customersQuery.data.value ?? [],

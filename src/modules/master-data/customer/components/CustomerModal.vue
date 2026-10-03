@@ -17,7 +17,7 @@
           <FormItem>
             <FormLabel> Loại khách hàng </FormLabel>
 
-            <Select v-bind="componentField" :disabled="isEdit">
+            <Select v-bind="componentField">
               <FormControl>
                 <SelectTrigger class="w-full">
                   <SelectValue placeholder="Chọn loại khách hàng" />
@@ -31,6 +31,25 @@
             </Select>
 
             <FormMessage />
+          </FormItem>
+        </FormField>
+
+        <FormField
+          v-if="isEdit && !row?.is_active"
+          v-slot="{ value, handleChange }"
+          name="is_active"
+        >
+          <FormItem class="flex flex-row items-center justify-between rounded-lg border border-border px-3 py-2.5">
+            <div class="space-y-0.5">
+              <FormLabel>Kích hoạt lại khách hàng</FormLabel>
+              <p class="text-sm text-muted-foreground">Khách hàng sẽ có thể được sử dụng cho nghiệp vụ mới.</p>
+            </div>
+            <input
+              type="checkbox"
+              class="size-4 rounded border-input text-primary focus:ring-ring"
+              :checked="Boolean(value)"
+              @change="handleChange(($event.target as HTMLInputElement).checked)"
+            />
           </FormItem>
         </FormField>
 
@@ -157,7 +176,7 @@ import {
   useUpdateCustomerMutation,
 } from '@/modules/master-data/customer/composables/useCustomerMutation'
 import type { Customer } from '@/modules/master-data/master-data.type'
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { updateCustomerSchema } from '@/modules/master-data/customer/schemas/update-customer.schema'
@@ -207,22 +226,45 @@ const isPending = computed(() => {
   return createMutation.isPending.value || updateMutation.isPending.value
 })
 
+const customerFieldKeys = [
+  'type',
+  'name',
+  'phone',
+  'email',
+  'cccd',
+  'tax_code',
+  'address',
+  'contact_name',
+  'opening_balance',
+] as const
+
+function getFormValues(customer?: Customer | null) {
+  return {
+    type: customer?.type ?? CustomerTypeEnum.INDIVIDUAL,
+    name: customer?.name ?? '',
+    phone: customer?.phone ?? null,
+    email: customer?.email ?? null,
+    cccd: customer?.cccd ?? null,
+    tax_code: customer?.tax_code ?? null,
+    address: customer?.address ?? null,
+    contact_name: customer?.contact_name ?? null,
+    opening_balance: customer?.opening_balance ?? 0,
+    is_active: false,
+  }
+}
+
 const form = useForm({
-  validationSchema: toTypedSchema(isEdit.value ? updateCustomerSchema : createCustomerSchema),
-  initialValues: {
-    type: CustomerTypeEnum.INDIVIDUAL,
-    name: '',
-    phone: null,
-    email: null,
-    cccd: null,
-    tax_code: null,
-    address: null,
-    contact_name: null,
-    opening_balance: 0,
-  },
+  validationSchema: toTypedSchema(createCustomerSchema),
+  initialValues: getFormValues(),
 })
 
-// const typeOptions = convertEnumToArray(CustomerTypeEnum)
+watch(
+  [() => props.isOpen, () => props.row],
+  ([isOpen]) => {
+    if (isOpen) form.resetForm({ values: getFormValues(props.row) })
+  },
+  { immediate: true },
+)
 
 const open = computed({
   get: () => props.isOpen,
@@ -233,14 +275,34 @@ const open = computed({
 
 const onSubmit = form.handleSubmit(async (values) => {
   try {
+    const customerValues = createCustomerSchema.parse(values)
+
     if (isEdit.value) {
+      const currentValues = createCustomerSchema.parse(props.row)
+      const payload: Record<string, unknown> = {}
+
+      for (const key of customerFieldKeys) {
+        if (!Object.is(customerValues[key], currentValues[key])) {
+          payload[key] = customerValues[key]
+        }
+      }
+
+      if (!props.row!.is_active && (form.values as { is_active?: boolean }).is_active === true) {
+        payload.is_active = true
+      }
+
+      if (!Object.keys(payload).length) {
+        toast.info('Chưa có thay đổi để cập nhật')
+        return
+      }
+
       await updateMutation.mutateAsync({
         id: props.row!.id,
-        data: updateCustomerSchema.parse(values),
+        data: updateCustomerSchema.parse(payload),
       })
       toast.success('Đã cập nhật khách hàng')
     } else {
-      await createMutation.mutateAsync(createCustomerSchema.parse(values))
+      await createMutation.mutateAsync(customerValues)
       toast.success('Đã thêm khách hàng')
     }
 
