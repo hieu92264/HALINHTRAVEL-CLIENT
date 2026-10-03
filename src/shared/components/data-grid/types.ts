@@ -24,6 +24,18 @@ export interface DataGridColumnMeta<TData extends RowData, TValue> {
 }
 
 export type DataGridColumnDef<TData extends RowData, TValue = unknown> = ColumnDef<TData, TValue> & {
+  /** Chiều rộng ban đầu của cột (px). Ưu tiên hơn `size` của TanStack và vẫn có thể resize. */
+  width?: number
+  /** Chiều rộng tối thiểu khi resize (px). Ưu tiên hơn `minSize` của TanStack. */
+  minWidth?: number
+  /** Chiều rộng tối đa khi resize (px). Ưu tiên hơn `maxSize` của TanStack. */
+  maxWidth?: number
+  /** Chiều cao tối thiểu của vùng nội dung trong ô dữ liệu (px). */
+  height?: number
+  /** Căn nội dung các ô dữ liệu trong cột. */
+  align?: 'left' | 'center' | 'right'
+  /** Cố định cột ở mép bảng khi cuộn ngang. */
+  fixed?: 'left' | 'right'
   meta?: DataGridColumnMeta<TData, TValue>
 }
 
