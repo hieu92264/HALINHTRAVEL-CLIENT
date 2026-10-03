@@ -1,4 +1,4 @@
 export enum CustomerTypeEnum {
-  INDIVIDUAL = 'INDIVIDUAL', // cá nhân
-  COMPANY = 'COMPANY', // công ty
+  INDIVIDUAL = 'individual', // cá nhân
+  COMPANY = 'company', // công ty
 }

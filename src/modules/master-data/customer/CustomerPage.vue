@@ -12,11 +12,12 @@
 
     <CustomerTable />
 
-    <!-- Dialog thêm tài khoản (không có user = tạo mới) -->
-    <!-- <UserForm :open="formOpen" :user="null" @close="formOpen = false" /> -->
+    <!-- Dialog -->
+    <CustomerModal :is-open="true" />
   </section>
 </template>
 
 <script setup lang="ts">
+import CustomerModal from '@/modules/master-data/customer/components/CustomerModal.vue'
 import CustomerTable from '@/modules/master-data/customer/components/CustomerTable.vue'
 </script>
