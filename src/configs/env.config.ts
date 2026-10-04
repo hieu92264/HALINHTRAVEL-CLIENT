@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 const envSchema = z.object({
-  VITE_API_BASE_URL: z.url('VITE_API_BASE_URL phải là một URL hợp lệ.'),
+  VITE_API_BASE_URL: z.string().url('VITE_API_BASE_URL phải là một URL hợp lệ.'),
 })
 
 const parsedEnv = envSchema.safeParse({

@@ -36,6 +36,7 @@ export const userColumns: DataGridColumnDef<UserRow>[] = [
     header: 'STT',
     cell: ({ row }) => row.index + 1,
     size: 64,
+    fixed: 'left',
     enableSorting: false,
     enableColumnFilter: false,
     meta: { label: 'STT' },
@@ -66,6 +67,7 @@ export const userColumns: DataGridColumnDef<UserRow>[] = [
     accessorKey: 'roles',
     header: 'Vai trò',
     cell: ({ getValue }) => (getValue() as string[]).join(', '),
+    fixed: 'right',
     meta: { label: 'Vai trò' },
   },
 ]
@@ -205,7 +207,19 @@ Với API server, nên debounce `filters-change` và `global-filter-change` ở 
 | `loading-mode` | `'skeleton' \| 'overlay'` | `'skeleton'` | Skeleton khi tải trang đầu hoặc overlay khi refetch. |
 | `empty-title`, `empty-description` | `string` | thông điệp mặc định | Nội dung empty state mặc định. |
 
-`DataGridColumnDef` mở rộng `ColumnDef` của TanStack với `meta` sau:
+`DataGridColumnDef` mở rộng `ColumnDef` của TanStack với các trường hiển thị, `fixed` và `meta` sau:
+
+| Trường | Mục đích |
+| --- | --- |
+| `width` | Chiều rộng ban đầu theo px. Ưu tiên hơn `size` của TanStack, nhưng vẫn kéo resize được. |
+| `minWidth` | Chiều rộng tối thiểu khi resize (px). Ưu tiên hơn `minSize` của TanStack. |
+| `maxWidth` | Chiều rộng tối đa khi resize (px). Ưu tiên hơn `maxSize` của TanStack. |
+| `height` | Chiều cao tối thiểu theo px cho nội dung ô dữ liệu. Hàng sẽ lấy chiều cao lớn nhất giữa các cột. |
+| `align` | Căn nội dung ô: `left`, `center` hoặc `right`; mặc định `left`. |
+
+Nội dung ô dữ liệu mặc định hiển thị một dòng, phần vượt quá được rút gọn bằng `…`. Rê chuột hoặc focus vào nội dung để xem giá trị đầy đủ qua tooltip native. Các ô hệ thống như checkbox, mở rộng dòng và thao tác không bị rút gọn.
+
+Khai báo `fixed: 'left'` hoặc `fixed: 'right'` trực tiếp trên cột để cố định cột đó khi cuộn ngang. Các cột fixed giữ nguyên thứ tự khai báo, không thể kéo để đổi thứ tự và không được lưu vào state persist.
 
 | `meta` | Mục đích |
 | --- | --- |
@@ -270,6 +284,8 @@ Với API server, nên debounce `filters-change` và `global-filter-change` ở 
 
 `persist` lưu pagination, sorting, filters, global filter, visibility, thứ tự cột, kích thước cột và grouping vào localStorage. Khi đặt `url: true`, page, pageSize, sort, filters, cột ẩn và tìm nhanh cũng đồng bộ vào URL để F5 hoặc chia sẻ link vẫn giữ ngữ cảnh.
 
+Khi kéo để đổi độ rộng cột, bảng cập nhật trực tiếp để giữ thao tác mượt; kích thước cuối cùng và event `state-change` chỉ được lưu/phát sau khi thả chuột hoặc kết thúc thao tác cảm ứng.
+
 ```vue
 <DataGrid
   :columns="userColumns"
@@ -290,6 +306,6 @@ Với `queryPrefix: 'users'`, URL dùng các key như `users_page`, `users_sort`
 - Luôn truyền `get-row-id` ổn định từ khoá nghiệp vụ, ví dụ `String(user.id)`; không dựa vào index khi có sort, filter hoặc pagination server.
 - Bật `virtual` khi mỗi trang có nhiều dòng (thường từ khoảng 200 dòng trở lên). Với dữ liệu ít, không bật để giữ chiều cao dòng tự nhiên và đơn giản hơn.
 - `persist.key` phải duy nhất cho từng DataGrid. Dùng `queryPrefix` khi cùng trang có từ hai bảng trở lên.
-- Cột selection, expand và action được ghim ở biên bảng; các cột nghiệp vụ còn lại mới có thể đổi thứ tự.
+- Cột selection, expand và action được ghim ở biên bảng; cột nghiệp vụ có `fixed` cũng được ghim và không thể đổi thứ tự.
 - Với filter/search server, debounce ở page/composable để tránh gọi API mỗi lần gõ phím.
 - Thiết kế action nên ưu tiên thao tác thường dùng; các thao tác ít dùng có thể đặt trong context menu.

@@ -23,4 +23,13 @@ export declare global {
     timestamp: string
     debug?: ApiDebug
   }
+
+  interface BaseEntity {
+    id: number
+    is_active?: boolean
+    created_at?: string | null
+    updated_at?: string | null
+    user_name_created?: string | null
+    user_name_updated?: string | null
+  }
 }

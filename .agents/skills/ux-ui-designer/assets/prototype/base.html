@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Prototype</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <header class="site-header">
+      <a class="brand" href="#">Prototype</a>
+      <nav aria-label="Primary navigation">
+        <a aria-current="page" href="#">Overview</a>
+        <a href="#">Records</a>
+      </nav>
+    </header>
+    <main id="main-content" class="page-shell">
+      <header class="page-header">
+        <div>
+          <p class="eyebrow">Workspace</p>
+          <h1>Screen title</h1>
+          <p class="description">State the task this screen helps a person complete.</p>
+        </div>
+        <button type="button">Primary action</button>
+      </header>
+      <section aria-labelledby="content-heading" class="surface">
+        <h2 id="content-heading">Main content</h2>
+        <p>Replace this starter content with the prototype’s workflow and realistic demo data.</p>
+      </section>
+    </main>
+    <div aria-live="polite" class="toast-region" id="toast-region"></div>
+    <script type="module" src="prototype.js"></script>
+  </body>
+</html>

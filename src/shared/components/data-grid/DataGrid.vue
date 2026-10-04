@@ -129,10 +129,13 @@ const emit = defineEmits<{
 
 const gridRoot = ref<HTMLElement | null>(null)
 const scrollContainer = ref<HTMLElement | null>(null)
+const tableElement = ref<HTMLTableElement | null>(null)
 const draggedColumnId = ref<string | null>(null)
 const editingCell = ref<{ rowId: string; columnId: string } | null>(null)
 const editingValue = ref('')
 const contextMenu = ref<DataGridContextMenu<TData> | null>(null)
+
+const isResizingColumn = ref<string | null>(null)
 
 type PersistedState = Partial<DataGridState>
 
@@ -228,6 +231,8 @@ const globalFilter = ref(initialState.globalFilter || '')
 const columnVisibility = ref<VisibilityState>(initialState.columnVisibility || {})
 const columnOrder = ref<ColumnOrderState>(initialState.columnOrder || [])
 const columnSizing = ref<ColumnSizingState>(initialState.columnSizing || {})
+let liveColumnSizing: ColumnSizingState = { ...columnSizing.value }
+let columnSizingAnimationFrame: number | null = null
 const grouping = ref<GroupingState>(initialState.grouping || [])
 const rowSelection = ref<RowSelectionState>(props.selectedRowIds || {})
 
@@ -284,7 +289,15 @@ const systemColumns = computed<ColumnDef<TData>[]>(() => {
 })
 
 const resolvedColumns = computed<ColumnDef<TData>[]>(() => {
-  const columns = [...systemColumns.value, ...props.columns]
+  const columns = [
+    ...systemColumns.value,
+    ...props.columns.map((column) => ({
+      ...column,
+      size: column.width ?? column.size,
+      minSize: column.minWidth ?? column.minSize,
+      maxSize: column.maxWidth ?? column.maxSize,
+    })),
+  ]
 
   if (props.showActions) {
     columns.push({
@@ -303,6 +316,30 @@ const resolvedColumns = computed<ColumnDef<TData>[]>(() => {
 
   return columns
 })
+
+function getColumnDefinitionId(column: DataGridColumnDef<TData>): string | undefined {
+  if ('id' in column && typeof column.id === 'string') return column.id
+
+  if ('accessorKey' in column && typeof column.accessorKey === 'string') {
+    return column.accessorKey.replaceAll('.', '_')
+  }
+
+  if ('header' in column && typeof column.header === 'string') return column.header
+
+  return undefined
+}
+
+function getFixedColumnIds(position: 'left' | 'right'): string[] {
+  return props.columns
+    .filter((column) => column.fixed === position)
+    .map(getColumnDefinitionId)
+    .filter((columnId): columnId is string => Boolean(columnId))
+}
+
+const initialColumnPinning = {
+  left: [SELECT_COLUMN_ID, EXPAND_COLUMN_ID, ...getFixedColumnIds('left')],
+  right: [...getFixedColumnIds('right'), ACTION_COLUMN_ID],
+}
 
 function applyUpdater<T>(updater: Updater<T>, previous: T): T {
   return functionalUpdate(updater, previous)
@@ -352,12 +389,9 @@ const table = useVueTable({
   get enableColumnResizing() {
     return props.enableColumnResizing
   },
-  columnResizeMode: 'onEnd',
+  columnResizeMode: 'onChange',
   initialState: {
-    columnPinning: {
-      left: [SELECT_COLUMN_ID, EXPAND_COLUMN_ID],
-      right: [ACTION_COLUMN_ID],
-    },
+    columnPinning: initialColumnPinning,
   },
   state: {
     get pagination() {
@@ -379,7 +413,7 @@ const table = useVueTable({
       return columnOrder.value
     },
     get columnSizing() {
-      return columnSizing.value
+      return isResizingColumn.value ? liveColumnSizing : columnSizing.value
     },
     get grouping() {
       return grouping.value
@@ -414,7 +448,14 @@ const table = useVueTable({
     columnOrder.value = applyUpdater(updater, columnOrder.value)
   },
   onColumnSizingChange: (updater) => {
-    columnSizing.value = applyUpdater(updater, columnSizing.value)
+    liveColumnSizing = applyUpdater(updater, liveColumnSizing)
+
+    if (isResizingColumn.value) {
+      scheduleColumnSizingDomUpdate()
+      return
+    }
+
+    commitColumnSizing()
   },
   onGroupingChange: (updater) => {
     grouping.value = applyUpdater(updater, grouping.value)
@@ -501,22 +542,96 @@ function measureRow(element: Element | null): void {
   if (element && virtualOptions.value) virtualizer.value.measureElement(element as HTMLTableRowElement)
 }
 
+const TABLE_TOTAL_SIZE_VARIABLE = '--data-grid-total-size'
+
+function getColumnCssToken(column: Column<TData, unknown>): string {
+  return Array.from(column.id)
+    .map((character) => (character.codePointAt(0) || 0).toString(36))
+    .join('-')
+}
+
+function getColumnSizeVariable(column: Column<TData, unknown>): string {
+  return `--data-grid-column-${getColumnCssToken(column)}-size`
+}
+
+function getColumnStartVariable(column: Column<TData, unknown>): string {
+  return `--data-grid-column-${getColumnCssToken(column)}-start`
+}
+
+function getColumnEndVariable(column: Column<TData, unknown>): string {
+  return `--data-grid-column-${getColumnCssToken(column)}-end`
+}
+
+function getTableSizingStyle(): Record<string, string | number> {
+  const style: Record<string, string | number> = {
+    minWidth: `max(720px, calc(var(${TABLE_TOTAL_SIZE_VARIABLE}) * 1px))`,
+    [TABLE_TOTAL_SIZE_VARIABLE]: table.getTotalSize(),
+  }
+
+  table.getAllColumns().forEach((column) => {
+    style[getColumnSizeVariable(column)] = column.getSize()
+  })
+
+  table.getVisibleLeafColumns().forEach((column) => {
+    if (column.getIsPinned() === 'left') style[getColumnStartVariable(column)] = column.getStart('left')
+    if (column.getIsPinned() === 'right') style[getColumnEndVariable(column)] = column.getAfter('right')
+  })
+
+  return style
+}
+
+function syncColumnSizingCssVariables(): void {
+  const element = tableElement.value
+  if (!element) return
+
+  element.style.setProperty(TABLE_TOTAL_SIZE_VARIABLE, String(table.getTotalSize()))
+  table.getAllColumns().forEach((column) => {
+    element.style.setProperty(getColumnSizeVariable(column), String(column.getSize()))
+  })
+  table.getVisibleLeafColumns().forEach((column) => {
+    if (column.getIsPinned() === 'left') {
+      element.style.setProperty(getColumnStartVariable(column), String(column.getStart('left')))
+    }
+    if (column.getIsPinned() === 'right') {
+      element.style.setProperty(getColumnEndVariable(column), String(column.getAfter('right')))
+    }
+  })
+}
+
+function scheduleColumnSizingDomUpdate(): void {
+  if (!isBrowser() || columnSizingAnimationFrame !== null) return
+
+  columnSizingAnimationFrame = window.requestAnimationFrame(() => {
+    columnSizingAnimationFrame = null
+    syncColumnSizingCssVariables()
+  })
+}
+
+function flushColumnSizingDomUpdate(): void {
+  if (isBrowser() && columnSizingAnimationFrame !== null) {
+    window.cancelAnimationFrame(columnSizingAnimationFrame)
+    columnSizingAnimationFrame = null
+  }
+  syncColumnSizingCssVariables()
+}
+
 function getColumnMeta(column: Column<TData, unknown>): DataGridColumnMeta<TData, unknown> | undefined {
   return column.columnDef.meta as DataGridColumnMeta<TData, unknown> | undefined
 }
 
 function getColumnStyle(column: Column<TData, unknown>): Record<string, string | number> {
   const pinned = column.getIsPinned()
+  const sizeVariable = getColumnSizeVariable(column)
   const style: Record<string, string | number> = {
-    width: `${column.getSize()}px`,
-    minWidth: `${column.getSize()}px`,
+    width: `calc(var(${sizeVariable}) * 1px)`,
+    minWidth: `calc(var(${sizeVariable}) * 1px)`,
   }
 
   if (pinned === 'left') {
-    style.left = `${column.getStart('left')}px`
+    style.left = `calc(var(${getColumnStartVariable(column)}) * 1px)`
   }
   if (pinned === 'right') {
-    style.right = `${column.getAfter('right')}px`
+    style.right = `calc(var(${getColumnEndVariable(column)}) * 1px)`
   }
 
   return style
@@ -525,17 +640,71 @@ function getColumnStyle(column: Column<TData, unknown>): Record<string, string |
 function getColumnClasses(column: Column<TData, unknown>, surface: 'head' | 'body' | 'filter'): string {
   const pinned = column.getIsPinned()
   const base = [
-    surface === 'head' ? 'bg-muted/90' : surface === 'filter' ? 'bg-muted/65' : 'bg-card',
+    surface === 'head' || surface === 'filter' ? 'bg-muted' : 'bg-card',
     'border-r border-border/70 last:border-r-0',
   ].join(' ')
   if (!pinned) return base
+
+  const edge =
+    (pinned === 'left' && column.getIsLastColumn('left')) ||
+    (pinned === 'right' && column.getIsFirstColumn('right'))
+      ? pinned === 'left'
+        ? 'border-r-2 border-border'
+        : 'border-l-2 border-border'
+      : ''
 
   return [
     base,
     'sticky z-10',
     pinned === 'left' ? 'border-r border-border' : 'border-l border-border',
+    edge,
     surface === 'head' ? 'z-30' : surface === 'filter' ? 'z-20' : '',
   ].join(' ')
+}
+
+function getBodyCellClasses(column: Column<TData, unknown>): string {
+  return column.id === ACTION_COLUMN_ID ? 'p-0' : 'px-3'
+}
+
+function getBodyCellStateClasses(column: Column<TData, unknown>): string {
+  // Pinned cells sit above the horizontally scrollable table. Their hover surface
+  // must be opaque, otherwise content from the cells behind them can show through.
+  return column.getIsPinned()
+    ? 'group-hover:bg-muted group-focus-within:bg-muted'
+    : 'group-hover:bg-muted/55 group-focus-within:bg-muted/55'
+}
+
+function isActiveResizingColumn(column: Column<TData, unknown>): boolean {
+  return !SYSTEM_COLUMN_IDS.includes(column.id) && isResizingColumn.value === column.id
+}
+
+function getResizingColumnClasses(column: Column<TData, unknown>, surface: 'head' | 'body' | 'filter'): string {
+  if (!isActiveResizingColumn(column)) return ''
+
+  return surface === 'body' ? 'bg-primary/[0.03]' : 'ring-1 ring-inset ring-primary/40'
+}
+
+function getColumnAlign(column: Column<TData, unknown>): 'left' | 'center' | 'right' {
+  return (column.columnDef as DataGridColumnDef<TData>).align || 'left'
+}
+
+function getCellContentClasses(column: Column<TData, unknown>): string {
+  const alignment = getColumnAlign(column)
+  return [
+    'flex min-w-0 items-center truncate',
+    alignment === 'center' ? 'justify-center text-center' : alignment === 'right' ? 'justify-end text-right' : 'justify-start text-left',
+  ].join(' ')
+}
+
+function getCellContentStyle(column: Column<TData, unknown>): Record<string, string> | undefined {
+  const height = (column.columnDef as DataGridColumnDef<TData>).height
+  return height === undefined ? undefined : { minHeight: `${height}px` }
+}
+
+function getCellTooltip(cell: Cell<TData, unknown>): string | undefined {
+  const value = cell.getValue()
+  if (value === undefined || value === null) return undefined
+  return String(value)
 }
 
 function getHeaderLabel(header: Header<TData, unknown>): string {
@@ -571,7 +740,8 @@ function toggleColumnOrder(targetId: string): void {
 function canReorder(column: Column<TData, unknown>): boolean {
   return (
     props.enableColumnReordering &&
-    ![SELECT_COLUMN_ID, EXPAND_COLUMN_ID, ACTION_COLUMN_ID].includes(column.id)
+    ![SELECT_COLUMN_ID, EXPAND_COLUMN_ID, ACTION_COLUMN_ID].includes(column.id) &&
+    !(column.columnDef as { fixed?: 'left' | 'right' }).fixed
   )
 }
 
@@ -690,20 +860,53 @@ function persistState(): void {
 }
 
 watch(
-  [pagination, sorting, columnFilters, globalFilter, columnVisibility, columnOrder, columnSizing, grouping],
+  [pagination, sorting, columnFilters, globalFilter, columnVisibility, columnOrder, grouping],
   () => persistState(),
   { deep: true },
 )
 
+function commitColumnSizing(): void {
+  columnSizing.value = { ...liveColumnSizing }
+  persistState()
+}
+
+function onResizeStart(columnId: string): void {
+  liveColumnSizing = { ...columnSizing.value }
+  isResizingColumn.value = columnId
+  if (isBrowser()) document.body.style.cursor = 'col-resize'
+}
+
+function onResizeEnd(): void {
+  if (isResizingColumn.value !== null) {
+    flushColumnSizingDomUpdate()
+    commitColumnSizing()
+  }
+  isResizingColumn.value = null
+  if (isBrowser()) document.body.style.cursor = ''
+}
+
+function onDocumentResizeEnd(): void {
+  queueMicrotask(onResizeEnd)
+}
+
 onMounted(() => {
   window.addEventListener('click', closeContextMenu)
   window.addEventListener('keydown', onDocumentKeydown)
+  window.addEventListener('blur', onResizeEnd)
+  document.addEventListener('mouseup', onDocumentResizeEnd)
+  document.addEventListener('touchend', onDocumentResizeEnd)
+  document.addEventListener('touchcancel', onDocumentResizeEnd)
 })
 
 onBeforeUnmount(() => {
   if (!isBrowser()) return
   window.removeEventListener('click', closeContextMenu)
   window.removeEventListener('keydown', onDocumentKeydown)
+  window.removeEventListener('blur', onResizeEnd)
+  document.removeEventListener('mouseup', onDocumentResizeEnd)
+  document.removeEventListener('touchend', onDocumentResizeEnd)
+  document.removeEventListener('touchcancel', onDocumentResizeEnd)
+  onResizeEnd()
 })
 
 function focusEditInput(): void {
@@ -742,8 +945,9 @@ function focusEditInput(): void {
       :style="scrollContainerStyle"
     >
       <table
+        ref="tableElement"
         class="w-full table-fixed border-separate border-spacing-0 text-left text-[13px]"
-        :style="{ minWidth: `${Math.max(table.getTotalSize(), 720)}px` }"
+        :style="getTableSizingStyle()"
       >
         <thead class="sticky top-0 z-20 text-xs text-muted-foreground">
           <tr v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
@@ -752,7 +956,7 @@ function focusEditInput(): void {
               :key="header.id"
               :colspan="header.colSpan"
               class="relative h-10 border-b border-border px-3 text-left font-semibold"
-              :class="getColumnClasses(header.column, 'head')"
+              :class="[getColumnClasses(header.column, 'head'), getResizingColumnClasses(header.column, 'head')]"
               :style="getColumnStyle(header.column)"
             >
               <template v-if="!header.isPlaceholder">
@@ -783,7 +987,7 @@ function focusEditInput(): void {
                     <span class="sr-only">Mở rộng dòng</span>
                   </template>
                   <template v-else-if="header.column.id === ACTION_COLUMN_ID">
-                    <span class="sr-only">Thao tác</span>
+                    <span>Thao tác</span>
                   </template>
                   <button
                     v-else-if="header.column.getCanSort()"
@@ -803,13 +1007,13 @@ function focusEditInput(): void {
                 <button
                   v-if="header.column.getCanResize()"
                   class="data-grid-resizer"
-                  :class="header.column.getIsResizing() ? 'is-resizing' : ''"
+                  :class="isActiveResizingColumn(header.column) ? 'is-resizing' : ''"
                   type="button"
                   tabindex="-1"
                   :aria-label="`Đổi độ rộng cột ${getHeaderLabel(header)}`"
                   @dblclick.stop="header.column.resetSize()"
-                  @mousedown.stop="header.getResizeHandler()?.($event)"
-                  @touchstart.stop="header.getResizeHandler()?.($event)"
+                  @mousedown.stop="onResizeStart(header.column.id); header.getResizeHandler()?.($event)"
+                  @touchstart.stop="onResizeStart(header.column.id); header.getResizeHandler()?.($event)"
                 />
               </template>
             </th>
@@ -820,7 +1024,7 @@ function focusEditInput(): void {
               v-for="header in filterHeaders"
               :key="`${header.id}-filter`"
               class="h-10 border-b border-border px-2 py-1.5"
-              :class="getColumnClasses(header.column, 'filter')"
+              :class="[getColumnClasses(header.column, 'filter'), getResizingColumnClasses(header.column, 'filter')]"
               :style="getColumnStyle(header.column)"
             >
               <input
@@ -904,8 +1108,13 @@ function focusEditInput(): void {
               <td
                 v-for="cell in getRowAt(virtualRow)?.getVisibleCells() || []"
                 :key="cell.id"
-                class="h-[46px] border-b border-border px-3 align-middle text-foreground group-hover:bg-muted/55 group-focus-within:bg-muted/55"
-                :class="getColumnClasses(cell.column, 'body')"
+                class="h-[46px] border-b border-border align-middle text-foreground"
+                :class="[
+                  getColumnClasses(cell.column, 'body'),
+                  getBodyCellClasses(cell.column),
+                  getBodyCellStateClasses(cell.column),
+                  getResizingColumnClasses(cell.column, 'body'),
+                ]"
                 :style="getColumnStyle(cell.column)"
                 @dblclick.stop="startEditing(cell); focusEditInput()"
               >
@@ -966,12 +1175,27 @@ function focusEditInput(): void {
                     <span class="text-xs font-medium text-muted-foreground">({{ cell.row.subRows.length }})</span>
                   </button>
                 </template>
-                <FlexRender
+                <div
                   v-else-if="cell.getIsAggregated()"
-                  :render="cell.column.columnDef.aggregatedCell || cell.column.columnDef.cell"
-                  :props="cell.getContext()"
-                />
-                <FlexRender v-else-if="!cell.getIsPlaceholder()" :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+                  data-data-grid-cell-content
+                  :class="getCellContentClasses(cell.column)"
+                  :style="getCellContentStyle(cell.column)"
+                  :title="getCellTooltip(cell)"
+                >
+                  <FlexRender
+                    :render="cell.column.columnDef.aggregatedCell || cell.column.columnDef.cell"
+                    :props="cell.getContext()"
+                  />
+                </div>
+                <div
+                  v-else-if="!cell.getIsPlaceholder()"
+                  data-data-grid-cell-content
+                  :class="getCellContentClasses(cell.column)"
+                  :style="getCellContentStyle(cell.column)"
+                  :title="getCellTooltip(cell)"
+                >
+                  <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+                </div>
               </td>
             </tr>
           </template>
@@ -992,8 +1216,13 @@ function focusEditInput(): void {
               <td
                 v-for="cell in row.getVisibleCells()"
                 :key="cell.id"
-                class="h-[46px] border-b border-border px-3 align-middle text-foreground group-hover:bg-muted/55 group-focus-within:bg-muted/55"
-                :class="getColumnClasses(cell.column, 'body')"
+                class="h-[46px] border-b border-border align-middle text-foreground"
+                :class="[
+                  getColumnClasses(cell.column, 'body'),
+                  getBodyCellClasses(cell.column),
+                  getBodyCellStateClasses(cell.column),
+                  getResizingColumnClasses(cell.column, 'body'),
+                ]"
                 :style="getColumnStyle(cell.column)"
                 @dblclick.stop="startEditing(cell); focusEditInput()"
               >
@@ -1054,12 +1283,27 @@ function focusEditInput(): void {
                     <span class="text-xs font-medium text-muted-foreground">({{ cell.row.subRows.length }})</span>
                   </button>
                 </template>
-                <FlexRender
+                <div
                   v-else-if="cell.getIsAggregated()"
-                  :render="cell.column.columnDef.aggregatedCell || cell.column.columnDef.cell"
-                  :props="cell.getContext()"
-                />
-                <FlexRender v-else-if="!cell.getIsPlaceholder()" :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+                  data-data-grid-cell-content
+                  :class="getCellContentClasses(cell.column)"
+                  :style="getCellContentStyle(cell.column)"
+                  :title="getCellTooltip(cell)"
+                >
+                  <FlexRender
+                    :render="cell.column.columnDef.aggregatedCell || cell.column.columnDef.cell"
+                    :props="cell.getContext()"
+                  />
+                </div>
+                <div
+                  v-else-if="!cell.getIsPlaceholder()"
+                  data-data-grid-cell-content
+                  :class="getCellContentClasses(cell.column)"
+                  :style="getCellContentStyle(cell.column)"
+                  :title="getCellTooltip(cell)"
+                >
+                  <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+                </div>
               </td>
             </tr>
           </template>
@@ -1113,30 +1357,62 @@ function focusEditInput(): void {
   cursor: col-resize;
   height: 100%;
   position: absolute;
-  right: -4px;
+  right: -6px;
   top: 0;
-  width: 8px;
+  width: 12px;
   z-index: 40;
 }
 
 .data-grid-resizer::after {
   background: transparent;
-  bottom: 8px;
+  bottom: 6px;
   content: '';
   position: absolute;
-  right: 3px;
-  top: 8px;
-  transition: background-color 150ms ease;
+  right: 5px;
+  top: 6px;
+  transition:
+    background-color 120ms ease,
+    width 120ms ease,
+    box-shadow 120ms ease;
+  width: 2px;
+  border-radius: 1px;
+}
+
+.data-grid-resizer::before {
+  background: var(--primary);
+  border-radius: 999px;
+  box-shadow: 0 -4px 0 var(--primary), 0 4px 0 var(--primary);
+  content: '';
+  height: 2px;
+  opacity: 0;
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: opacity 120ms ease;
   width: 2px;
 }
 
-.data-grid-resizer:hover::after,
+.data-grid-resizer:hover::after {
+  background: var(--primary);
+  width: 3px;
+  box-shadow: 0 0 4px color-mix(in srgb, var(--primary) 35%, transparent);
+}
+
 .data-grid-resizer.is-resizing::after {
   background: var(--primary);
+  width: 3px;
+  box-shadow: 0 0 6px color-mix(in srgb, var(--primary) 50%, transparent);
+}
+
+.data-grid-resizer:hover::before,
+.data-grid-resizer.is-resizing::before {
+  opacity: 0.9;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .data-grid-resizer::after {
+  .data-grid-resizer::after,
+  .data-grid-resizer::before {
     transition: none;
   }
 }

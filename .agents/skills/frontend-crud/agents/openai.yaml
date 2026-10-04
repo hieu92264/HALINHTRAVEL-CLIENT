@@ -1,0 +1,4 @@
+interface:
+  display_name: "Frontend CRUD"
+  short_description: "Build Vue CRUD screens from prepared domain files"
+  default_prompt: "Use $frontend-crud to build the Page, Table, and Modal for this CRUD module."
