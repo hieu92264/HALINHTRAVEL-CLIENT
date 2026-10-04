@@ -1,4 +1,4 @@
-import type { CustomerTypeEnum } from '@/modules/master-data/master-data.enum'
+import type { CustomerTypeEnum, PartnerTypeEnum } from '@/modules/master-data/master-data.enum'
 
 export interface Customer extends BaseEntity {
   code: string
@@ -10,5 +10,19 @@ export interface Customer extends BaseEntity {
   tax_code: string | null
   address: string | null
   contact_name: string | null
+  opening_balance: number
+}
+
+export interface Partner extends BaseEntity {
+  code: string
+  type: PartnerTypeEnum
+  name: string
+  phone: string | null
+  email: string | null
+  cccd: string | null
+  tax_code: string | null
+  address: string | null
+  bank_name: string | null
+  bank_account: string | null
   opening_balance: number
 }

@@ -1,5 +1,6 @@
 import {
   BusFrontIcon,
+  HandshakeIcon,
   KeyRoundIcon,
   LayoutDashboardIcon,
   ShieldCheckIcon,
@@ -43,6 +44,14 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
         routeName: 'customers',
         icon: UsersIcon,
         permission: 'customers.view',
+      },
+      {
+        kind: 'item',
+        label: 'Đối tác',
+        to: '/partners',
+        routeName: 'partners',
+        icon: HandshakeIcon,
+        permission: 'partners.view',
       },
       {
         kind: 'item',
