@@ -10,3 +10,16 @@ export enum PartnerTypeEnum {
   FUEL_SUPPLIER = 'fuel_supplier', //nhà cung cấp nhiên liệu
   OTHER = 'other',
 }
+
+export enum OwnershipTypeEnum {
+  COMPANY = 'company', // công ty
+  INDIVIDUAL = 'partner', // đối tác
+}
+
+export enum VehicleStatusEnum {
+  AVAILABLE = 'available',
+  ASSIGNED = 'assigned',
+  MAINTENANCE = 'maintenance',
+  INACTIVE = 'inactive',
+  OTHER = 'other',
+}

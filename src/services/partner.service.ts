@@ -32,4 +32,10 @@ export class PartnerService {
     console.log('response', response)
     return response
   }
+
+  public static async getPartnerOptions(): Promise<{ id: number; name: string }[]> {
+    const response = await httpService.get<{ id: number; name: string }[]>(PartnerURL + '/options')
+    console.log('response', response)
+    return response
+  }
 }

@@ -1,5 +1,6 @@
 import {
   BusFrontIcon,
+  CarIcon,
   HandshakeIcon,
   KeyRoundIcon,
   LayoutDashboardIcon,
@@ -61,6 +62,14 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
         routeName: 'vehicle-types',
         icon: TagIcon,
         permission: 'vehicle-types.view',
+      },
+      {
+        kind: 'item',
+        label: 'Danh sách xe',
+        to: '/vehicles',
+        routeName: 'vehicles',
+        icon: CarIcon,
+        permission: 'vehicles.view',
       },
       {
         kind: 'item',

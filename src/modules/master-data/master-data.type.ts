@@ -1,4 +1,9 @@
-import type { CustomerTypeEnum, PartnerTypeEnum } from '@/modules/master-data/master-data.enum'
+import type {
+  CustomerTypeEnum,
+  OwnershipTypeEnum,
+  PartnerTypeEnum,
+  VehicleStatusEnum,
+} from '@/modules/master-data/master-data.enum'
 
 export interface Customer extends BaseEntity {
   code: string
@@ -32,4 +37,19 @@ export interface VehicleType extends BaseEntity {
   name: string
   seats: number
   tour_driver_commission_rate: number //% lương tài xế chuyến du lịch
+}
+
+export interface Vehicle extends BaseEntity {
+  license_plate: string
+  vehicle_type_id: number
+  vehicle_type_name: string
+  ownership_type: OwnershipTypeEnum
+  partner_id: number
+  partner_name: string
+  brand: string | null
+  model: string | null
+  manufacture_year: number | null
+  current_odometer: number | null
+  vehicle_status: VehicleStatusEnum
+  notes: string | null
 }
