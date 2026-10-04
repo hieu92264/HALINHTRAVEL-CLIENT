@@ -53,3 +53,22 @@ export interface Vehicle extends BaseEntity {
   vehicle_status: VehicleStatusEnum
   notes: string | null
 }
+
+export interface Driver extends BaseEntity {
+  code: string
+  user_name: string
+  partner_id: number
+  partner_name: string
+  type: OwnershipTypeEnum
+  full_name: string
+  phone: string | null
+  cccd: string | null
+  license_number: string
+  license_class: string
+  license_issued_at: string
+  license_expired_at: string
+  base_salary: number
+  responsibility_allowance: number
+  joined_at: string | null
+  left_at: string | null
+}
