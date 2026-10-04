@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import AccessDialog from '@/shared/components/feedback/AccessDialog.vue'
 import { useUserMutations } from '../composables/useUserMutations'
 import type { UserRow } from '@/services/user.service'
+import { createUserSchema, updateUserSchema } from '../schemas/user.schema'
 
 const props = defineProps<{
   open: boolean
@@ -39,16 +40,23 @@ watch(
 )
 
 function validate(): boolean {
+  const schema = isEdit() ? updateUserSchema : createUserSchema
+  const payload = isEdit()
+    ? { email: form.value.email }
+    : form.value
+  const result = schema.safeParse(payload)
+
   errors.value = {}
-  if (!isEdit() && !form.value.user_name.trim()) {
-    errors.value.user_name = 'Tên đăng nhập không được trống.'
+
+  if (!result.success) {
+    for (const issue of result.error.issues) {
+      const field = issue.path[0]
+      if (typeof field === 'string' && !errors.value[field]) {
+        errors.value[field] = issue.message
+      }
+    }
   }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email)) {
-    errors.value.email = 'Email không hợp lệ.'
-  }
-  if (!isEdit() && form.value.password.length < 8) {
-    errors.value.password = 'Mật khẩu tối thiểu 8 ký tự.'
-  }
+
   return Object.keys(errors.value).length === 0
 }
 
@@ -56,17 +64,15 @@ async function submit() {
   if (!validate()) return
 
   if (isEdit()) {
+    const payload = updateUserSchema.parse({ email: form.value.email })
     update.mutate(
-      { id: props.user!.id, payload: { email: form.value.email } },
+      { id: props.user!.id, payload },
       { onSuccess: () => emit('close') },
     )
   } else {
+    const payload = createUserSchema.parse(form.value)
     create.mutate(
-      {
-        user_name: form.value.user_name.trim(),
-        email: form.value.email.trim(),
-        password: form.value.password,
-      },
+      payload,
       { onSuccess: () => emit('close') },
     )
   }
