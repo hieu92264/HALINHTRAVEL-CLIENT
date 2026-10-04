@@ -37,4 +37,16 @@ export const MasterDataRoute: RouteRecordRaw[] = [
     component: () => import('@/modules/master-data/expense-type/ExpenseTypePage.vue'),
     meta: { permission: 'expense-types.view', title: 'Tài xế' },
   },
+  {
+    path: 'routes',
+    name: 'routes',
+    component: () => import('@/modules/master-data/route/RoutePage.vue'),
+    meta: { permission: 'routes.view', title: 'Tuyến xe' },
+  },
+  {
+    path: 'route-rates',
+    name: 'route-rates',
+    component: () => import('@/modules/master-data/route-rate/RouteRatePage.vue'),
+    meta: { permission: 'route-rates.view', title: 'Bảng giá tuyến xe' },
+  },
 ]
