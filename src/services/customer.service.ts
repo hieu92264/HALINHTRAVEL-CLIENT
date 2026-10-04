@@ -12,6 +12,12 @@ export class CustomerService {
     return response
   }
 
+  public static async getVehicleTypeOptions(): Promise<{ id: number; name: string }[]> {
+    const response = await httpService.get<{ id: number; name: string }[]>(CustomerURL + '/options')
+    console.log('response', response)
+    return response
+  }
+
   public static async storeCustomer(payload: CreateCustomerDto): Promise<Customer> {
     const response = await httpService.post<Customer, CreateCustomerDto>(CustomerURL, payload)
     console.log('response', response)

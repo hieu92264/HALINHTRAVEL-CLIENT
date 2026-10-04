@@ -79,3 +79,27 @@ export interface ExpenseType extends BaseEntity {
   name: string
   scope: ExpenseTypeEnum
 }
+
+export interface Route extends BaseEntity {
+  code: string
+  customer_id: number | null
+  customer_name: string | null
+  name: string
+  shift_name: string | null
+  pickup_location: string
+  dropoff_location: string
+  default_pickup_time: string | null
+  default_return_time: string | null
+  estimated_distance_km: number | null
+}
+
+export interface RouteRate extends BaseEntity {
+  route_id: number
+  route_name: string
+  vehicle_type_id: number
+  vehicle_type_name: string
+  customer_price: number
+  driver_wage: number
+  effective_from: string
+  effective_to: string | null
+}
