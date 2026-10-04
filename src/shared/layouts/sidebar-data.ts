@@ -4,6 +4,7 @@ import {
   KeyRoundIcon,
   LayoutDashboardIcon,
   ShieldCheckIcon,
+  TagIcon,
   UsersIcon,
 } from '@lucide/vue'
 import type { Component } from 'vue'
@@ -52,6 +53,14 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
         routeName: 'partners',
         icon: HandshakeIcon,
         permission: 'partners.view',
+      },
+      {
+        kind: 'item',
+        label: 'Phân loại xe',
+        to: '/vehicle-types',
+        routeName: 'vehicle-types',
+        icon: TagIcon,
+        permission: 'vehicle-types.view',
       },
       {
         kind: 'item',

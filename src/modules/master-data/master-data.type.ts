@@ -26,3 +26,10 @@ export interface Partner extends BaseEntity {
   bank_account: string | null
   opening_balance: number
 }
+
+export interface VehicleType extends BaseEntity {
+  code: string
+  name: string
+  seats: number
+  tour_driver_commission_rate: number //% lương tài xế chuyến du lịch
+}
