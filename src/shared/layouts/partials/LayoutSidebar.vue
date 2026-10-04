@@ -1,15 +1,30 @@
 <script setup lang="ts">
-import { ChevronRightIcon, LogOutIcon, PanelLeftCloseIcon, BusFrontIcon } from '@lucide/vue'
+import {
+  BusFrontIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  LogOutIcon,
+  PanelLeftCloseIcon,
+} from '@lucide/vue'
 import { useAuthStore } from '@/modules/auth/auth.store'
 import { AuthService } from '@/services/auth.service'
 import {
   sidebarNavigation,
+  type SidebarGroup,
   type SidebarLeaf,
   type SidebarNavigationNode,
 } from '@/shared/layouts/sidebar-data'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/shared/components/ui/dropdown-menu'
 import { useSidebarStore } from '@/stores/sidebar.store'
 import { useTabsStore } from '@/stores/tabs.store'
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -17,6 +32,8 @@ const route = useRoute()
 const authStore = useAuthStore()
 const sidebarStore = useSidebarStore()
 const tabsStore = useTabsStore()
+const openGroupIds = ref<string[]>([])
+const isCompact = computed(() => sidebarStore.isCollapsed && !sidebarStore.isMobileOpen)
 
 function canShowItem(item: SidebarLeaf): boolean {
   return (
@@ -37,6 +54,38 @@ const visibleNavigation = computed<SidebarNavigationNode[]>(() => {
     return nodes
   }, [])
 })
+
+function hasActiveItem(group: SidebarGroup): boolean {
+  return group.items.some((item) => item.routeName === route.name)
+}
+
+function isGroupOpen(groupId: string): boolean {
+  return openGroupIds.value.includes(groupId)
+}
+
+function toggleGroup(groupId: string): void {
+  openGroupIds.value = isGroupOpen(groupId)
+    ? openGroupIds.value.filter((id) => id !== groupId)
+    : [...openGroupIds.value, groupId]
+}
+
+watch(
+  [() => route.name, visibleNavigation],
+  () => {
+    const activeGroup = visibleNavigation.value.find(
+      (node): node is SidebarGroup => node.kind === 'group' && hasActiveItem(node),
+    )
+
+    if (activeGroup && !isGroupOpen(activeGroup.id)) {
+      openGroupIds.value = [...openGroupIds.value, activeGroup.id]
+    }
+  },
+  { immediate: true },
+)
+
+function closeMobileSidebar(): void {
+  sidebarStore.setMobileOpen(false)
+}
 
 async function logout(): Promise<void> {
   await AuthService.logout().catch(() => undefined)
@@ -65,7 +114,7 @@ async function logout(): Promise<void> {
     <!-- Logo -->
     <div
       class="flex h-16 shrink-0 items-center border-b border-sidebar-border"
-      :class="sidebarStore.isCollapsed ? 'justify-center' : 'gap-2.5 px-4'"
+      :class="isCompact ? 'justify-center' : 'gap-2.5 px-4'"
     >
       <RouterLink
         class="group flex items-center gap-2.5 overflow-hidden"
@@ -78,7 +127,7 @@ async function logout(): Promise<void> {
           <span class="absolute inset-1 rounded-lg border border-white/20" />
           <BusFrontIcon class="travel-logo-vehicle relative size-5" stroke-width="2.25" />
         </span>
-        <div v-if="!sidebarStore.isCollapsed" class="min-w-0 overflow-hidden">
+        <div v-if="!isCompact" class="min-w-0 overflow-hidden">
           <p class="truncate text-[15px] font-extrabold tracking-tight leading-tight text-white">
             Hà Linh
           </p>
@@ -100,60 +149,88 @@ async function logout(): Promise<void> {
         <RouterLink
           v-if="node.kind === 'item'"
           :to="node.to"
-          :title="sidebarStore.isCollapsed ? node.label : undefined"
+          :title="isCompact ? node.label : undefined"
           :aria-current="route.name === node.routeName ? 'page' : undefined"
           class="group flex h-10 items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium text-sky-100/70 transition-colors hover:bg-white/[0.08] hover:text-white"
           :class="[
-            route.name === node.routeName
-              ? 'bg-white/12 text-white shadow-sm ring-1 ring-white/10'
-              : '',
-            sidebarStore.isCollapsed ? 'justify-center px-0' : '',
+            route.name === node.routeName ? 'bg-white/12 text-white shadow-sm ring-1 ring-white/10' : '',
+            isCompact ? 'justify-center px-0' : '',
           ]"
-          @click="sidebarStore.setMobileOpen(false)"
+          @click="closeMobileSidebar"
         >
           <component :is="node.icon" class="size-4 shrink-0" />
-          <span v-if="!sidebarStore.isCollapsed" class="flex-1 truncate">{{ node.label }}</span>
+          <span v-if="!isCompact" class="flex-1 truncate">{{ node.label }}</span>
           <ChevronRightIcon
-            v-if="!sidebarStore.isCollapsed"
+            v-if="!isCompact"
             class="size-3 opacity-0 transition-opacity group-hover:opacity-40"
           />
         </RouterLink>
 
+        <DropdownMenu v-else-if="isCompact">
+          <DropdownMenuTrigger as-child>
+            <button
+              type="button"
+              :title="node.label"
+              :aria-label="node.label"
+              class="flex h-10 w-full items-center justify-center rounded-lg text-sky-100/70 transition-colors hover:bg-white/[0.08] hover:text-white"
+              :class="hasActiveItem(node) ? 'bg-white/12 text-white ring-1 ring-white/10' : ''"
+            >
+              <component :is="node.icon" class="size-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" :side-offset="12" class="w-56">
+            <DropdownMenuLabel>{{ node.label }}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem v-for="item in node.items" :key="item.routeName" as-child>
+              <RouterLink
+                :to="item.to"
+                :aria-current="route.name === item.routeName ? 'page' : undefined"
+                class="flex items-center gap-2"
+                :class="route.name === item.routeName ? 'bg-accent text-accent-foreground' : ''"
+                @click="closeMobileSidebar"
+              >
+                <component :is="item.icon" class="size-4" />
+                <span>{{ item.label }}</span>
+              </RouterLink>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         <template v-else>
-          <p
-            v-if="!sidebarStore.isCollapsed"
-            class="px-2 pb-1 pt-4 text-xs font-medium text-sky-200/65 first:pt-2"
+          <button
+            type="button"
+            class="group flex h-10 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-sm font-medium text-sky-100/70 transition-colors hover:bg-white/[0.08] hover:text-white"
+            :class="hasActiveItem(node) ? 'bg-white/[0.06] text-white' : ''"
+            :aria-expanded="isGroupOpen(node.id)"
+            @click="toggleGroup(node.id)"
           >
-            {{ node.label }}
-          </p>
-          <RouterLink
-            v-for="item in node.items"
-            :key="item.routeName"
-            :to="item.to"
-            :title="sidebarStore.isCollapsed ? item.label : undefined"
-            :aria-current="route.name === item.routeName ? 'page' : undefined"
-            class="group flex h-10 items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium text-sky-100/70 transition-colors hover:bg-white/[0.08] hover:text-white"
-            :class="[
-              route.name === item.routeName
-                ? 'bg-white/12 text-white shadow-sm ring-1 ring-white/10'
-                : '',
-              sidebarStore.isCollapsed ? 'justify-center px-0' : '',
-            ]"
-            @click="sidebarStore.setMobileOpen(false)"
-          >
-            <component :is="item.icon" class="size-4 shrink-0" />
-            <span v-if="!sidebarStore.isCollapsed" class="flex-1 truncate">{{ item.label }}</span>
-            <ChevronRightIcon
-              v-if="!sidebarStore.isCollapsed"
-              class="size-3 opacity-0 transition-opacity group-hover:opacity-40"
+            <component :is="node.icon" class="size-4 shrink-0" />
+            <span class="flex-1 truncate">{{ node.label }}</span>
+            <ChevronDownIcon
+              class="size-4 shrink-0 transition-transform duration-200"
+              :class="isGroupOpen(node.id) ? 'rotate-180' : ''"
             />
-          </RouterLink>
+          </button>
+          <div v-show="isGroupOpen(node.id)" class="space-y-0.5 py-1">
+            <RouterLink
+              v-for="item in node.items"
+              :key="item.routeName"
+              :to="item.to"
+              :aria-current="route.name === item.routeName ? 'page' : undefined"
+              class="group flex h-9 items-center gap-2.5 rounded-lg py-2 pl-8 pr-2.5 text-sm font-medium text-sky-100/70 transition-colors hover:bg-white/[0.08] hover:text-white"
+              :class="route.name === item.routeName ? 'bg-white/12 text-white shadow-sm ring-1 ring-white/10' : ''"
+              @click="closeMobileSidebar"
+            >
+              <component :is="item.icon" class="size-4 shrink-0" />
+              <span class="flex-1 truncate">{{ item.label }}</span>
+            </RouterLink>
+          </div>
         </template>
       </template>
     </nav>
 
     <!-- Version -->
-    <div v-if="!sidebarStore.isCollapsed" class="px-4 pb-2">
+    <div v-if="!isCompact" class="px-4 pb-2">
       <p class="text-xs text-sky-200/45">Phiên bản 1.0.0</p>
     </div>
 
