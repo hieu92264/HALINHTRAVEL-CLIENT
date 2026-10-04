@@ -9,6 +9,7 @@ import {
   ShieldCheckIcon,
   TagIcon,
   UsersIcon,
+  BadgeDollarSignIcon,
 } from '@lucide/vue'
 import type { Component } from 'vue'
 
@@ -84,6 +85,14 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
         routeName: 'drivers',
         icon: BusFrontIcon,
         permission: 'drivers.view',
+      },
+      {
+        kind: 'item',
+        label: 'Loại chi phí',
+        to: '/expense-types',
+        routeName: 'expense-types',
+        icon: BadgeDollarSignIcon,
+        permission: 'expense-types.view',
       },
     ],
   },

@@ -1,5 +1,6 @@
 import type {
   CustomerTypeEnum,
+  ExpenseTypeEnum,
   OwnershipTypeEnum,
   PartnerTypeEnum,
   VehicleStatusEnum,
@@ -71,4 +72,10 @@ export interface Driver extends BaseEntity {
   responsibility_allowance: number
   joined_at: string | null
   left_at: string | null
+}
+
+export interface ExpenseType extends BaseEntity {
+  code: string
+  name: string
+  scope: ExpenseTypeEnum
 }

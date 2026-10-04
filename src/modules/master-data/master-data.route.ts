@@ -31,4 +31,10 @@ export const MasterDataRoute: RouteRecordRaw[] = [
     component: () => import('@/modules/master-data/drivers/DriverPage.vue'),
     meta: { permission: 'drivers.view', title: 'Tài xế' },
   },
+  {
+    path: 'expense-types',
+    name: 'expense-types',
+    component: () => import('@/modules/master-data/expense-type/ExpenseTypePage.vue'),
+    meta: { permission: 'expense-types.view', title: 'Tài xế' },
+  },
 ]
