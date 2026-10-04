@@ -23,3 +23,9 @@ export enum VehicleStatusEnum {
   INACTIVE = 'inactive',
   OTHER = 'other',
 }
+
+export enum ExpenseTypeEnum {
+  VEHICLE = 'vehicle',
+  TRIP = 'trip',
+  GENERAL = 'general',
+}
