@@ -1,9 +1,11 @@
 import {
   BusFrontIcon,
   CarIcon,
+  Building2Icon,
   HandshakeIcon,
   KeyRoundIcon,
   LayoutDashboardIcon,
+  ListTreeIcon,
   ShieldCheckIcon,
   TagIcon,
   UsersIcon,
@@ -21,7 +23,9 @@ export type SidebarLeaf = {
 
 export type SidebarGroup = {
   kind: 'group'
+  id: string
   label: string
+  icon: Component
   items: SidebarLeaf[]
 }
 
@@ -37,7 +41,9 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
   },
   {
     kind: 'group',
+    id: 'master-data',
     label: 'Quản lý danh mục',
+    icon: ListTreeIcon,
     items: [
       {
         kind: 'item',
@@ -83,7 +89,9 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
   },
   {
     kind: 'group',
+    id: 'organization',
     label: 'Quản lý tổ chức',
+    icon: Building2Icon,
     items: [
       {
         kind: 'item',
