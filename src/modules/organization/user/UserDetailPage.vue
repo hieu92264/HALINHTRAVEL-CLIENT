@@ -41,7 +41,11 @@ function doToggleActive() {
   if (!user.value) return
   toggleActive.mutate(
     { user: user.value },
-    { onSettled: () => { confirmToggleOpen.value = false } },
+    {
+      onSettled: () => {
+        confirmToggleOpen.value = false
+      },
+    },
   )
 }
 
@@ -54,7 +58,10 @@ function initials(u: typeof user.value): string {
 
 <template>
   <!-- Loading -->
-  <div v-if="userQuery.isLoading.value" class="flex items-center justify-center py-16 text-muted-foreground text-sm">
+  <div
+    v-if="userQuery.isLoading.value"
+    class="flex items-center justify-center py-16 text-muted-foreground text-sm"
+  >
     Đang tải tài khoản…
   </div>
 
@@ -83,7 +90,6 @@ function initials(u: typeof user.value): string {
 
     <!-- Main layout: sidebar + content -->
     <div class="grid gap-5 lg:grid-cols-[260px_1fr]">
-
       <!-- ── Sidebar: thông tin cơ bản ── -->
       <aside class="space-y-4">
         <div class="rounded-xl border bg-card p-5">
@@ -100,9 +106,11 @@ function initials(u: typeof user.value): string {
               <p class="font-semibold">{{ user.user_name }}</p>
               <span
                 class="mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
-                :class="user.is_active
-                  ? 'bg-[#2F8A68]/10 text-[#2F8A68]'
-                  : 'bg-muted text-muted-foreground'"
+                :class="
+                  user.is_active
+                    ? 'bg-[#2F8A68]/10 text-[#2F8A68]'
+                    : 'bg-muted text-muted-foreground'
+                "
               >
                 <span
                   class="h-1.5 w-1.5 rounded-full"
@@ -121,11 +129,18 @@ function initials(u: typeof user.value): string {
             </div>
             <div class="flex items-center gap-2 text-muted-foreground">
               <CalendarDays :size="14" class="shrink-0" />
-              <span>Tạo: <span class="text-foreground">{{ user.created_at ?? '—' }}</span></span>
+              <span
+                >Tạo: <span class="text-foreground">{{ user.created_at ?? '—' }}</span></span
+              >
             </div>
             <div class="flex items-center gap-2 text-muted-foreground">
               <Clock :size="14" class="shrink-0" />
-              <span>Đăng nhập: <span class="text-foreground">{{ user.last_login_at ?? 'Chưa đăng nhập' }}</span></span>
+              <span
+                >Đăng nhập:
+                <span class="text-foreground">{{
+                  user.last_login_at ?? 'Chưa đăng nhập'
+                }}</span></span
+              >
             </div>
           </dl>
 
@@ -150,7 +165,9 @@ function initials(u: typeof user.value): string {
           <h2 class="mb-3 flex items-center gap-2 text-sm font-semibold">
             <ShieldCheck :size="15" class="text-[#1769C2]" />
             Quyền hiệu lực
-            <span class="ml-auto rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
+            <span
+              class="ml-auto rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums text-muted-foreground"
+            >
               {{ user.permissions?.length ?? 0 }}
             </span>
           </h2>
@@ -169,12 +186,13 @@ function initials(u: typeof user.value): string {
 
       <!-- ── Main: vai trò + quyền ngoại lệ ── -->
       <div class="space-y-5">
-
         <!-- Vai trò -->
         <section class="rounded-xl border bg-card">
           <header class="flex items-center justify-between border-b px-5 py-3">
             <h2 class="font-semibold">Vai trò trực tiếp</h2>
-            <span class="rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
+            <span
+              class="rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums text-muted-foreground"
+            >
               {{ roleIds.length }} được chọn
             </span>
           </header>
@@ -205,7 +223,10 @@ function initials(u: typeof user.value): string {
                   {{ role.permissions.length }} quyền
                 </span>
               </label>
-              <p v-if="filteredRoles.length === 0" class="px-4 py-4 text-center text-sm text-muted-foreground">
+              <p
+                v-if="filteredRoles.length === 0"
+                class="px-4 py-4 text-center text-sm text-muted-foreground"
+              >
                 Không tìm thấy vai trò.
               </p>
             </div>
@@ -225,7 +246,9 @@ function initials(u: typeof user.value): string {
         <section class="rounded-xl border bg-card">
           <header class="flex items-center justify-between border-b px-5 py-3">
             <h2 class="font-semibold">Quyền ngoại lệ</h2>
-            <span class="rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
+            <span
+              class="rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums text-muted-foreground"
+            >
               {{ permissionIds.length }} được chọn
             </span>
           </header>
@@ -245,17 +268,18 @@ function initials(u: typeof user.value): string {
               @toggle="togglePermission"
             />
           </div>
-          <p v-else class="p-5 text-sm text-muted-foreground">
-            Không có quyền xem danh mục quyền.
-          </p>
+          <p v-else class="p-5 text-sm text-muted-foreground">Không có quyền xem danh mục quyền.</p>
 
           <footer v-if="permissionsQuery.data.value" class="flex justify-end border-t px-5 py-3">
-            <Button size="sm" :disabled="syncPermissions.isPending.value" @click="syncPermissions.mutate()">
+            <Button
+              size="sm"
+              :disabled="syncPermissions.isPending.value"
+              @click="syncPermissions.mutate()"
+            >
               {{ syncPermissions.isPending.value ? 'Đang lưu…' : 'Lưu quyền ngoại lệ' }}
             </Button>
           </footer>
         </section>
-
       </div>
     </div>
   </section>
@@ -267,9 +291,11 @@ function initials(u: typeof user.value): string {
   <AccessDialog
     :open="confirmToggleOpen"
     :title="user?.is_active ? 'Vô hiệu hoá tài khoản' : 'Kích hoạt lại tài khoản'"
-    :description="user?.is_active
-      ? `Tài khoản «${user?.user_name}» sẽ không thể đăng nhập cho đến khi được kích hoạt lại.`
-      : `Tài khoản «${user?.user_name}» sẽ được phép đăng nhập trở lại.`"
+    :description="
+      user?.is_active
+        ? `Tài khoản «${user?.user_name}» sẽ không thể đăng nhập cho đến khi được kích hoạt lại.`
+        : `Tài khoản «${user?.user_name}» sẽ được phép đăng nhập trở lại.`
+    "
     :confirm-label="user?.is_active ? 'Vô hiệu hoá' : 'Kích hoạt'"
     :destructive="user?.is_active ?? false"
     :pending="toggleActive.isPending.value"

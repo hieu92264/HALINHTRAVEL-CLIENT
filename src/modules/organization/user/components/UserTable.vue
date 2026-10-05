@@ -3,12 +3,21 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { DataGrid, type DataGridDataSource } from '@/shared/components/data-grid'
 import { Button } from '@/shared/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/shared/components/ui/dropdown-menu'
 import AccessDialog from '@/shared/components/feedback/AccessDialog.vue'
 import { useUserQuery } from '../composables/useUserQueries'
 import { useUserMutations } from '../composables/useUserMutations'
 import { userColumns } from '@/modules/organization/user/components/user-column'
 import type { UserRow } from '@/services/user.service'
 import UserForm from './UserForm.vue'
+import { Eye, MoreHorizontal, PencilLine, UserCheck, UserX } from '@lucide/vue'
 
 const usersQuery = useUserQuery()
 const router = useRouter()
@@ -46,7 +55,11 @@ function doToggle() {
   if (!confirmUser.value) return
   toggleActive.mutate(
     { user: confirmUser.value },
-    { onSettled: () => { confirmUser.value = null } },
+    {
+      onSettled: () => {
+        confirmUser.value = null
+      },
+    },
   )
 }
 </script>
@@ -70,22 +83,39 @@ function doToggle() {
     @retry="usersQuery.refetch()"
   >
     <template #actions="{ row }">
-      <Button
-        size="xs"
-        variant="ghost"
-        @click="router.push({ name: 'user-detail', params: { id: row.id } })"
-      >
-        Xem
-      </Button>
-      <Button size="xs" variant="ghost" @click="openEdit(row)">Sửa</Button>
-      <Button
-        size="xs"
-        variant="ghost"
-        :class="row.is_active ? 'text-destructive hover:text-destructive' : 'text-[#2F8A68] hover:text-[#2F8A68]'"
-        @click="openConfirmToggle(row)"
-      >
-        {{ row.is_active ? 'Vô hiệu hoá' : 'Kích hoạt' }}
-      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger as-child>
+          <Button variant="ghost" class="h-full min-h-11.5 w-full rounded-none p-0" @click.stop>
+            <span class="sr-only">Mở thao tác tài khoản</span>
+            <MoreHorizontal class="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            class="min-w-40 gap-2"
+            @click="router.push({ name: 'user-detail', params: { id: row.id } })"
+          >
+            <Eye class="size-4" />
+            Xem
+          </DropdownMenuItem>
+          <DropdownMenuItem class="min-w-40 gap-2" @click="openEdit(row)">
+            <PencilLine class="size-4" />
+            Sửa
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            class="min-w-40 gap-2"
+            :variant="row.is_active ? 'destructive' : 'default'"
+            @click="openConfirmToggle(row)"
+          >
+            <UserX v-if="row.is_active" class="size-4" />
+            <UserCheck v-else class="size-4" />
+            {{ row.is_active ? 'Vô hiệu hóa' : 'Kích hoạt' }}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </template>
   </DataGrid>
 
