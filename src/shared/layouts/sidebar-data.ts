@@ -13,6 +13,8 @@ import {
   BadgeDollarSignIcon,
   RouteIcon,
   CircleDollarSignIcon,
+  ClipboardListIcon,
+  FileTextIcon,
 } from '@lucide/vue'
 import type { Component } from 'vue'
 
@@ -42,6 +44,28 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
     to: '/',
     routeName: 'dashboard',
     icon: LayoutDashboardIcon,
+  },
+  {
+    kind: 'group',
+    id: 'rental',
+    label: 'Thuê xe',
+    icon: CarIcon,
+    items: [
+      {
+        kind: 'item',
+        label: 'Yêu cầu thuê xe',
+        to: '/rental-requests',
+        routeName: 'rental-requests',
+        icon: ClipboardListIcon,
+      },
+      {
+        kind: 'item',
+        label: 'Báo giá',
+        to: '/quotations',
+        routeName: 'quotations',
+        icon: FileTextIcon,
+      },
+    ],
   },
   {
     kind: 'group',
