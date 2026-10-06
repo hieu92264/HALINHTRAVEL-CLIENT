@@ -9,5 +9,6 @@ declare module 'vue-router' {
     layout?: string
     requireProject?: boolean
     permission?: string
+    roles?: string[]
   }
 }

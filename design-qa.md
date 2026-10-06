@@ -1,38 +1,43 @@
 **Findings**
 
-- [P1] Không thể thực hiện đối chiếu trực quan đã xác thực.
-  Location: `/trip-schedules` trong browser cục bộ.
-  Evidence: route điều hành bị router guard chuyển tới màn `Đăng nhập hệ thống`; không có screenshot của màn `Lịch chuyến` để đặt cạnh mock phương án 2.
-  Impact: chưa thể xác nhận kích thước cột, nhịp spacing, font, token màu, responsive desktop hoặc các thao tác chọn lịch/kiểm tra năng lực/phân công trong browser.
-  Fix: đăng nhập bằng tài khoản có quyền `trip-schedules.view`, sau đó mở lại `/trip-schedules` và chạy đối chiếu cùng viewport 1440 × 1024.
+- Không có sai lệch P0/P1/P2 được phát hiện trong kiểm tra browser có xác thực.
+- [P3] In-app browser không trả lại ảnh hợp lệ sau khi ép viewport `1440 × 1024` (DOM vẫn render đầy đủ). Đây là giới hạn capture, không phải lỗi giao diện đã quan sát được.
 
 **Open Questions**
 
-- Không có tài khoản hoặc phiên đã xác thực được cung cấp cho preview cục bộ. Không sử dụng thông tin đăng nhập của người dùng hoặc tự ý vượt router guard.
+- Các màn đang dùng dữ liệu mẫu cục bộ; cần thay bằng query/mutation Dispatch khi API backend hoàn tất.
 
 **Implementation Checklist**
 
-- Đăng nhập cục bộ với quyền Điều hành.
-- Xác nhận route `/trip-schedules` hiển thị trong sidebar.
-- Kiểm tra tìm kiếm, chọn lịch, kiểm tra năng lực và phân công dữ liệu mẫu.
-- Chụp màn 1440 × 1024; đối chiếu với mock phương án 2 và sửa mọi khác biệt P0/P1/P2.
+- Đã xác nhận sidebar mở đúng ba route: `/trip-schedules`, `/capacity`, `/dispatch-orders`.
+- Đã xác nhận `Kiểm tra năng lực` trả bảng xe, tổng tài xế và trạng thái snapshot.
+- Đã xác nhận phân công cập nhật lịch từ `Chờ phân công` thành `Đã phân công`.
+- Đã xác nhận lệnh `LX261006-015` chuyển `Đã phân công → Đang chạy → Hoàn tất` cùng thông báo giờ/ODO.
+- Đã kiểm tra browser console: không có error.
 
 **Follow-up Polish**
 
-- Kết nối các trạng thái dữ liệu mẫu với service/query Dispatch khi backend endpoint sẵn sàng.
+- Đối chiếu thêm ở màn desktop 1440 × 1024 khi browser capture ổn định, ưu tiên mật độ bảng và độ rộng panel phải.
 
 Source visual truth path: `C:\Users\Administrator\.codex\generated_images\01a10eaf-2e65-7423-aaf6-58ae869b67db\exec-2339c0d3-4146-4982-9c04-2c74bd7e2695.png`
 
-Implementation screenshot path: not captured; browser route redirected to login.
+Implementation screenshot: in-app browser capture of authenticated `/dispatch-orders`; browser screenshot transport did not expose a stable file path.
 
-Viewport: intended 1440 × 1024; implementation was not accessible in an authenticated state.
+Viewport: default in-app browser viewport; an attempted 1440 × 1024 override rendered a complete DOM but no usable screenshot image.
 
-State: unauthenticated redirect to login.
+State: authenticated as an administrator; dark theme inherited from the existing app.
 
-Full-view comparison evidence: blocked by authentication.
+Full-view comparison evidence: authenticated dispatch-order capture and the selected option-2 mock were inspected. The implementation intentionally preserves the existing app theme preference.
 
-Focused region comparison evidence: blocked by authentication.
+Focused region comparison evidence: verified the table/status panel, capacity result, and dispatch lifecycle through browser DOM and interactive state transitions.
 
-Comparison history: initial capture found the authentication blocker before a rendered implementation screen was available.
+Comparison history: authentication blocker cleared; functional browser pass completed for all three routes.
+
+## Driver-responsive web routes
+
+- Verified `/my-dispatch-orders`: private driver order list, search control, route/detail navigation, and no general dispatcher collection in the visible page.
+- Verified `/my-dispatch-orders/LX261006-015`: only the selected order is shown; Start changes `Đã phân công → Đang chạy`; Complete changes `Đang chạy → Hoàn tất` and locks edits.
+- Verified an initially reported dynamic-import runtime failure was removed. A fresh browser tab loaded the detail route with no console errors.
+- The attachment control remains visibly disabled until the ownership API contract permits it, matching the task dependency.
 
 final result: blocked

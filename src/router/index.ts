@@ -100,6 +100,17 @@ router.beforeEach(async (to, from) => {
     return { name: 'forbidden' }
   }
 
+  if (
+    to.meta.roles?.length &&
+    !authStore.user.roles.some((role) =>
+      to.meta.roles?.some(
+        (allowedRole) => allowedRole.toLocaleLowerCase() === role.toLocaleLowerCase(),
+      ),
+    )
+  ) {
+    return { name: 'forbidden' }
+  }
+
   return true
 })
 
