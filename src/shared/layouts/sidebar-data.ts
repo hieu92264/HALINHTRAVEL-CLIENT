@@ -13,6 +13,9 @@ import {
   BadgeDollarSignIcon,
   RouteIcon,
   CircleDollarSignIcon,
+  CalendarClockIcon,
+  ClipboardCheckIcon,
+  FileTextIcon,
 } from '@lucide/vue'
 import type { Component } from 'vue'
 
@@ -42,6 +45,17 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
     to: '/',
     routeName: 'dashboard',
     icon: LayoutDashboardIcon,
+  },
+  {
+    kind: 'group',
+    id: 'dispatch',
+    label: 'Điều hành',
+    icon: CalendarClockIcon,
+    items: [
+      { kind: 'item', label: 'Lịch chuyến', to: '/trip-schedules', routeName: 'trip-schedules', icon: CalendarClockIcon, permission: 'trip-schedules.view' },
+      { kind: 'item', label: 'Kiểm tra năng lực', to: '/capacity', routeName: 'rental-capacity', icon: ClipboardCheckIcon, permission: 'rental-capacity.view' },
+      { kind: 'item', label: 'Lệnh điều xe', to: '/dispatch-orders', routeName: 'dispatch-orders', icon: FileTextIcon, permission: 'dispatch-orders.view' },
+    ],
   },
   {
     kind: 'group',

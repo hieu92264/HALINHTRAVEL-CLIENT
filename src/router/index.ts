@@ -8,6 +8,7 @@ import { SESSION_EXPIRED_EVENT } from '@/shared/lib/auth-events'
 import { AuthRoute } from '@/modules/auth/auth.route'
 import { OrganizationRoute } from '@/modules/organization/org.route'
 import { MasterDataRoute } from '@/modules/master-data/master-data.route'
+import { DispatchRoute } from '@/modules/dispatch/dispatch.route'
 
 NProgress.configure({
   showSpinner: false,
@@ -32,6 +33,7 @@ const router = createRouter({
         },
         ...OrganizationRoute,
         ...MasterDataRoute,
+        ...DispatchRoute,
       ],
     },
     {
