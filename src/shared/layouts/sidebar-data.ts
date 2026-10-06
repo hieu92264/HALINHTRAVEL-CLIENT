@@ -17,11 +17,12 @@ import {
   FileTextIcon,
 } from '@lucide/vue'
 import type { Component } from 'vue'
+import type { RouteLocationRaw } from 'vue-router'
 
 export type SidebarLeaf = {
   kind: 'item'
   label: string
-  to: string
+  to: RouteLocationRaw
   routeName: string
   icon: Component
   permission?: string
@@ -44,28 +45,6 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
     to: '/',
     routeName: 'dashboard',
     icon: LayoutDashboardIcon,
-  },
-  {
-    kind: 'group',
-    id: 'rental',
-    label: 'Thuê xe',
-    icon: CarIcon,
-    items: [
-      {
-        kind: 'item',
-        label: 'Yêu cầu thuê xe',
-        to: '/rental-requests',
-        routeName: 'rental-requests',
-        icon: ClipboardListIcon,
-      },
-      {
-        kind: 'item',
-        label: 'Báo giá',
-        to: '/quotations',
-        routeName: 'quotations',
-        icon: FileTextIcon,
-      },
-    ],
   },
   {
     kind: 'group',
@@ -176,6 +155,28 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
         routeName: 'permissions',
         icon: KeyRoundIcon,
         permission: 'permissions.view',
+      },
+    ],
+  },
+  {
+    kind: 'group',
+    id: 'rental',
+    label: 'Thuê xe',
+    icon: CarIcon,
+    items: [
+      {
+        kind: 'item',
+        label: 'Yêu cầu thuê xe',
+        to: { name: 'rental-requests' },
+        routeName: 'rental-requests',
+        icon: ClipboardListIcon,
+      },
+      {
+        kind: 'item',
+        label: 'Báo giá',
+        to: '/quotations',
+        routeName: 'quotations',
+        icon: FileTextIcon,
       },
     ],
   },
