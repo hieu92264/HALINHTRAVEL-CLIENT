@@ -304,6 +304,7 @@ import {
   availabilityPayloadFromRequest,
 } from '@/modules/rental/rental.capacity'
 import { formatCurrency, formatDate } from '@/modules/rental/rental.format'
+import { quotationFormSchema } from '@/modules/rental/schemas/quotation.schema'
 import {
   useAvailabilityCheckMutation,
   useQuotationQuery,
@@ -524,14 +525,17 @@ async function submit() {
     formError.value = capacityError.value || 'Chưa đủ năng lực để lập báo giá.'
     return
   }
-  if (
-    !form.customer_id ||
-    !form.quotation_date ||
-    !form.items.every(
-      (item) => item.vehicle_type_id && item.quantity > 0 && Number(item.unit_price) >= 0,
-    )
-  ) {
-    formError.value = 'Vui lòng nhập đủ các trường bắt buộc.'
+  const validation = quotationFormSchema.safeParse({
+    ...form,
+    rental_request_id: form.rental_request_id || null,
+    valid_until: form.valid_until || '',
+    items: form.items.map(({ key: _key, ...item }) => ({
+      ...item,
+      route_id: item.route_id || null,
+    })),
+  })
+  if (!validation.success) {
+    formError.value = validation.error.issues[0]?.message || 'Dữ liệu chưa hợp lệ.'
     return
   }
   try {

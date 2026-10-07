@@ -180,6 +180,14 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
         icon: FileTextIcon,
         permission: 'quotations.view',
       },
+      {
+        kind: 'item',
+        label: 'Hợp đồng',
+        to: { name: 'contracts' },
+        routeName: 'contracts',
+        icon: FileTextIcon,
+        permission: 'contracts.view',
+      },
     ],
   },
 ]
