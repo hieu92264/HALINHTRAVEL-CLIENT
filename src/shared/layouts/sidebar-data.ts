@@ -170,6 +170,7 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
         to: { name: 'rental-requests' },
         routeName: 'rental-requests',
         icon: ClipboardListIcon,
+        permission: 'rental-requests.view',
       },
       {
         kind: 'item',
@@ -177,6 +178,7 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
         to: '/quotations',
         routeName: 'quotations',
         icon: FileTextIcon,
+        permission: 'quotations.view',
       },
     ],
   },
