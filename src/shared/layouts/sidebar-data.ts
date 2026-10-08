@@ -15,14 +15,16 @@ import {
   CircleDollarSignIcon,
   CalendarClockIcon,
   ClipboardCheckIcon,
+  ClipboardListIcon,
   FileTextIcon,
 } from '@lucide/vue'
 import type { Component } from 'vue'
+import type { RouteLocationRaw } from 'vue-router'
 
 export type SidebarLeaf = {
   kind: 'item'
   label: string
-  to: string
+  to: RouteLocationRaw
   routeName: string
   icon: Component
   permission?: string
@@ -204,6 +206,38 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
         routeName: 'permissions',
         icon: KeyRoundIcon,
         permission: 'permissions.view',
+      },
+    ],
+  },
+  {
+    kind: 'group',
+    id: 'rental',
+    label: 'Thuê xe',
+    icon: CarIcon,
+    items: [
+      {
+        kind: 'item',
+        label: 'Yêu cầu thuê xe',
+        to: { name: 'rental-requests' },
+        routeName: 'rental-requests',
+        icon: ClipboardListIcon,
+        permission: 'rental-requests.view',
+      },
+      {
+        kind: 'item',
+        label: 'Báo giá',
+        to: '/quotations',
+        routeName: 'quotations',
+        icon: FileTextIcon,
+        permission: 'quotations.view',
+      },
+      {
+        kind: 'item',
+        label: 'Hợp đồng',
+        to: { name: 'contracts' },
+        routeName: 'contracts',
+        icon: FileTextIcon,
+        permission: 'contracts.view',
       },
     ],
   },
