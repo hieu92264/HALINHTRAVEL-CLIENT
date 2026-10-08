@@ -13,104 +13,51 @@ import {
   UserRoundIcon,
 } from '@lucide/vue'
 import { computed, ref } from 'vue'
+import AccessDialog from '@/shared/components/feedback/AccessDialog.vue'
+import { useDispatchMutations, useDispatchOrders } from './dispatch.composables'
+import type { DispatchOrder } from './dispatch.types'
 
-type OrderStatus = 'ISSUED' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
-type Order = {
-  id: string
-  time: string
-  route: string
-  plate: string
-  driver: string
-  customer: string
-  status: OrderStatus
-}
-const orders = ref<Order[]>([
-  {
-    id: 'LX261006-011',
-    time: '07:30',
-    route: 'Hải Phòng → Hạ Long',
-    plate: '15B-678.99',
-    driver: 'Trần Minh Hiếu',
-    customer: 'Công ty Hòa Phát',
-    status: 'COMPLETED',
-  },
-  {
-    id: 'LX261006-012',
-    time: '09:00',
-    route: 'Hải Phòng → Cát Bà',
-    plate: '15F-222.11',
-    driver: 'Phạm Văn Long',
-    customer: 'Khách lẻ',
-    status: 'ISSUED',
-  },
-  {
-    id: 'LX261006-013',
-    time: '10:30',
-    route: 'Hải Phòng → Cát Bà',
-    plate: '15B-456.78',
-    driver: 'Lê Văn Cường',
-    customer: 'Khách lẻ',
-    status: 'IN_PROGRESS',
-  },
-  {
-    id: 'LX261006-015',
-    time: '13:30',
-    route: 'Hải Phòng → Cát Bà',
-    plate: '15B-123.45',
-    driver: 'Nguyễn Văn Nam',
-    customer: 'Khách lẻ',
-    status: 'ASSIGNED',
-  },
-  {
-    id: 'LX261006-016',
-    time: '15:00',
-    route: 'Hải Phòng → Cát Bà',
-    plate: '15F-222.11',
-    driver: 'Lê Văn Cường',
-    customer: 'Công ty Thành Đạt',
-    status: 'ISSUED',
-  },
-])
-const selectedId = ref('LX261006-015')
+type OrderStatus = 'ISSUED' | 'ASSIGNED' | 'IN_PROGRESS' | 'PENDING_CONFIRMATION' | 'COMPLETED' | 'CANCELLED'
+type Order = { id: string; time: string; route: string; plate: string; driver: string; customer: string; status: OrderStatus; source: DispatchOrder }
+const ordersQuery = useDispatchOrders()
+const mutations = useDispatchMutations()
+const selectedId = ref('')
 const search = ref('')
-const actualStart = ref('13:35')
-const startOdometer = ref('45230')
-const actualEnd = ref('16:10')
-const endOdometer = ref('45372')
+const actualStart = ref('')
+const startOdometer = ref('')
+const actualEnd = ref('')
+const endOdometer = ref('')
 const notice = ref('')
-const selected = computed<Order>(
-  () => orders.value.find((order) => order.id === selectedId.value) ?? orders.value[0]!,
-)
-const visibleOrders = computed(() =>
-  orders.value.filter((order) =>
-    `${order.id}${order.plate}${order.driver}${order.route}`
-      .toLocaleLowerCase('vi-VN')
-      .includes(search.value.toLocaleLowerCase('vi-VN')),
-  ),
-)
-const statusLabel: Record<OrderStatus, string> = {
-  ISSUED: 'Đã phát hành',
-  ASSIGNED: 'Đã phân công',
-  IN_PROGRESS: 'Đang chạy',
-  COMPLETED: 'Hoàn tất',
-  CANCELLED: 'Đã hủy',
-}
-const statusClass = (status: OrderStatus) =>
-  status === 'COMPLETED'
-    ? 'bg-success/10 text-success'
-    : status === 'IN_PROGRESS'
-      ? 'bg-amber-100 text-amber-800'
-      : status === 'CANCELLED'
-        ? 'bg-destructive/10 text-destructive'
-        : 'bg-primary/10 text-primary'
-function startTrip() {
-  selected.value.status = 'IN_PROGRESS'
-  notice.value = `Đã bắt đầu chuyến lúc ${actualStart.value}; ODO đầu ${startOdometer.value} km.`
-}
-function completeTrip() {
-  selected.value.status = 'COMPLETED'
-  notice.value = `Đã hoàn tất chuyến lúc ${actualEnd.value}; ODO cuối ${endOdometer.value} km.`
-}
+const cancelDialogOpen = ref(false)
+const confirmDialogOpen = ref(false)
+const returnDialogOpen = ref(false)
+const customerAmount = ref(0)
+const partnerVehicleCost = ref(0)
+const externalDriverCost = ref(0)
+const reviewNote = ref('')
+const dateLabel = computed(() => new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date()))
+const formatTime = (value: string | null | undefined) => value ? new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit' }).format(new Date(value)) : '—'
+const orders = computed<Order[]>(() => (ordersQuery.data.value ?? []).map((source) => ({
+  id: String(source.id),
+  time: formatTime(source.trip_schedule?.scheduled_start_at),
+  route: source.trip_schedule?.route?.name ?? ([source.trip_schedule?.pickup_location, source.trip_schedule?.dropoff_location].filter(Boolean).join(' → ') || 'Chưa có tuyến'),
+  plate: source.trip_assignment?.vehicle?.license_plate ?? '—',
+  driver: source.trip_assignment?.driver?.full_name ?? '—',
+  customer: source.trip_schedule?.contract?.contract_no ?? 'Hợp đồng',
+  status: source.status,
+  source,
+})))
+const selected = computed<Order>(() => orders.value.find((order) => order.id === selectedId.value) ?? orders.value[0]!)
+const visibleOrders = computed(() => orders.value.filter((order) => `${order.id}${order.plate}${order.driver}${order.route}`.toLocaleLowerCase('vi-VN').includes(search.value.toLocaleLowerCase('vi-VN'))))
+const statusLabel: Record<OrderStatus, string> = { ISSUED: 'Đã phát hành', ASSIGNED: 'Đã phân công', IN_PROGRESS: 'Đang chạy', PENDING_CONFIRMATION: 'Chờ điều hành xác nhận', COMPLETED: 'Hoàn tất', CANCELLED: 'Đã hủy' }
+const statusClass = (status: OrderStatus) => status === 'COMPLETED' ? 'bg-success/10 text-success' : status === 'PENDING_CONFIRMATION' || status === 'IN_PROGRESS' ? 'bg-amber-100 text-amber-800' : status === 'CANCELLED' ? 'bg-destructive/10 text-destructive' : 'bg-primary/10 text-primary'
+function selectOrder(id: string) { selectedId.value = id; notice.value = '' }
+function assignOrder() { mutations.assignOrder.mutate(selected.value.source.id, { onSuccess: () => { notice.value = 'Đã xác nhận phân công lệnh.' } }) }
+function cancelOrder() { mutations.cancelOrder.mutate(selected.value.source.id, { onSuccess: () => { cancelDialogOpen.value = false; notice.value = 'Đã hủy lệnh điều xe.' } }) }
+function confirmCompletion() { mutations.confirmCompletion.mutate({ id: selected.value.source.id, payload: { customer_amount: customerAmount.value, partner_vehicle_cost: partnerVehicleCost.value, external_driver_cost: externalDriverCost.value } }, { onSuccess: () => { confirmDialogOpen.value = false; notice.value = 'Đã xác nhận hoàn tất chuyến.' } }) }
+function returnCompletion() { if (!reviewNote.value.trim()) return; mutations.returnCompletion.mutate({ id: selected.value.source.id, reviewNote: reviewNote.value }, { onSuccess: () => { returnDialogOpen.value = false; notice.value = 'Đã trả báo cáo cho tài xế bổ sung.' } }) }
+function startTrip() { notice.value = 'Tài xế bắt đầu chuyến từ màn hình Lệnh của tôi.' }
+function completeTrip() { notice.value = 'Tài xế gửi báo cáo hoàn tất; điều hành xác nhận tại trạng thái chờ xác nhận.' }
 </script>
 
 <template>
@@ -130,7 +77,7 @@ function completeTrip() {
             class="inline-flex h-9 items-center gap-2 rounded-lg border border-input px-3 text-sm font-semibold"
             type="button"
           >
-            <CalendarDaysIcon class="size-4 text-primary" />Thứ Ba, 06/10/2026<ChevronDownIcon
+            <CalendarDaysIcon class="size-4 text-primary" />{{ dateLabel }}<ChevronDownIcon
               class="size-3.5"
             /></button
           ><button
@@ -218,7 +165,7 @@ function completeTrip() {
           </div>
           <h3 class="mt-2 text-lg font-bold">{{ selected.route }}</h3>
           <p class="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-            <CalendarDaysIcon class="size-4" />Thứ Ba, 06/10/2026 · {{ selected.time }} – 16:00
+            <CalendarDaysIcon class="size-4" />{{ selected.time }} · {{ selected.route }}
           </p>
         </div>
         <ol
@@ -260,7 +207,7 @@ function completeTrip() {
           </p>
           <p>
             <span class="block text-xs text-muted-foreground">Dịch vụ</span
-            ><strong>Khách lẻ</strong>
+            ><strong>{{ selected.source.trip_schedule?.service_type ?? '—' }}</strong>
           </p>
         </div>
         <p
@@ -300,6 +247,7 @@ function completeTrip() {
           >
             <PlayIcon class="size-4" />Bắt đầu chuyến
           </button>
+          <button class="mt-2 h-8 w-full rounded-lg border border-destructive/30 text-xs font-semibold text-destructive" type="button" @click="cancelDialogOpen = true">Hủy lệnh trước khi chuyến chạy</button>
         </section>
         <section
           v-else-if="selected.status === 'IN_PROGRESS'"
@@ -340,6 +288,20 @@ function completeTrip() {
           </button>
         </section>
         <section
+          v-else-if="selected.status === 'PENDING_CONFIRMATION'"
+          class="rounded-lg border border-amber-200 bg-amber-50/70 p-3 text-sm text-amber-900"
+        >
+          <FileCheck2Icon class="mr-1 inline size-4" />Tài xế đã gửi báo cáo. Điều hành kiểm tra và chốt số liệu.
+          <div class="mt-3 flex gap-2"><button class="h-9 rounded-lg border border-amber-300 px-3 text-xs font-semibold" type="button" @click="returnDialogOpen = true">Trả báo cáo</button><button class="h-9 rounded-lg bg-success px-3 text-xs font-semibold text-white" type="button" @click="confirmDialogOpen = true">Xác nhận hoàn tất</button></div>
+        </section>
+        <section
+          v-else-if="selected.status === 'ISSUED'"
+          class="rounded-lg border border-primary/20 bg-primary/[0.04] p-3 text-sm text-primary"
+        >
+          <BusFrontIcon class="mr-1 inline size-4" />Lệnh đã phát hành và đang chờ điều hành xác nhận phân công.
+          <div class="mt-3 flex gap-2"><button class="h-9 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground" type="button" @click="assignOrder">Xác nhận phân công</button><button class="h-9 rounded-lg border border-destructive/30 px-3 text-xs font-semibold text-destructive" type="button" @click="cancelDialogOpen = true">Hủy lệnh</button></div>
+        </section>
+        <section
           v-else
           class="rounded-lg border border-border bg-muted/35 p-3 text-sm text-muted-foreground"
         >
@@ -348,5 +310,8 @@ function completeTrip() {
         </section>
       </aside>
     </div>
+    <AccessDialog :open="cancelDialogOpen" title="Hủy lệnh điều xe" :description="`Hủy lệnh ${selected.id}; sau đó có thể thay phân công và phát hành lệnh mới.`" confirm-label="Hủy lệnh" cancel-label="Quay lại" destructive :pending="mutations.cancelOrder.isPending.value" @close="cancelDialogOpen = false" @confirm="cancelOrder" />
+    <AccessDialog :open="returnDialogOpen" title="Trả báo cáo" description="Nhập lý do để tài xế bổ sung báo cáo." confirm-label="Trả báo cáo" cancel-label="Quay lại" :pending="mutations.returnCompletion.isPending.value" @close="returnDialogOpen = false" @confirm="returnCompletion"><textarea v-model="reviewNote" class="min-h-24 w-full rounded-lg border border-input bg-background p-3 text-sm" placeholder="Lý do cần bổ sung" /></AccessDialog>
+    <AccessDialog :open="confirmDialogOpen" title="Xác nhận hoàn tất" description="Chốt số liệu tài chính và cập nhật ODO xe." confirm-label="Xác nhận" cancel-label="Quay lại" :pending="mutations.confirmCompletion.isPending.value" @close="confirmDialogOpen = false" @confirm="confirmCompletion"><div class="grid gap-3 sm:grid-cols-3"><label class="text-xs font-medium">Doanh thu<input v-model.number="customerAmount" class="mt-1 h-9 w-full rounded border border-input bg-background px-2" min="0" type="number" /></label><label class="text-xs font-medium">Chi phí xe<input v-model.number="partnerVehicleCost" class="mt-1 h-9 w-full rounded border border-input bg-background px-2" min="0" type="number" /></label><label class="text-xs font-medium">Chi phí lái<input v-model.number="externalDriverCost" class="mt-1 h-9 w-full rounded border border-input bg-background px-2" min="0" type="number" /></label></div></AccessDialog>
   </section>
 </template>

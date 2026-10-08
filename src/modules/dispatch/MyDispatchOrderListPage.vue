@@ -10,49 +10,38 @@ import {
 } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useMyDispatchOrders } from './dispatch.composables'
+import type { DispatchOrder } from './dispatch.types'
 
 type DriverOrder = {
   id: string
+  orderNo: string
   time: string
   endTime: string
   route: string
   customer: string
   plate: string
-  status: 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED'
+  status: 'ASSIGNED' | 'IN_PROGRESS' | 'PENDING_CONFIRMATION' | 'COMPLETED'
 }
 
 const router = useRouter()
 const query = ref('')
 const view = ref<'today' | 'upcoming'>('today')
-const orders = ref<DriverOrder[]>([
-  {
-    id: 'LX261006-015',
-    time: '13:30',
-    endTime: '16:00',
-    route: 'Hải Phòng → Cát Bà',
-    customer: 'Khách lẻ',
-    plate: '15B-123.45',
-    status: 'ASSIGNED',
-  },
-  {
-    id: 'LX261006-016',
-    time: '17:30',
-    endTime: '20:00',
-    route: 'Hải Phòng → Cát Bà',
-    customer: 'Nguyễn Văn A',
-    plate: '15B-678.90',
-    status: 'ASSIGNED',
-  },
-  {
-    id: 'LX261006-014',
-    time: '08:00',
-    endTime: '10:30',
-    route: 'Hải Phòng → Cát Bà',
-    customer: 'Công ty Minh Phát',
-    plate: '15B-111.22',
-    status: 'COMPLETED',
-  },
-])
+const ordersQuery = useMyDispatchOrders()
+const formatTime = (value: string | null | undefined) =>
+  value ? new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit' }).format(new Date(value)) : '—'
+const orders = computed<DriverOrder[]>(() =>
+  (ordersQuery.data.value ?? []).map((order: DispatchOrder) => ({
+    id: String(order.id),
+    orderNo: order.order_no,
+    time: formatTime(order.trip_schedule?.scheduled_start_at),
+    endTime: formatTime(order.trip_schedule?.scheduled_end_at),
+    route: order.trip_schedule?.route?.name ?? order.trip_schedule?.pickup_location ?? 'Chưa có tuyến',
+    customer: order.trip_schedule?.contract?.contract_no ?? 'Hợp đồng',
+    plate: order.trip_assignment?.vehicle?.license_plate ?? '—',
+    status: order.status as DriverOrder['status'],
+  })),
+)
 const visibleOrders = computed(() =>
   orders.value.filter((order) =>
     `${order.id}${order.route}${order.customer}${order.plate}`
@@ -63,12 +52,13 @@ const visibleOrders = computed(() =>
 const statusLabel: Record<DriverOrder['status'], string> = {
   ASSIGNED: 'Đã phân công',
   IN_PROGRESS: 'Đang chạy',
+  PENDING_CONFIRMATION: 'Chờ điều hành xác nhận',
   COMPLETED: 'Đã hoàn thành',
 }
 const statusClass = (status: DriverOrder['status']) =>
   status === 'COMPLETED'
     ? 'bg-success/10 text-success'
-    : status === 'IN_PROGRESS'
+    : status === 'IN_PROGRESS' || status === 'PENDING_CONFIRMATION'
       ? 'bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300'
       : 'bg-primary/10 text-primary'
 function openOrder(id: string): void {
@@ -160,7 +150,7 @@ function openOrder(id: string): void {
           ><CircleDotIcon class="size-4" /></span
         ><span class="min-w-0 flex-1"
           ><span class="flex flex-wrap items-center gap-x-3 gap-y-1"
-            ><strong class="text-base text-foreground">{{ order.id }}</strong
+            ><strong class="text-base text-foreground">{{ order.orderNo }}</strong
             ><span
               class="rounded-full px-2 py-1 text-xs font-semibold"
               :class="statusClass(order.status)"

@@ -12,6 +12,11 @@ import {
   XIcon,
 } from '@lucide/vue'
 import { computed, ref } from 'vue'
+import { useMutation } from '@tanstack/vue-query'
+import AccessDialog from '@/shared/components/feedback/AccessDialog.vue'
+import { RentalService } from '@/services/rental.service'
+import { useDispatchMutations, useTripSchedules } from './dispatch.composables'
+import type { TripSchedule } from './dispatch.types'
 
 type Status = 'Đã phân công' | 'Chờ phân công' | 'Chưa có xe'
 type Schedule = {
@@ -24,149 +29,68 @@ type Schedule = {
   status: Status
   vehicle?: string
   driver?: string
+  source: TripSchedule
 }
-const dateLabel = 'Thứ Ba, 06/10/2026'
-const selectedId = ref('LP261006-04')
-const selectedVehicle = ref('15B-123.45')
-const selectedDriver = ref('Nguyễn Văn Nam')
+const selectedId = ref('')
+const selectedVehicle = ref('')
+const selectedDriver = ref('')
 const search = ref('')
-const snapshotVisible = ref(true)
+const snapshotVisible = ref(false)
 const notice = ref('')
-const schedules = ref<Schedule[]>([
-  {
-    id: 'LP261006-01',
-    time: '06:30',
-    route: 'Hải Phòng → Cát Bà',
-    service: 'Khách lẻ',
-    customer: 'Khách lẻ',
-    vehicleType: '29 chỗ',
-    status: 'Đã phân công',
-    vehicle: '15B-456.78',
-    driver: 'Lê Văn Cường',
-  },
-  {
-    id: 'LP261006-02',
-    time: '08:00',
-    route: 'Hải Phòng → Cát Bà',
-    service: 'Hợp đồng',
-    customer: 'Công ty Thành Đạt',
-    vehicleType: '35 chỗ',
-    status: 'Đã phân công',
-    vehicle: '15B-678.90',
-    driver: 'Trần Minh Hiếu',
-  },
-  {
-    id: 'LP261006-03',
-    time: '10:30',
-    route: 'Hải Phòng → Cát Bà',
-    service: 'Khách lẻ',
-    customer: 'Khách lẻ',
-    vehicleType: '29 chỗ',
-    status: 'Đã phân công',
-    vehicle: '15F-222.11',
-    driver: 'Nguyễn Văn Nam',
-  },
-  {
-    id: 'LP261006-04',
-    time: '13:30',
-    route: 'Hải Phòng → Cát Bà',
-    service: 'Khách lẻ',
-    customer: 'Khách lẻ',
-    vehicleType: '29 chỗ',
-    status: 'Chờ phân công',
-  },
-  {
-    id: 'LP261006-05',
-    time: '15:00',
-    route: 'Hải Phòng → Cát Bà',
-    service: 'Hợp đồng',
-    customer: 'Công ty An Phát',
-    vehicleType: '35 chỗ',
-    status: 'Đã phân công',
-    vehicle: '15B-123.45',
-    driver: 'Nguyễn Văn Nam',
-  },
-  {
-    id: 'LP261006-07',
-    time: '06:00',
-    route: 'Hải Phòng → VSIP',
-    service: 'Đưa đón',
-    customer: 'Công ty An Phát',
-    vehicleType: '29 chỗ',
-    status: 'Đã phân công',
-    vehicle: '15B-123.45',
-    driver: 'Nguyễn Văn Nam',
-  },
-  {
-    id: 'LP261006-08',
-    time: '09:00',
-    route: 'Hải Phòng → VSIP',
-    service: 'Đưa đón',
-    customer: 'Công ty Hòa Phát',
-    vehicleType: '35 chỗ',
-    status: 'Đã phân công',
-    vehicle: '15B-678.90',
-    driver: 'Trần Minh Hiếu',
-  },
-  {
-    id: 'LP261006-10',
-    time: '17:00',
-    route: 'Hải Phòng → VSIP',
-    service: 'Khách lẻ',
-    customer: 'Khách lẻ',
-    vehicleType: '29 chỗ',
-    status: 'Chưa có xe',
-  },
-])
-const vehicles = [
-  { plate: '15B-123.45', type: '29 chỗ (Universe)', available: true },
-  { plate: '15B-456.78', type: '29 chỗ (Universe)', available: true },
-  { plate: '15F-222.11', type: '29 chỗ (Thaco)', available: true },
-  { plate: '15B-999.99', type: '29 chỗ (Đối tác)', available: false },
-]
-const drivers = [
-  { name: 'Nguyễn Văn Nam', detail: 'Hạng D · 5 năm', available: true },
-  { name: 'Lê Văn Cường', detail: 'Hạng D · 4 năm', available: true },
-  { name: 'Trần Minh Hiếu', detail: 'Hạng D · 6 năm', available: true },
-  { name: 'Hoàng Văn Hải', detail: 'Trùng giờ: 11:00 – 15:00', available: false },
-]
-const selected = computed<Schedule>(
-  () => schedules.value.find((row) => row.id === selectedId.value) ?? schedules.value[0]!,
-)
-const groups = computed(() =>
-  ['Hải Phòng → Cát Bà', 'Hải Phòng → VSIP']
-    .map((route) => ({
-      route,
-      rows: schedules.value.filter(
-        (row) =>
-          row.route === route &&
-          `${row.id}${row.customer}${row.vehicle || ''}${row.driver || ''}`
-            .toLocaleLowerCase('vi-VN')
-            .includes(search.value.toLocaleLowerCase('vi-VN')),
-      ),
-    }))
-    .filter((group) => group.rows.length),
-)
-const stateClass = (status: Status) =>
-  status === 'Đã phân công'
-    ? 'bg-success/10 text-success'
-    : status === 'Chờ phân công'
-      ? 'bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300'
-      : 'bg-destructive/10 text-destructive'
+const issueDialogOpen = ref(false)
+const activeTab = ref<'assignment' | 'history'>('assignment')
+const schedulesQuery = useTripSchedules()
+const dispatch = useDispatchMutations()
+const availability = useMutation({ mutationFn: RentalService.checkAvailability })
+const dateLabel = computed(() => new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date()))
+const formatTime = (value: string) => new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit' }).format(new Date(value))
+const toStatus = (schedule: TripSchedule): Status => schedule.status === 'ASSIGNED' ? 'Đã phân công' : schedule.status === 'PLANNED' ? 'Chờ phân công' : schedule.status === 'CANCELLED' ? 'Chưa có xe' : 'Đã phân công'
+const schedules = computed<Schedule[]>(() => (schedulesQuery.data.value ?? []).map((source) => {
+  const assignment = source.assignments?.find((item) => item.is_current)
+  return {
+    id: String(source.id),
+    time: formatTime(source.scheduled_start_at),
+    route: source.route?.name ?? ([source.pickup_location, source.dropoff_location].filter(Boolean).join(' → ') || 'Chưa có tuyến'),
+    service: source.service_type,
+    customer: source.contract?.contract_no ?? 'Hợp đồng',
+    vehicleType: source.required_vehicle_type?.name ?? 'Chưa xác định',
+    status: toStatus(source),
+    vehicle: assignment?.vehicle?.license_plate,
+    driver: assignment?.driver?.full_name,
+    source,
+  }
+}))
+const selected = computed<Schedule>(() => schedules.value.find((row) => row.id === selectedId.value) ?? schedules.value[0]!)
+const groups = computed(() => [...new Set(schedules.value.map((row) => row.route))].map((route) => ({ route, rows: schedules.value.filter((row) => row.route === route && `${row.id}${row.customer}${row.vehicle || ''}${row.driver || ''}`.toLocaleLowerCase('vi-VN').includes(search.value.toLocaleLowerCase('vi-VN'))) })).filter((group) => group.rows.length))
+const vehicles = computed(() => availability.data.value?.vehicle_capacities?.[0]?.candidates?.map((vehicle) => ({ plate: vehicle.license_plate, type: vehicle.ownership_type === 'partner' ? 'Xe đối tác' : 'Xe công ty', available: true, id: vehicle.id })) ?? [])
+const drivers = computed(() => availability.data.value?.driver_capacity?.candidates?.map((driver) => ({ name: driver.full_name, detail: driver.license_expired_at ? `Hạn bằng: ${driver.license_expired_at}` : 'Đủ điều kiện', available: true, id: driver.id })) ?? [])
+const replacementHistory = computed(() => selected.value?.source.assignments?.filter((item) => !item.is_current) ?? [])
+const stateClass = (status: Status) => status === 'Đã phân công' ? 'bg-success/10 text-success' : status === 'Chờ phân công' ? 'bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300' : 'bg-destructive/10 text-destructive'
 function choose(id: string) {
   selectedId.value = id
   snapshotVisible.value = false
   notice.value = ''
+  selectedVehicle.value = ''
+  selectedDriver.value = ''
 }
 function checkAvailability() {
-  snapshotVisible.value = true
-  notice.value = 'Đã cập nhật snapshot năng lực lúc 09:15.'
+  if (!selected.value?.source.required_vehicle_type?.id) return
+  availability.mutate({ start_at: selected.value.source.scheduled_start_at, end_at: selected.value.source.scheduled_end_at, items: [{ vehicle_type_id: selected.value.source.required_vehicle_type.id, quantity: 1 }] }, {
+    onSuccess: () => { snapshotVisible.value = true; notice.value = 'Đã cập nhật snapshot năng lực.' },
+    onError: () => { notice.value = 'Không thể kiểm tra năng lực. Vui lòng thử lại.' },
+  })
 }
 function assign() {
-  selected.value.vehicle = selectedVehicle.value
-  selected.value.driver = selectedDriver.value
-  selected.value.status = 'Đã phân công'
-  notice.value = `Đã phân công ${selectedVehicle.value} và ${selectedDriver.value}; lệnh điều xe đã sẵn sàng tạo.`
+  const vehicle = vehicles.value.find((item) => item.plate === selectedVehicle.value)
+  const driver = drivers.value.find((item) => item.name === selectedDriver.value)
+  if (!selected.value || !vehicle || !driver) { notice.value = 'Hãy chọn xe và tài xế từ snapshot năng lực.'; return }
+  const hasCurrent = selected.value.source.assignments?.some((item) => item.is_current)
+  const mutation = hasCurrent ? dispatch.substitute : dispatch.assign
+  mutation.mutate({ id: selected.value.source.id, payload: { vehicle_id: vehicle.id, driver_id: driver.id, replace_reason: hasCurrent ? 'Điều hành thay phân công' : undefined } }, { onSuccess: () => { notice.value = 'Đã lưu phân công và làm mới lịch chuyến.' } })
+}
+function issueOrder() {
+  if (!selected.value) return
+  dispatch.issue.mutate(selected.value.source.id, { onSuccess: () => { issueDialogOpen.value = false; notice.value = 'Đã phát hành lệnh điều xe.' } })
 }
 </script>
 
@@ -296,18 +220,18 @@ function assign() {
           </button>
         </div>
         <div class="flex gap-5 border-b border-border text-sm font-semibold">
-          <button class="border-b-2 border-primary px-1 pb-2.5 text-primary" type="button">
+          <button class="border-b-2 px-1 pb-2.5" :class="activeTab === 'assignment' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'" type="button" @click="activeTab = 'assignment'">
             Chọn xe & tài xế</button
-          ><button class="px-1 pb-2.5 text-muted-foreground" type="button">
-            Thông tin lịch chuyến
+          ><button class="border-b-2 px-1 pb-2.5" :class="activeTab === 'history' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'" type="button" @click="activeTab = 'history'">
+            Lịch sử thay thế
           </button>
         </div>
         <div
           v-if="snapshotVisible"
           class="flex gap-2 rounded-lg border border-primary/15 bg-primary/[0.06] px-3 py-2.5 text-xs text-primary"
         >
-          <CheckCircle2Icon class="size-4 shrink-0" />Kết quả kiểm tra năng lực tại 06/10/2026
-          09:15. Snapshot không giữ tài nguyên.
+          <CheckCircle2Icon class="size-4 shrink-0" />Kết quả kiểm tra năng lực vừa cập nhật.
+          Snapshot không giữ tài nguyên.
         </div>
         <button
           class="w-full rounded-lg border border-primary/30 px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/[0.05]"
@@ -316,10 +240,10 @@ function assign() {
         >
           Kiểm tra năng lực
         </button>
-        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-2">
+        <div v-if="activeTab === 'assignment'" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-2">
           <div>
             <h3 class="mb-2 text-sm font-bold">
-              Xe phù hợp <span class="text-muted-foreground">(29 chỗ)</span>
+              Xe phù hợp <span class="text-muted-foreground">({{ selected.vehicleType }})</span>
             </h3>
             <label
               v-for="vehicle in vehicles"
@@ -372,10 +296,18 @@ function assign() {
             >
           </div>
         </div>
+        <div v-else class="space-y-2 rounded-lg border border-border p-3 text-sm">
+          <p v-if="replacementHistory.length === 0" class="text-muted-foreground">Chưa có lần thay phân công.</p>
+          <div v-for="assignment in replacementHistory" :key="assignment.id" class="border-b border-border pb-2 last:border-0">
+            <strong>{{ assignment.vehicle?.license_plate ?? '—' }} · {{ assignment.driver?.full_name ?? '—' }}</strong>
+            <p class="mt-1 text-xs text-muted-foreground">{{ assignment.replace_reason || 'Thay phân công' }}</p>
+          </div>
+        </div>
         <div
+          v-if="snapshotVisible && availability.data.value && !availability.data.value.can_fulfill"
           class="flex gap-2 rounded-lg border border-destructive/20 bg-destructive/5 p-2.5 text-xs text-destructive"
         >
-          <AlertCircleIcon class="size-4 shrink-0" />1 xe và 1 tài xế không khả dụng do trùng giờ.
+          <AlertCircleIcon class="size-4 shrink-0" />Không đủ xe hoặc tài xế phù hợp trong khung giờ này.
         </div>
         <p
           v-if="notice"
@@ -388,11 +320,11 @@ function assign() {
           <button class="h-9 rounded-lg border border-input px-4 text-sm" type="button">Hủy</button
           ><button
             class="h-9 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-            :disabled="selected.status === 'Đã phân công'"
+            :disabled="dispatch.assign.isPending.value || dispatch.substitute.isPending.value || activeTab !== 'assignment'"
             type="button"
             @click="assign"
           >
-            <CheckCircle2Icon class="mr-1 inline size-4" />Phân công
+            <CheckCircle2Icon class="mr-1 inline size-4" />{{ selected.status === 'Đã phân công' ? 'Thay phân công' : 'Phân công' }}
           </button>
         </div>
       </aside>
@@ -410,28 +342,27 @@ function assign() {
             </p>
           </div>
         </div>
-        <span class="rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success"
-          >Đã phát hành</span
-        >
+        <button class="rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success disabled:opacity-50" :disabled="selected.status !== 'Đã phân công' || dispatch.issue.isPending.value" type="button" @click="issueDialogOpen = true">Phát hành lệnh</button>
       </div>
       <div class="mt-4 grid gap-3 border-t border-border pt-4 text-sm sm:grid-cols-4">
         <p>
           <span class="block text-xs text-muted-foreground">Mã lệnh</span
-          ><strong>LX261006-015</strong>
+          ><strong>{{ selected.source.dispatch_order?.order_no ?? 'Chưa phát hành' }}</strong>
         </p>
         <p>
           <span class="block text-xs text-muted-foreground">Xe / Tài xế</span
-          ><strong>15B-123.45 · Nguyễn Văn Nam</strong>
+          ><strong>{{ selected.vehicle ?? '—' }} · {{ selected.driver ?? '—' }}</strong>
         </p>
         <p>
           <span class="block text-xs text-muted-foreground">Tuyến</span
-          ><strong>Hải Phòng → Cát Bà</strong>
+          ><strong>{{ selected.route }}</strong>
         </p>
         <p>
           <span class="block text-xs text-muted-foreground">Giờ đi</span
-          ><strong class="tabular-nums">13:30 · 06/10/2026</strong>
+          ><strong class="tabular-nums">{{ selected.time }}</strong>
         </p>
       </div>
     </article>
+    <AccessDialog :open="issueDialogOpen" title="Phát hành lệnh điều xe" :description="`Phát hành lệnh cho lịch ${selected.source.schedule_no}. Muốn thay xe hoặc tài xế sau đó phải hủy lệnh trước.`" confirm-label="Phát hành" cancel-label="Quay lại" :pending="dispatch.issue.isPending.value" @close="issueDialogOpen = false" @confirm="issueOrder" />
   </section>
 </template>

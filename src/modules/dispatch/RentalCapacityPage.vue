@@ -12,35 +12,32 @@ import {
   XIcon,
 } from '@lucide/vue'
 import { computed, ref } from 'vue'
+import { useMutation } from '@tanstack/vue-query'
+import { RentalService } from '@/services/rental.service'
+import { useVehicleTypeQuery } from '@/modules/master-data/vehicle-type/composables/useVehicleTypeQueries'
 
-type CapacityItem = { id: number; vehicleType: string; quantity: number }
-
-const startDate = ref('2026-10-20')
-const startTime = ref('06:00')
-const endDate = ref('2026-10-20')
-const endTime = ref('18:00')
-const ownership = ref('Tất cả nguồn xe')
-const partner = ref('Tất cả đối tác')
-const isChecked = ref(false)
-const items = ref<CapacityItem[]>([
-  { id: 1, vehicleType: '29 chỗ', quantity: 2 },
-  { id: 2, vehicleType: '45 chỗ', quantity: 1 },
-])
-const nextId = ref(3)
-
+type CapacityItem = { id: number; vehicleTypeId: number | null; vehicleType: string; quantity: number }
+const startDate = ref(''); const startTime = ref(''); const endDate = ref(''); const endTime = ref('')
+const ownership = ref('Tất cả nguồn xe'); const partner = ref('Tất cả đối tác')
+const items = ref<CapacityItem[]>([{ id: 1, vehicleTypeId: null, vehicleType: 'Chọn loại xe', quantity: 1 }])
+const nextId = ref(2)
+const vehicleTypesQuery = useVehicleTypeQuery()
+const availability = useMutation({ mutationFn: RentalService.checkAvailability })
+const isChecked = computed(() => availability.isSuccess.value)
 const totalNeeded = computed(() => items.value.reduce((total, item) => total + item.quantity, 0))
-const canFulfill = computed(() => totalNeeded.value <= 4)
-
-function addItem(): void {
-  items.value.push({ id: nextId.value++, vehicleType: '16 chỗ', quantity: 1 })
+const canFulfill = computed(() => availability.data.value?.can_fulfill ?? false)
+const resultFor = (item: CapacityItem) => availability.data.value?.vehicle_capacities?.find((result) => result.vehicle_type_id === item.vehicleTypeId)
+function addItem(): void { items.value.push({ id: nextId.value++, vehicleTypeId: null, vehicleType: 'Chọn loại xe', quantity: 1 }) }
+function removeItem(id: number): void { if (items.value.length > 1) items.value = items.value.filter((item) => item.id !== id) }
+function chooseVehicleType(item: CapacityItem, event: Event) {
+  const id = Number((event.target as HTMLSelectElement).value) || null
+  item.vehicleTypeId = id
+  item.vehicleType = vehicleTypesQuery.data.value?.find((type) => type.id === id)?.name ?? 'Chọn loại xe'
 }
-
-function removeItem(id: number): void {
-  if (items.value.length > 1) items.value = items.value.filter((item) => item.id !== id)
-}
-
 function checkCapacity(): void {
-  isChecked.value = true
+  const validItems = items.value.filter((item) => item.vehicleTypeId !== null).map((item) => ({ vehicle_type_id: item.vehicleTypeId!, quantity: item.quantity }))
+  if (!startDate.value || !startTime.value || !endDate.value || !endTime.value || validItems.length !== items.value.length) return
+  availability.mutate({ start_at: `${startDate.value}T${startTime.value}:00`, end_at: `${endDate.value}T${endTime.value}:00`, items: validItems })
 }
 </script>
 
@@ -127,12 +124,7 @@ function checkCapacity(): void {
               :key="item.id"
               class="grid items-center gap-3 border-b border-border p-3 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_132px_40px]"
             >
-              <button
-                class="flex h-9 items-center justify-between rounded-md border border-input bg-background px-3 text-left text-sm"
-                type="button"
-              >
-                {{ item.vehicleType
-                }}<ChevronDownIcon class="size-4 text-muted-foreground" /></button
+              <label class="relative"><select :value="item.vehicleTypeId ?? ''" class="h-9 w-full appearance-none rounded-md border border-input bg-background px-3 text-left text-sm" @change="chooseVehicleType(item, $event)"><option value="">{{ item.vehicleType }}</option><option v-for="type in vehicleTypesQuery.data.value ?? []" :key="type.id" :value="type.id">{{ type.name }}</option></select><ChevronDownIcon class="pointer-events-none absolute right-3 top-2.5 size-4 text-muted-foreground" /></label>
               ><span class="flex h-9 items-center overflow-hidden rounded-md border border-input"
                 ><button
                   class="px-2 text-muted-foreground hover:bg-muted"
@@ -165,6 +157,7 @@ function checkCapacity(): void {
           <button
             class="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
             type="button"
+            :disabled="availability.isPending.value"
             @click="checkCapacity"
           >
             <SearchCheckIcon class="size-4" />Kiểm tra năng lực
@@ -178,7 +171,7 @@ function checkCapacity(): void {
         <div>
           <h2 class="text-lg font-bold">Kết quả năng lực</h2>
           <p class="mt-1 text-sm text-muted-foreground">
-            Snapshot lúc 09:15 · {{ startDate }} {{ startTime }} đến {{ endDate }} {{ endTime }}
+            Snapshot lúc {{ availability.data.value?.checked_at ? new Date(availability.data.value.checked_at).toLocaleTimeString('vi-VN') : '—' }} · {{ startDate }} {{ startTime }} đến {{ endDate }} {{ endTime }}
           </p>
         </div>
         <span
@@ -209,17 +202,13 @@ function checkCapacity(): void {
                 <td class="px-4 py-3 text-center font-semibold tabular-nums">
                   {{ item.quantity }}
                 </td>
-                <td class="px-4 py-3 text-center tabular-nums">
-                  {{ item.vehicleType === '45 chỗ' ? 1 : 3 }}
-                </td>
-                <td class="px-4 py-3 text-center tabular-nums">1</td>
-                <td class="px-4 py-3 text-center font-semibold tabular-nums">
-                  {{ item.vehicleType === '45 chỗ' ? 2 : 4 }}
-                </td>
+                <td class="px-4 py-3 text-center tabular-nums">{{ resultFor(item)?.company_available_count ?? 0 }}</td>
+                <td class="px-4 py-3 text-center tabular-nums">{{ resultFor(item)?.partner_available_count ?? 0 }}</td>
+                <td class="px-4 py-3 text-center font-semibold tabular-nums">{{ resultFor(item)?.available_count ?? 0 }}</td>
                 <td class="px-4 py-3">
                   <span
                     class="rounded-full bg-success/10 px-2 py-1 text-xs font-semibold text-success"
-                    >Đủ xe</span
+                    >{{ resultFor(item)?.is_sufficient ? 'Đủ xe' : 'Thiếu xe' }}</span
                   >
                 </td>
               </tr>
@@ -243,15 +232,15 @@ function checkCapacity(): void {
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">Tài xế công ty</dt>
-              <dd class="font-bold tabular-nums">4</dd>
+              <dd class="font-bold tabular-nums">{{ availability.data.value?.driver_capacity.company_available_count ?? 0 }}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">Tài xế đối tác</dt>
-              <dd class="font-bold tabular-nums">1</dd>
+              <dd class="font-bold tabular-nums">{{ availability.data.value?.driver_capacity.partner_available_count ?? 0 }}</dd>
             </div>
             <div class="flex justify-between border-t border-border pt-3">
               <dt class="font-medium">Có thể phân công</dt>
-              <dd class="font-bold text-success">Có</dd>
+              <dd class="font-bold" :class="availability.data.value?.driver_capacity.is_sufficient ? 'text-success' : 'text-destructive'">{{ availability.data.value?.driver_capacity.is_sufficient ? 'Có' : 'Không' }}</dd>
             </div>
           </dl>
         </aside>
