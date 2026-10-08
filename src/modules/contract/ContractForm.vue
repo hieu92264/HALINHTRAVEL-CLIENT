@@ -58,16 +58,12 @@
             </option>
           </select></label
         >
-        <label class="space-y-1.5"
-          ><span>Loại hợp đồng *</span
-          ><select
-            v-model="form.contract_type"
-            class="h-10 w-full rounded-md border bg-background px-3"
-          >
-            <option value="trip">Hợp đồng theo chuyến</option>
-            <option value="principle">Hợp đồng nguyên tắc</option>
-          </select></label
-        >
+        <div class="space-y-1.5">
+          <span>Loại hợp đồng</span>
+          <p class="flex h-10 items-center rounded-md border bg-muted px-3 text-sm">
+            {{ isFromQuotation ? 'Hợp đồng theo chuyến' : 'Hợp đồng nguyên tắc' }}
+          </p>
+        </div>
         <label class="space-y-1.5"
           ><span>Ngày ký</span><Input v-model="form.signed_date" class="h-10" type="date"
         /></label>
@@ -278,7 +274,7 @@ let nextKey = 2
 const today = new Date().toISOString().slice(0, 10)
 const form = reactive({
   customer_id: 0,
-  contract_type: 'trip' as ContractType,
+  contract_type: isFromQuotation.value ? 'trip' as ContractType : 'principle' as ContractType,
   signed_date: today,
   effective_from: '',
   effective_to: '',
@@ -303,13 +299,15 @@ const form = reactive({
 const formError = ref('')
 const quotation = computed(() => quotationQuery.data.value)
 const sourceError = computed(() => {
+  if (isEdit.value && contractQuery.data.value?.contract_type === 'trip')
+    return 'Hợp đồng theo chuyến được tạo từ báo giá và không thể chỉnh sửa trực tiếp.'
   if (!isFromQuotation.value) return ''
   if (quotationQuery.isError.value) return 'Không thể tải báo giá để tạo hợp đồng.'
   if (requestQuery.isError.value) return 'Không thể tải yêu cầu thuê liên quan.'
   const quote = quotation.value
   const request = requestQuery.data.value
   if (!quote || !request) return ''
-  return quote.status !== 'approved' || request.status !== 'accepted'
+  return !quote.rental_request_id || quote.status !== 'approved' || request.status !== 'accepted'
     ? 'Chỉ có thể tạo hợp đồng từ báo giá đã duyệt và yêu cầu thuê đã được chấp nhận.'
     : ''
 })
@@ -400,6 +398,18 @@ async function submit() {
   formError.value = ''
   if (sourceError.value) {
     formError.value = sourceError.value
+    return
+  }
+  if (
+    isFromQuotation.value &&
+    requestQuery.data.value &&
+    requestQuery.data.value.start_at &&
+    requestQuery.data.value.end_at &&
+    (form.effective_from > requestQuery.data.value.start_at.slice(0, 10) ||
+      !form.effective_to ||
+      form.effective_to < requestQuery.data.value.end_at.slice(0, 10))
+  ) {
+    formError.value = 'Hiệu lực hợp đồng phải bao trùm toàn bộ thời gian của yêu cầu thuê xe.'
     return
   }
   const schema = isFromQuotation.value ? contractFromQuotationSchema : contractFormSchema

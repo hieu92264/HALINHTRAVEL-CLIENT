@@ -30,7 +30,7 @@ const contractItem = z.object({
 })
 export const contractFormSchema = dates({
   customer_id: z.coerce.number().int().positive('Chọn khách hàng'),
-  contract_type: z.custom<ContractType>(),
+  contract_type: z.literal('principle'),
   signed_date: z.string(),
   effective_from: z.string().min(1),
   effective_to: z.string(),
@@ -49,7 +49,7 @@ export const contractFormSchema = dates({
 })
 export const contractFromQuotationSchema = dates({
   quotation_id: z.coerce.number().int().positive(),
-  contract_type: z.custom<ContractType>(),
+  contract_type: z.literal('trip'),
   signed_date: z.string(),
   effective_from: z.string().min(1),
   effective_to: z.string(),

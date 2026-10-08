@@ -5,9 +5,9 @@
         <h1 class="text-2xl font-semibold">Báo giá</h1>
         <p class="mt-1 text-sm text-muted-foreground">Lập, gửi và theo dõi báo giá thuê xe.</p>
       </div>
-      <Button v-if="canManage" @click="router.push({ name: 'quotations-create' })">
+      <Button v-if="canManage" @click="router.push({ name: 'rental-requests-create' })">
         <Plus class="size-4" />
-        Tạo báo giá
+        Tạo yêu cầu thuê
       </Button>
     </header>
 
@@ -70,7 +70,7 @@
               Xem chi tiết
             </DropdownMenuItem>
             <DropdownMenuItem
-              v-if="canManage && isQuotationDraft(row.status)"
+              v-if="canManage && isQuotationDraft(row.status) && isQuotationCurrent(row)"
               class="min-w-40 gap-2"
               @click="router.push({ name: 'quotations-edit', params: { id: row.id } })"
             >
@@ -102,7 +102,7 @@
               Đánh dấu hết hạn
             </DropdownMenuItem>
             <DropdownMenuItem
-              v-if="canManage && isQuotationDraft(row.status)"
+              v-if="canManage && isQuotationDraft(row.status) && isQuotationCurrent(row)"
               variant="destructive"
               class="min-w-40 gap-2"
               @click="remove(row.id)"
@@ -124,6 +124,7 @@ import {
   canRecordQuotationByPhone,
   canSendQuotation,
   filterByDateRange,
+  isQuotationCurrent,
   isQuotationDraft,
   type DateRange,
 } from '@/modules/rental/rental-table'
