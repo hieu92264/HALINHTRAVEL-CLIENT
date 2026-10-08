@@ -28,16 +28,19 @@
             variant="outline"
             @click="router.push({ name: 'contracts-edit', params: { id: contract.id } })"
             >Sửa</Button
-          ><Button v-if="contract.status === 'draft'" @click="transition('activate')"
+          ><Button v-if="contract.status === 'draft'" @click="openConfirmation('activate')"
             >Kích hoạt</Button
-          ><Button v-if="contract.status === 'active'" @click="transition('complete')"
+          ><Button v-if="contract.status === 'active'" @click="openConfirmation('complete')"
             >Hoàn thành</Button
           ><Button
             v-if="contract.status === 'draft' || contract.status === 'active'"
             variant="outline"
-            @click="transition('cancel')"
+            @click="openConfirmation('cancel')"
             >Hủy</Button
-          ><Button v-if="contract.status === 'draft'" variant="ghost" @click="remove"
+          ><Button
+            v-if="contract.status === 'draft'"
+            variant="ghost"
+            @click="openConfirmation('remove')"
             >Ngừng hoạt động</Button
           >
         </div>
@@ -123,6 +126,17 @@
       </div>
     </template>
   </section>
+  <AccessDialog
+    :open="confirmation !== null"
+    :title="confirmationCopy.title"
+    :description="confirmationCopy.description"
+    :confirm-label="confirmationCopy.confirmLabel"
+    cancel-label="Quay lại"
+    :destructive="confirmationCopy.destructive"
+    :pending="isConfirmationPending"
+    @close="closeConfirmation"
+    @confirm="confirmAction"
+  />
 </template>
 <script setup lang="ts">
 import { useAuthStore } from '@/modules/auth/auth.store'
@@ -130,9 +144,10 @@ import { useContractMutations, useContractQuery } from '@/modules/contract/contr
 import { contractStatusLabel, contractTypeLabel } from '@/modules/contract/contract.format'
 import ScheduleRulesPanel from '@/modules/contract/components/ScheduleRulesPanel.vue'
 import { formatCurrency, formatDate, serviceTypeLabel } from '@/modules/rental/rental.format'
+import AccessDialog from '@/shared/components/feedback/AccessDialog.vue'
 import { Button } from '@/shared/components/ui/button'
 import { ApiError } from '@/shared/lib/api-error'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 const route = useRoute()
@@ -143,33 +158,87 @@ const query = useContractQuery(() => id.value)
 const contract = computed(() => query.data.value)
 const mutations = useContractMutations()
 const canManage = computed(() => auth.user?.permissions.includes('contracts.manage') ?? false)
-async function transition(action: 'activate' | 'complete' | 'cancel') {
-  if (
-    !window.confirm(
-      action === 'activate'
-        ? 'Kích hoạt hợp đồng này?'
-        : action === 'complete'
-          ? 'Hoàn thành hợp đồng này?'
-          : 'Hủy hợp đồng này?',
-    )
-  )
-    return
+type ContractAction = 'activate' | 'complete' | 'cancel' | 'remove'
+const confirmation = ref<ContractAction | null>(null)
+const confirmationCopy = computed(() => {
+  const contractNo = contract.value?.contract_no ?? 'hợp đồng này'
+  switch (confirmation.value) {
+    case 'activate':
+      return {
+        title: 'Kích hoạt hợp đồng',
+        description: `Hợp đồng ${contractNo} sẽ được chuyển sang trạng thái đang hiệu lực.`,
+        confirmLabel: 'Kích hoạt',
+        destructive: false,
+      }
+    case 'complete':
+      return {
+        title: 'Hoàn thành hợp đồng',
+        description: `Hợp đồng ${contractNo} sẽ được đánh dấu hoàn thành.`,
+        confirmLabel: 'Hoàn thành',
+        destructive: false,
+      }
+    case 'cancel':
+      return {
+        title: 'Hủy hợp đồng',
+        description: `Hợp đồng ${contractNo} sẽ bị hủy và không thể tiếp tục thực hiện.`,
+        confirmLabel: 'Hủy hợp đồng',
+        destructive: true,
+      }
+    case 'remove':
+      return {
+        title: 'Ngừng hoạt động hợp đồng',
+        description: `Hợp đồng nháp ${contractNo} sẽ bị ngừng hoạt động.`,
+        confirmLabel: 'Ngừng hoạt động',
+        destructive: true,
+      }
+    default:
+      return { title: '', description: '', confirmLabel: '', destructive: false }
+  }
+})
+const isConfirmationPending = computed(() => {
+  switch (confirmation.value) {
+    case 'activate':
+      return mutations.activate.isPending.value
+    case 'complete':
+      return mutations.complete.isPending.value
+    case 'cancel':
+      return mutations.cancel.isPending.value
+    case 'remove':
+      return mutations.remove.isPending.value
+    default:
+      return false
+  }
+})
+function openConfirmation(action: ContractAction) {
+  confirmation.value = action
+}
+function closeConfirmation() {
+  if (!isConfirmationPending.value) confirmation.value = null
+}
+async function confirmAction() {
+  const action = confirmation.value
+  if (!action) return
   try {
+    if (action === 'remove') {
+      await mutations.remove.mutateAsync(id.value)
+      toast.success('Đã ngừng hoạt động hợp đồng.')
+      confirmation.value = null
+      await router.push({ name: 'contracts' })
+      return
+    }
     await mutations[action].mutateAsync(id.value)
     toast.success('Đã cập nhật trạng thái hợp đồng.')
     await query.refetch()
   } catch (error) {
-    toast.error(error instanceof ApiError ? error.message : 'Không thể cập nhật hợp đồng.')
-  }
-}
-async function remove() {
-  if (!window.confirm('Ngừng hoạt động hợp đồng nháp này?')) return
-  try {
-    await mutations.remove.mutateAsync(id.value)
-    toast.success('Đã ngừng hoạt động hợp đồng.')
-    await router.push({ name: 'contracts' })
-  } catch (error) {
-    toast.error(error instanceof ApiError ? error.message : 'Không thể ngừng hoạt động hợp đồng.')
+    toast.error(
+      error instanceof ApiError
+        ? error.message
+        : action === 'remove'
+          ? 'Không thể ngừng hoạt động hợp đồng.'
+          : 'Không thể cập nhật hợp đồng.',
+    )
+  } finally {
+    confirmation.value = null
   }
 }
 </script>

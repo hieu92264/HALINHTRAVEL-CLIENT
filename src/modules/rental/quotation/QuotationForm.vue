@@ -7,7 +7,7 @@
           {{
             isRequestPrefill
               ? 'Thông tin yêu cầu đã được khóa; chỉ cần nhập đơn giá cho từng hạng mục.'
-              : 'Báo giá được lưu ở trạng thái dự thảo; hệ thống tính tổng tiền khi lưu.'
+              : 'Báo giá phải được tạo từ trang chi tiết của một yêu cầu thuê xe.'
           }}
         </p>
       </div>
@@ -25,6 +25,12 @@
       class="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
     >
       Không thể tải yêu cầu thuê xe để lập báo giá.
+    </p>
+    <p
+      v-if="!isEdit && !isRequestPrefill"
+      class="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+    >
+      Hãy mở một yêu cầu thuê xe hợp lệ rồi chọn “Tạo báo giá”.
     </p>
 
     <form class="space-y-5" @submit.prevent="submit">
@@ -54,6 +60,12 @@
               {{ formatDate(linkedRequest.end_at, true) }}
             </p>
           </div>
+          <label class="space-y-1.5"
+            ><span>Ngày báo giá *</span><Input v-model="form.quotation_date" class="h-10" type="date"
+          /></label>
+          <label class="space-y-1.5"
+            ><span>Hiệu lực đến *</span><Input v-model="form.valid_until" class="h-10" type="date"
+          /></label>
         </template>
         <template v-else>
           <label class="space-y-1.5"
@@ -86,7 +98,7 @@
             ><Input v-model="form.quotation_date" class="h-10" type="date"
           /></label>
           <label class="space-y-1.5"
-            ><span>Hiệu lực đến</span><Input v-model="form.valid_until" class="h-10" type="date"
+            ><span>Hiệu lực đến *</span><Input v-model="form.valid_until" class="h-10" type="date"
           /></label>
         </template>
       </div>
@@ -255,11 +267,8 @@
         </div>
       </div>
 
-      <div
-        class="grid gap-4 rounded-lg border bg-card p-5"
-        :class="isRequestPrefill ? 'md:grid-cols-2' : 'md:grid-cols-3'"
-      >
-        <label v-if="!isRequestPrefill" class="space-y-1.5"
+      <div class="grid gap-4 rounded-lg border bg-card p-5 md:grid-cols-3">
+        <label class="space-y-1.5"
           ><span>Chiết khấu</span
           ><Input v-model="form.discount_amount" class="h-10" min="0" type="number"
         /></label>
@@ -271,7 +280,7 @@
           <p class="text-sm text-muted-foreground">Tổng tiền dự kiến</p>
           <p class="font-semibold">{{ formatCurrency(total) }}</p>
         </div>
-        <label v-if="!isRequestPrefill" class="space-y-1.5 md:col-span-3"
+        <label class="space-y-1.5 md:col-span-3"
           ><span>Điều khoản thanh toán</span
           ><textarea
             v-model="form.payment_terms"
@@ -285,6 +294,7 @@
           type="submit"
           :disabled="
             mutationPending ||
+            (!isEdit && !isRequestPrefill) ||
             (isRequestPrefill &&
               (!availabilityResult?.can_fulfill || availabilityCheck.isPending.value))
           "
@@ -315,6 +325,7 @@ import {
 import type {
   AvailabilityResult,
   QuotationPayload,
+  QuotationUpdatePayload,
   RentalRequest,
 } from '@/modules/rental/rental.types'
 import { Button } from '@/shared/components/ui/button'
@@ -337,13 +348,16 @@ const router = useRouter()
 const id = computed(() => Number(route.params.id ?? 0))
 const isEdit = computed(() => id.value > 0)
 const routeRequestId = computed(() => Number(route.query.rental_request_id ?? 0))
+const linkedRequestId = computed(() =>
+  isEdit.value ? quotationQuery.data.value?.rental_request_id ?? 0 : routeRequestId.value,
+)
 const isRequestPrefill = computed(
-  () => !isEdit.value && Number.isInteger(routeRequestId.value) && routeRequestId.value > 0,
+  () => Number.isInteger(linkedRequestId.value) && linkedRequestId.value > 0,
 )
 const quotationQuery = useQuotationQuery(() => id.value)
 const requestsQuery = useRentalRequestsQuery()
 const linkedRequestQuery = useRentalRequestQuery(() =>
-  isRequestPrefill.value ? routeRequestId.value : 0,
+  isRequestPrefill.value ? linkedRequestId.value : 0,
 )
 const { data: customerData } = useCustomerQuery()
 const { data: vehicleTypeData } = useVehicleTypeQuery()
@@ -372,7 +386,7 @@ const linkedRequest = computed(() => linkedRequestQuery.data.value)
 let nextKey = 2
 const form = reactive({
   customer_id: 0,
-  rental_request_id: isRequestPrefill.value ? routeRequestId.value : 0,
+  rental_request_id: isRequestPrefill.value ? linkedRequestId.value : 0,
   quotation_date: new Date().toISOString().slice(0, 10),
   valid_until: '',
   discount_amount: '0',
@@ -391,7 +405,7 @@ const subtotal = computed(() =>
   ),
 )
 const total = computed(() =>
-  Math.max(0, subtotal.value - Number(isRequestPrefill.value ? 0 : form.discount_amount || 0)),
+  Math.max(0, subtotal.value - Number(form.discount_amount || 0)),
 )
 const mutationPending = computed(
   () => mutations.createQuotation.isPending.value || mutations.updateQuotation.isPending.value,
@@ -505,11 +519,11 @@ async function checkLinkedRequestCapacity(): Promise<boolean> {
 function payload(): QuotationPayload {
   return {
     customer_id: form.customer_id,
-    rental_request_id: form.rental_request_id || null,
+    rental_request_id: form.rental_request_id,
     quotation_date: form.quotation_date,
-    valid_until: isRequestPrefill.value ? null : form.valid_until || null,
-    discount_amount: isRequestPrefill.value ? '0' : String(form.discount_amount || '0'),
-    payment_terms: isRequestPrefill.value ? null : form.payment_terms || null,
+    valid_until: form.valid_until,
+    discount_amount: String(form.discount_amount || '0'),
+    payment_terms: form.payment_terms || null,
     items: form.items.map((item) => ({
       vehicle_type_id: item.vehicle_type_id,
       route_id: item.route_id || null,
@@ -519,15 +533,24 @@ function payload(): QuotationPayload {
     })),
   }
 }
+function updatePayload(): QuotationUpdatePayload {
+  const { rental_request_id: _rentalRequestId, ...data } = payload()
+
+  return data
+}
 async function submit() {
   formError.value = ''
+  if (!isEdit.value && !isRequestPrefill.value) {
+    formError.value = 'Báo giá phải được tạo từ một yêu cầu thuê xe.'
+    return
+  }
   if (isRequestPrefill.value && !(await checkLinkedRequestCapacity())) {
     formError.value = capacityError.value || 'Chưa đủ năng lực để lập báo giá.'
     return
   }
   const validation = quotationFormSchema.safeParse({
     ...form,
-    rental_request_id: form.rental_request_id || null,
+    rental_request_id: form.rental_request_id,
     valid_until: form.valid_until || '',
     items: form.items.map(({ key: _key, ...item }) => ({
       ...item,
@@ -540,7 +563,7 @@ async function submit() {
   }
   try {
     const result = isEdit.value
-      ? await mutations.updateQuotation.mutateAsync({ id: id.value, data: payload() })
+      ? await mutations.updateQuotation.mutateAsync({ id: id.value, data: updatePayload() })
       : await mutations.createQuotation.mutateAsync(payload())
     toast.success(isEdit.value ? 'Đã cập nhật báo giá.' : 'Đã lưu báo giá nháp.')
     await router.push({ name: 'quotations-detail', params: { id: result.id } })

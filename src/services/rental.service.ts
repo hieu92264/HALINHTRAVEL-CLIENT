@@ -4,6 +4,7 @@ import type {
   PublicQuotation,
   Quotation,
   QuotationPayload,
+  QuotationUpdatePayload,
   RentalRequest,
   RentalRequestPayload,
 } from '@/modules/rental/rental.types'
@@ -44,7 +45,7 @@ export class RentalService {
     return httpService.post(`${rentalUrl}/quotations`, payload)
   }
 
-  static updateQuotation(id: number, payload: Partial<QuotationPayload>): Promise<Quotation> {
+  static updateQuotation(id: number, payload: QuotationUpdatePayload): Promise<Quotation> {
     return httpService.patch(`${rentalUrl}/quotations/${id}`, payload)
   }
 

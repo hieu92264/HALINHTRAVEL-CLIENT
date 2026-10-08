@@ -8,9 +8,9 @@ const money = z.coerce.number().min(0, 'Giá trị không được âm')
 export const quotationFormSchema = z
   .object({
     customer_id: z.coerce.number().int().positive('Chọn khách hàng'),
-    rental_request_id: z.coerce.number().nullable(),
+    rental_request_id: z.coerce.number().int().positive('Chọn yêu cầu thuê xe'),
     quotation_date: z.string().min(1, 'Chọn ngày báo giá'),
-    valid_until: z.string(),
+    valid_until: z.string().min(1, 'Chọn hạn hiệu lực'),
     discount_amount: money,
     payment_terms: nullableText(65535),
     items: z

@@ -21,7 +21,7 @@
         </div>
         <div class="flex flex-wrap gap-2">
           <Button
-            v-if="canCreateContract && quotation.status === 'approved'"
+            v-if="canCreateContract && quotation.status === 'approved' && quotation.rental_request_id"
             @click="
               router.push({
                 name: 'contracts-from-quotation',
@@ -31,16 +31,17 @@
             >Tạo hợp đồng</Button
           ><template v-if="canManage"
             ><Button
-              v-if="quotation.status === 'draft'"
+              v-if="quotation.status === 'draft' && isQuotationCurrent(quotation)"
               variant="outline"
               @click="router.push({ name: 'quotations-edit', params: { id: quotation.id } })"
               >Sửa</Button
-            ><Button v-if="quotation.status === 'draft' && quotation.customer_email" @click="send"
+            ><Button v-if="quotation.status === 'draft' && quotation.customer_email && isQuotationCurrent(quotation)" @click="send"
               >Gửi email</Button
             ><Button
               v-if="
-                quotation.status === 'sent' ||
-                (quotation.status === 'draft' && !quotation.customer_email)
+                (quotation.status === 'sent' ||
+                (quotation.status === 'draft' && !quotation.customer_email)) &&
+                isQuotationCurrent(quotation)
               "
               variant="outline"
               @click="phoneResponse"
@@ -124,6 +125,7 @@
 <script setup lang="ts">
 import { useAuthStore } from '@/modules/auth/auth.store'
 import { formatCurrency, formatDate, quotationStatusLabel } from '@/modules/rental/rental.format'
+import { isQuotationCurrent } from '@/modules/rental/rental-table'
 import { useQuotationQuery, useRentalMutations } from '@/modules/rental/rental.composables'
 import { Button } from '@/shared/components/ui/button'
 import { computed } from 'vue'

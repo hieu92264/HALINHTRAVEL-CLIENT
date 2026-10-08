@@ -21,7 +21,10 @@ export function filterByDateRange<T>(
 export const isRentalRequestMutable = (status: RentalRequestStatus) => status === 'new'
 export const isQuotationDraft = (status: QuotationStatus) => status === 'draft'
 export const canSendQuotation = (quotation: Quotation) =>
-  isQuotationDraft(quotation.status) && Boolean(quotation.customer_email)
+  isQuotationDraft(quotation.status) && Boolean(quotation.customer_email) && isQuotationCurrent(quotation)
 export const canRecordQuotationByPhone = (quotation: Quotation) =>
-  quotation.status === 'sent' || (isQuotationDraft(quotation.status) && !quotation.customer_email)
+  (quotation.status === 'sent' || (isQuotationDraft(quotation.status) && !quotation.customer_email)) &&
+  isQuotationCurrent(quotation)
 export const canExpireQuotation = (status: QuotationStatus) => status === 'sent'
+export const isQuotationCurrent = (quotation: Quotation) =>
+  Boolean(quotation.valid_until) && quotation.valid_until >= new Date().toISOString().slice(0, 10)

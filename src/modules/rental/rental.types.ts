@@ -1,5 +1,5 @@
 export type RentalRequestStatus = 'new' | 'quoted' | 'accepted' | 'rejected' | 'converted'
-export type QuotationStatus = 'draft' | 'sent' | 'approved' | 'rejected' | 'expired'
+export type QuotationStatus = 'draft' | 'sent' | 'approved' | 'rejected' | 'expired' | 'superseded'
 export type RentalServiceType = 'fixed' | 'tourism' | 'school' | 'business'
 
 export interface RentalItem {
@@ -56,13 +56,13 @@ export interface QuotationItem {
 export interface Quotation {
   id: number
   quotation_no: string
-  rental_request_id: number | null
+  rental_request_id: number
   rental_request_no: string | null
   customer_id: number
   customer_name: string | null
   customer_email: string | null
   quotation_date: string
-  valid_until: string | null
+  valid_until: string
   subtotal: string
   discount_amount: string
   total_amount: string
@@ -93,14 +93,16 @@ export type RentalRequestPayload = Omit<
 >
 
 export type QuotationPayload = {
-  rental_request_id: number | null
+  rental_request_id: number
   customer_id: number
   quotation_date: string
-  valid_until: string | null
+  valid_until: string
   discount_amount: string
   payment_terms: string | null
   items: QuotationItem[]
 }
+
+export type QuotationUpdatePayload = Omit<Partial<QuotationPayload>, 'rental_request_id'>
 
 export type PublicQuotation = Pick<
   Quotation,

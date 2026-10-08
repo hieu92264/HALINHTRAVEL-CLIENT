@@ -62,26 +62,26 @@
             <DropdownMenuItem
               v-if="canManage && row.status === 'draft'"
               class="min-w-44 gap-2"
-              @click="transition(row.id, 'activate')"
+              @click="openConfirmation(row.id, row.contract_no, 'activate')"
               ><CircleCheck class="size-4" />Kích hoạt</DropdownMenuItem
             >
             <DropdownMenuItem
               v-if="canManage && row.status === 'active'"
               class="min-w-44 gap-2"
-              @click="transition(row.id, 'complete')"
+              @click="openConfirmation(row.id, row.contract_no, 'complete')"
               ><BadgeCheck class="size-4" />Hoàn thành</DropdownMenuItem
             >
             <DropdownMenuItem
               v-if="canManage && (row.status === 'draft' || row.status === 'active')"
               class="min-w-44 gap-2"
-              @click="transition(row.id, 'cancel')"
+              @click="openConfirmation(row.id, row.contract_no, 'cancel')"
               ><Ban class="size-4" />Hủy hợp đồng</DropdownMenuItem
             >
             <DropdownMenuItem
               v-if="canManage && row.status === 'draft'"
               variant="destructive"
               class="min-w-44 gap-2"
-              @click="remove(row.id)"
+              @click="openConfirmation(row.id, row.contract_no, 'remove')"
               ><Trash2 class="size-4" />Ngừng hoạt động</DropdownMenuItem
             >
           </DropdownMenuContent></DropdownMenu
@@ -89,6 +89,17 @@
       </template>
     </DataGrid>
   </section>
+  <AccessDialog
+    :open="confirmation !== null"
+    :title="confirmationCopy.title"
+    :description="confirmationCopy.description"
+    :confirm-label="confirmationCopy.confirmLabel"
+    cancel-label="Quay lại"
+    :destructive="confirmationCopy.destructive"
+    :pending="isConfirmationPending"
+    @close="closeConfirmation"
+    @confirm="confirmAction"
+  />
 </template>
 <script setup lang="ts">
 import { useAuthStore } from '@/modules/auth/auth.store'
@@ -96,6 +107,7 @@ import { useContractMutations, useContractsQuery } from '@/modules/contract/cont
 import { contractColumns } from '@/modules/contract/components/contract-column'
 import type { Contract } from '@/modules/contract/contract.types'
 import { DataGrid, type DataGridDataSource } from '@/shared/components/data-grid'
+import AccessDialog from '@/shared/components/feedback/AccessDialog.vue'
 import { Button } from '@/shared/components/ui/button'
 import {
   DropdownMenu,
@@ -134,37 +146,84 @@ const dataSource = computed<DataGridDataSource<Contract>>(() => ({
 }))
 const message = (error: unknown, fallback: string) =>
   error instanceof ApiError ? error.message : fallback
-async function transition(id: number, action: 'activate' | 'complete' | 'cancel') {
-  if (
-    !window.confirm(
-      action === 'activate'
-        ? 'Kích hoạt hợp đồng này?'
-        : action === 'complete'
-          ? 'Hoàn thành hợp đồng này?'
-          : 'Hủy hợp đồng này?',
-    )
-  )
-    return
+type ContractAction = 'activate' | 'complete' | 'cancel' | 'remove'
+const confirmation = ref<{ id: number; contractNo: string; action: ContractAction } | null>(null)
+const confirmationCopy = computed(() => {
+  const contractNo = confirmation.value?.contractNo ?? 'hợp đồng này'
+  switch (confirmation.value?.action) {
+    case 'activate':
+      return {
+        title: 'Kích hoạt hợp đồng',
+        description: `Hợp đồng ${contractNo} sẽ được chuyển sang trạng thái đang hiệu lực.`,
+        confirmLabel: 'Kích hoạt',
+        destructive: false,
+      }
+    case 'complete':
+      return {
+        title: 'Hoàn thành hợp đồng',
+        description: `Hợp đồng ${contractNo} sẽ được đánh dấu hoàn thành.`,
+        confirmLabel: 'Hoàn thành',
+        destructive: false,
+      }
+    case 'cancel':
+      return {
+        title: 'Hủy hợp đồng',
+        description: `Hợp đồng ${contractNo} sẽ bị hủy và không thể tiếp tục thực hiện.`,
+        confirmLabel: 'Hủy hợp đồng',
+        destructive: true,
+      }
+    case 'remove':
+      return {
+        title: 'Ngừng hoạt động hợp đồng',
+        description: `Hợp đồng nháp ${contractNo} sẽ bị ngừng hoạt động.`,
+        confirmLabel: 'Ngừng hoạt động',
+        destructive: true,
+      }
+    default:
+      return { title: '', description: '', confirmLabel: '', destructive: false }
+  }
+})
+const isConfirmationPending = computed(() => {
+  switch (confirmation.value?.action) {
+    case 'activate':
+      return mutations.activate.isPending.value
+    case 'complete':
+      return mutations.complete.isPending.value
+    case 'cancel':
+      return mutations.cancel.isPending.value
+    case 'remove':
+      return mutations.remove.isPending.value
+    default:
+      return false
+  }
+})
+function openConfirmation(id: number, contractNo: string, action: ContractAction) {
+  confirmation.value = { id, contractNo, action }
+}
+function closeConfirmation() {
+  if (!isConfirmationPending.value) confirmation.value = null
+}
+async function confirmAction() {
+  const selected = confirmation.value
+  if (!selected) return
   try {
-    await mutations[action].mutateAsync(id)
+    if (selected.action === 'remove') {
+      await mutations.remove.mutateAsync(selected.id)
+      toast.success('Đã ngừng hoạt động hợp đồng.')
+      return
+    }
+    await mutations[selected.action].mutateAsync(selected.id)
     toast.success(
-      action === 'activate'
+      selected.action === 'activate'
         ? 'Đã kích hoạt hợp đồng.'
-        : action === 'complete'
+        : selected.action === 'complete'
           ? 'Đã hoàn thành hợp đồng.'
           : 'Đã hủy hợp đồng.',
     )
   } catch (error) {
     toast.error(message(error, 'Không thể cập nhật hợp đồng.'))
-  }
-}
-async function remove(id: number) {
-  if (!window.confirm('Ngừng hoạt động hợp đồng nháp này?')) return
-  try {
-    await mutations.remove.mutateAsync(id)
-    toast.success('Đã ngừng hoạt động hợp đồng.')
-  } catch (error) {
-    toast.error(message(error, 'Không thể ngừng hoạt động hợp đồng.'))
+  } finally {
+    confirmation.value = null
   }
 }
 </script>
