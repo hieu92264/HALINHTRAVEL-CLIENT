@@ -8,6 +8,8 @@ import { SESSION_EXPIRED_EVENT } from '@/shared/lib/auth-events'
 import { AuthRoute } from '@/modules/auth/auth.route'
 import { OrganizationRoute } from '@/modules/organization/org.route'
 import { MasterDataRoute } from '@/modules/master-data/master-data.route'
+import { PublicQuotationRoute, RentalRoute } from '@/modules/rental/rental.route'
+import { ContractRoute } from '@/modules/contract/contract.route'
 
 NProgress.configure({
   showSpinner: false,
@@ -19,6 +21,7 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     ...AuthRoute,
+    PublicQuotationRoute,
     {
       path: '/',
       component: () => import('@/shared/layouts/BaseLayout.vue'),
@@ -32,6 +35,8 @@ const router = createRouter({
         },
         ...OrganizationRoute,
         ...MasterDataRoute,
+        ...RentalRoute,
+        ...ContractRoute,
       ],
     },
     {
