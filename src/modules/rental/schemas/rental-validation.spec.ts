@@ -44,7 +44,7 @@ describe('rental and contract schemas', () => {
       contractFormSchema.safeParse({
         customer_id: 1,
         contract_type: 'trip',
-        signed_date: '',
+        signed_date: '2026-10-01',
         effective_from: '2026-10-01',
         effective_to: '2026-10-01',
         deposit_required: 101,
@@ -97,7 +97,7 @@ describe('rental and contract schemas', () => {
       contractFromQuotationSchema.safeParse({
         quotation_id: 1,
         contract_type: 'trip',
-        signed_date: '',
+        signed_date: '2026-10-01',
         effective_from: '2026-10-01',
         effective_to: '2026-10-02',
         deposit_required: 0,
@@ -125,5 +125,19 @@ describe('rental and contract schemas', () => {
         ],
       }).success,
     ).toBe(false)
+  })
+  it('allows a valid schedule rule without contract signing data', () => {
+    expect(
+      scheduleRuleSchema.safeParse({
+        contract_item_id: 1,
+        route_id: null,
+        effective_from: '2026-10-01',
+        effective_to: '2026-10-31',
+        default_vehicle_id: null,
+        default_driver_id: null,
+        note: null,
+        days: [{ weekday: 'Mon', pickup_time: '08:00', return_time: '17:00', shift_name: null }],
+      }).success,
+    ).toBe(true)
   })
 })

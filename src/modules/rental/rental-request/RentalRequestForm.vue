@@ -28,7 +28,7 @@
             <option v-for="customer in customers" :key="customer.id" :value="customer.id">
               {{ customer.name }}
             </option>
-          </select></label
+          </select><span v-if="fieldErrors.customer_id" class="text-xs text-destructive">{{ fieldErrors.customer_id }}</span></label
         >
         <label class="space-y-1.5"
           ><span>Nguồn yêu cầu</span
@@ -36,8 +36,8 @@
         /></label>
         <label class="space-y-1.5"
           ><span>Thời điểm tiếp nhận *</span
-          ><Input v-model="form.requested_at" class="h-10" type="datetime-local"
-        /></label>
+          ><Input v-model="form.requested_at" class="h-10" :aria-invalid="Boolean(fieldErrors.requested_at)" type="datetime-local"
+        /><span v-if="fieldErrors.requested_at" class="text-xs text-destructive">{{ fieldErrors.requested_at }}</span></label>
         <label class="space-y-1.5"
           ><span>Dịch vụ *</span
           ><select
@@ -48,15 +48,15 @@
             <option value="school">Đưa đón học sinh</option>
             <option value="business">Đưa đón công nhân</option>
             <option value="fixed">Tuyến cố định</option>
-          </select></label
+          </select><span v-if="fieldErrors.route_id" class="text-xs text-destructive">{{ fieldErrors.route_id }}</span></label
         >
         <label class="space-y-1.5"
           ><span>Khởi hành *</span
-          ><Input v-model="form.start_at" class="h-10" type="datetime-local"
-        /></label>
+          ><Input v-model="form.start_at" class="h-10" :aria-invalid="Boolean(fieldErrors.start_at)" type="datetime-local"
+        /><span v-if="fieldErrors.start_at" class="text-xs text-destructive">{{ fieldErrors.start_at }}</span></label>
         <label class="space-y-1.5"
-          ><span>Kết thúc</span><Input v-model="form.end_at" class="h-10" type="datetime-local"
-        /></label>
+          ><span>Kết thúc *</span><Input v-model="form.end_at" class="h-10" :aria-invalid="Boolean(fieldErrors.end_at)" type="datetime-local"
+        /><span v-if="fieldErrors.end_at" class="text-xs text-destructive">{{ fieldErrors.end_at }}</span></label>
       </div>
 
       <div class="rounded-lg border bg-card p-5">
@@ -92,10 +92,10 @@
         >
         <div v-else class="grid gap-4 md:grid-cols-2">
           <label class="space-y-1.5"
-            ><span>Điểm đón *</span><Input v-model="form.pickup_location" class="h-10" /></label
+          ><span>Điểm đón *</span><Input v-model="form.pickup_location" class="h-10" :aria-invalid="Boolean(fieldErrors.pickup_location)" /><span v-if="fieldErrors.pickup_location" class="text-xs text-destructive">{{ fieldErrors.pickup_location }}</span></label
           ><label class="space-y-1.5"
-            ><span>Điểm trả *</span><Input v-model="form.dropoff_location" class="h-10"
-          /></label>
+            ><span>Điểm trả *</span><Input v-model="form.dropoff_location" class="h-10" :aria-invalid="Boolean(fieldErrors.dropoff_location)" /><span v-if="fieldErrors.dropoff_location" class="text-xs text-destructive">{{ fieldErrors.dropoff_location }}</span>
+          </label>
         </div>
       </div>
 
@@ -135,6 +135,7 @@
             >
           </div>
         </div>
+        <p v-if="fieldErrors.items" class="mt-2 text-xs text-destructive">{{ fieldErrors.items }}</p>
         <label class="mt-4 block space-y-1.5"
           ><span>Ghi chú nội bộ</span
           ><textarea
@@ -163,7 +164,7 @@ import { useRentalMutations, useRentalRequestQuery } from '@/modules/rental/rent
 import type { RentalRequestPayload, RentalServiceType } from '@/modules/rental/rental.types'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
-import { ApiError } from '@/shared/lib/api-error'
+import { ApiError, applyApiFieldErrors } from '@/shared/lib/api-error'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
@@ -192,6 +193,7 @@ const availableRoutes = computed(() =>
   ),
 )
 const formError = ref('')
+const fieldErrors = reactive<Record<string, string>>({})
 let nextKey = 2
 const form = reactive({
   customer_id: 0,
@@ -270,9 +272,14 @@ function payload(): RentalRequestPayload {
 }
 async function submit() {
   formError.value = ''
+  Object.keys(fieldErrors).forEach((key) => delete fieldErrors[key])
   const validation = rentalRequestFormSchema.safeParse(form)
   if (!validation.success) {
-    formError.value = validation.error.issues[0]?.message || 'Dữ liệu chưa hợp lệ.'
+    validation.error.issues.forEach((issue) => {
+      const key = String(issue.path[0] ?? 'form')
+      fieldErrors[key] ??= issue.message
+    })
+    formError.value = 'Vui lòng kiểm tra các trường được đánh dấu.'
     return
   }
   try {
@@ -282,7 +289,12 @@ async function submit() {
     toast.success(isEdit.value ? 'Đã cập nhật yêu cầu thuê.' : 'Đã tạo yêu cầu thuê.')
     await router.push({ name: 'rental-requests-detail', params: { id: result.id } })
   } catch (error) {
-    formError.value = error instanceof ApiError ? error.message : 'Không thể lưu yêu cầu thuê.'
+    if (!applyApiFieldErrors((field, message) => {
+      fieldErrors[field] = message
+      const topLevelField = field.split('.')[0]
+      if (topLevelField) fieldErrors[topLevelField] ??= message
+    }, error))
+      formError.value = error instanceof ApiError ? error.message : 'Không thể lưu yêu cầu thuê.'
   }
 }
 </script>

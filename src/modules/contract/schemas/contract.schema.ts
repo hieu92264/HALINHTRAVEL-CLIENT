@@ -7,7 +7,7 @@ const nullableText = (max: number) =>
     z.string().max(max).nullable(),
   )
 const money = z.coerce.number().min(0, 'Giá trị không được âm')
-const dates = <T extends z.ZodRawShape>(shape: T) =>
+const effectiveDates = <T extends z.ZodRawShape>(shape: T) =>
   z.object(shape).superRefine((value, context) => {
     const dates = value as { effective_from?: string; effective_to?: string }
     if (dates.effective_to && dates.effective_from && dates.effective_to < dates.effective_from)
@@ -16,6 +16,14 @@ const dates = <T extends z.ZodRawShape>(shape: T) =>
         path: ['effective_to'],
         message: 'Ngày kết thúc không được trước ngày bắt đầu',
       })
+  })
+const contractDates = <T extends z.ZodRawShape>(shape: T) =>
+  effectiveDates(shape).superRefine((value, context) => {
+    const dates = value as { signed_date?: string; effective_from?: string }
+    if (!dates.signed_date)
+      context.addIssue({ code: 'custom', path: ['signed_date'], message: 'Chọn ngày ký hợp đồng' })
+    else if (dates.effective_from && dates.signed_date > dates.effective_from)
+      context.addIssue({ code: 'custom', path: ['signed_date'], message: 'Ngày ký không được muộn hơn ngày hiệu lực' })
   })
 const contractItem = z.object({
   route_id: z.coerce.number().nullable(),
@@ -28,7 +36,7 @@ const contractItem = z.object({
   dropoff_location: nullableText(500),
   note: nullableText(65535),
 })
-export const contractFormSchema = dates({
+export const contractFormSchema = contractDates({
   customer_id: z.coerce.number().int().positive('Chọn khách hàng'),
   contract_type: z.literal('principle'),
   signed_date: z.string(),
@@ -47,7 +55,7 @@ export const contractFormSchema = dates({
       message: 'Đặt cọc không được lớn hơn tổng hợp đồng',
     })
 })
-export const contractFromQuotationSchema = dates({
+export const contractFromQuotationSchema = contractDates({
   quotation_id: z.coerce.number().int().positive(),
   contract_type: z.literal('trip'),
   signed_date: z.string(),
@@ -63,7 +71,7 @@ const day = z.object({
   return_time: z.string(),
   shift_name: nullableText(100),
 })
-export const scheduleRuleSchema = dates({
+export const scheduleRuleSchema = effectiveDates({
   contract_item_id: z.coerce.number().int().positive(),
   route_id: z.coerce.number().nullable(),
   effective_from: z.string().min(1),
