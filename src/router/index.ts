@@ -10,6 +10,7 @@ import { OrganizationRoute } from '@/modules/organization/org.route'
 import { MasterDataRoute } from '@/modules/master-data/master-data.route'
 import { PublicQuotationRoute, RentalRoute } from '@/modules/rental/rental.route'
 import { ContractRoute } from '@/modules/contract/contract.route'
+import { FinanceRoute } from '@/modules/finance/finance.route'
 
 NProgress.configure({
   showSpinner: false,
@@ -37,6 +38,7 @@ const router = createRouter({
         ...MasterDataRoute,
         ...RentalRoute,
         ...ContractRoute,
+        ...FinanceRoute,
       ],
     },
     {
