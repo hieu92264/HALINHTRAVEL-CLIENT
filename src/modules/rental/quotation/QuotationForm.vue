@@ -30,10 +30,11 @@
       v-if="!isEdit && !isRequestPrefill"
       class="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
     >
-      Hãy mở một yêu cầu thuê xe hợp lệ rồi chọn “Tạo báo giá”.
+      Báo giá phải được tạo từ một yêu cầu thuê xe hợp lệ.
+      <button class="ml-1 font-semibold underline" type="button" @click="router.push({ name: 'rental-requests' })">Đi đến danh sách yêu cầu thuê xe</button>.
     </p>
 
-    <form class="space-y-5" @submit.prevent="submit">
+    <form v-if="isEdit || isRequestPrefill" class="space-y-5" @submit.prevent="submit">
       <div class="grid gap-4 rounded-lg border bg-card p-5 md:grid-cols-2 xl:grid-cols-4">
         <template v-if="isRequestPrefill && linkedRequest">
           <div class="space-y-1.5">

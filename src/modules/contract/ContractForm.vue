@@ -65,7 +65,7 @@
           </p>
         </div>
         <label class="space-y-1.5"
-          ><span>Ngày ký</span><Input v-model="form.signed_date" class="h-10" type="date"
+          ><span>Ngày ký *</span><Input v-model="form.signed_date" class="h-10" type="date"
         /></label>
         <label class="space-y-1.5"
           ><span>Hiệu lực từ *</span><Input v-model="form.effective_from" class="h-10" type="date"
