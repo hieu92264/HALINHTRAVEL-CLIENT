@@ -29,12 +29,12 @@ export const DispatchRoute: RouteRecordRaw[] = [
     path: 'my-dispatch-orders',
     name: 'my-dispatch-orders',
     component: myDispatchOrderList,
-    meta: { title: 'Lệnh của tôi', roles: ['driver'] },
+    meta: { title: 'Lệnh của tôi', permission: 'my-dispatch-orders.view' },
   },
   {
     path: 'my-dispatch-orders/:id',
     name: 'my-dispatch-order-detail',
     component: myDispatchOrderDetail,
-    meta: { title: 'Chi tiết lệnh', roles: ['driver'] },
+    meta: { title: 'Chi tiết lệnh', permission: 'my-dispatch-orders.view' },
   },
 ]

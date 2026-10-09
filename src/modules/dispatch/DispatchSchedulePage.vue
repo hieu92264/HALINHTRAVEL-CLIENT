@@ -1,368 +1,778 @@
 <script setup lang="ts">
 import {
-  AlertCircleIcon,
   BusFrontIcon,
-  CalendarDaysIcon,
   CheckCircle2Icon,
   ChevronDownIcon,
-  CircleDotIcon,
-  Clock3Icon,
-  SearchIcon,
-  UserRoundIcon,
-  XIcon,
+  FilterIcon,
+  PencilIcon,
+  PlusIcon,
+  SearchCheckIcon,
+  Trash2Icon,
+  XCircleIcon,
 } from '@lucide/vue'
-import { computed, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useMutation } from '@tanstack/vue-query'
+import { toast } from 'vue-sonner'
+import { useAuthStore } from '@/modules/auth/auth.store'
+import { useContractsQuery } from '@/modules/contract/contract.composables'
+import { ApiError } from '@/shared/lib/api-error'
+import { DispatchService } from '@/services/dispatch.service'
+import { DataGrid, type DataGridDataSource } from '@/shared/components/data-grid'
+import { Button } from '@/shared/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/shared/components/ui/dialog'
+import { Input } from '@/shared/components/ui/input'
+import { Label } from '@/shared/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/components/ui/select'
 import AccessDialog from '@/shared/components/feedback/AccessDialog.vue'
-import { RentalService } from '@/services/rental.service'
 import { useDispatchMutations, useTripSchedules } from './dispatch.composables'
-import type { TripSchedule } from './dispatch.types'
+import { scheduleColumns } from './components/schedule-column'
+import type { TripSchedule, TripSchedulePayload } from './dispatch.types'
+import { scheduleStatusLabels } from './dispatch.format'
+import { scheduleCreateSchema, scheduleUpdateSchema } from './schemas/dispatch.schema'
 
-type Status = 'Đã phân công' | 'Chờ phân công' | 'Chưa có xe'
-type Schedule = {
-  id: string
-  time: string
-  route: string
-  service: string
-  customer: string
-  vehicleType: string
-  status: Status
-  vehicle?: string
-  driver?: string
-  source: TripSchedule
-}
-const selectedId = ref('')
-const selectedVehicle = ref('')
-const selectedDriver = ref('')
-const search = ref('')
-const snapshotVisible = ref(false)
-const notice = ref('')
-const issueDialogOpen = ref(false)
-const activeTab = ref<'assignment' | 'history'>('assignment')
+const auth = useAuthStore()
 const schedulesQuery = useTripSchedules()
-const dispatch = useDispatchMutations()
-const availability = useMutation({ mutationFn: RentalService.checkAvailability })
-const dateLabel = computed(() => new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date()))
-const formatTime = (value: string) => new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit' }).format(new Date(value))
-const toStatus = (schedule: TripSchedule): Status => schedule.status === 'ASSIGNED' ? 'Đã phân công' : schedule.status === 'PLANNED' ? 'Chờ phân công' : schedule.status === 'CANCELLED' ? 'Chưa có xe' : 'Đã phân công'
-const schedules = computed<Schedule[]>(() => (schedulesQuery.data.value ?? []).map((source) => {
-  const assignment = source.assignments?.find((item) => item.is_current)
-  return {
-    id: String(source.id),
-    time: formatTime(source.scheduled_start_at),
-    route: source.route?.name ?? ([source.pickup_location, source.dropoff_location].filter(Boolean).join(' → ') || 'Chưa có tuyến'),
-    service: source.service_type,
-    customer: source.contract?.contract_no ?? 'Hợp đồng',
-    vehicleType: source.required_vehicle_type?.name ?? 'Chưa xác định',
-    status: toStatus(source),
-    vehicle: assignment?.vehicle?.license_plate,
-    driver: assignment?.driver?.full_name,
-    source,
-  }
+const contractsQuery = useContractsQuery()
+const mutations = useDispatchMutations()
+const availability = useMutation({ mutationFn: DispatchService.checkAvailability })
+
+const expandedRowId = ref<string | null>(null)
+const isFilterRowVisible = ref(false)
+const selectedVehicle = ref<number | null>(null)
+const selectedDriver = ref<number | null>(null)
+const replaceReason = ref('')
+const snapshotVisible = ref(false)
+const issueDialogOpen = ref(false)
+const removeDialogOpen = ref(false)
+const substituteDialogOpen = ref(false)
+const cancelDialogOpen = ref(false)
+const deactivateDialogOpen = ref(false)
+const scheduleDialogOpen = ref(false)
+const editingSchedule = ref<TripSchedule | null>(null)
+const cancelNote = ref('')
+const scheduleForm = reactive({
+  contract_id: 0,
+  contract_item_id: 0,
+  scheduled_start_at: '',
+  scheduled_end_at: '',
+  pickup_location: '',
+  dropoff_location: '',
+  note: '',
+})
+const formErrors = ref<Record<string, string>>({})
+
+const canScheduleManage = computed(
+  () => auth.user?.permissions.includes('trip-schedules.manage') === true,
+)
+const canAssignmentManage = computed(
+  () => auth.user?.permissions.includes('trip-assignments.manage') === true,
+)
+const canOrderManage = computed(
+  () => auth.user?.permissions.includes('dispatch-orders.manage') === true,
+)
+const schedules = computed(() => schedulesQuery.data.value ?? [])
+const dataSource = computed<DataGridDataSource<TripSchedule>>(() => ({
+  data: schedules.value,
+  isLoading: schedulesQuery.isLoading.value,
+  isFetching: schedulesQuery.isFetching.value,
+  error: schedulesQuery.error.value,
 }))
-const selected = computed<Schedule>(() => schedules.value.find((row) => row.id === selectedId.value) ?? schedules.value[0]!)
-const groups = computed(() => [...new Set(schedules.value.map((row) => row.route))].map((route) => ({ route, rows: schedules.value.filter((row) => row.route === route && `${row.id}${row.customer}${row.vehicle || ''}${row.driver || ''}`.toLocaleLowerCase('vi-VN').includes(search.value.toLocaleLowerCase('vi-VN'))) })).filter((group) => group.rows.length))
-const vehicles = computed(() => availability.data.value?.vehicle_capacities?.[0]?.candidates?.map((vehicle) => ({ plate: vehicle.license_plate, type: vehicle.ownership_type === 'partner' ? 'Xe đối tác' : 'Xe công ty', available: true, id: vehicle.id })) ?? [])
-const drivers = computed(() => availability.data.value?.driver_capacity?.candidates?.map((driver) => ({ name: driver.full_name, detail: driver.license_expired_at ? `Hạn bằng: ${driver.license_expired_at}` : 'Đủ điều kiện', available: true, id: driver.id })) ?? [])
-const replacementHistory = computed(() => selected.value?.source.assignments?.filter((item) => !item.is_current) ?? [])
-const stateClass = (status: Status) => status === 'Đã phân công' ? 'bg-success/10 text-success' : status === 'Chờ phân công' ? 'bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300' : 'bg-destructive/10 text-destructive'
-function choose(id: string) {
-  selectedId.value = id
-  snapshotVisible.value = false
-  notice.value = ''
-  selectedVehicle.value = ''
-  selectedDriver.value = ''
+
+const expandedSchedule = computed(() =>
+  schedules.value.find((s) => String(s.id) === expandedRowId.value) ?? null,
+)
+const currentAssignment = computed(
+  () => expandedSchedule.value?.assignments?.find((a) => a.is_current) ?? null,
+)
+const selectedContract = computed(
+  () =>
+    (contractsQuery.data.value ?? []).find((c) => c.id === scheduleForm.contract_id) ?? null,
+)
+const vehicles = computed(() =>
+  expandedSchedule.value
+    ? (availability.data.value?.vehicle_capacities.find(
+        (c) => c.vehicle_type_id === expandedSchedule.value?.required_vehicle_type?.id,
+      )?.candidates ?? [])
+    : [],
+)
+const drivers = computed(() => availability.data.value?.driver_capacity.candidates ?? [])
+
+function showError(error: unknown, fallback: string): void {
+  const msg = error instanceof ApiError ? error.message : fallback
+  toast.error(msg)
 }
-function checkAvailability() {
-  if (!selected.value?.source.required_vehicle_type?.id) return
-  availability.mutate({ start_at: selected.value.source.scheduled_start_at, end_at: selected.value.source.scheduled_end_at, items: [{ vehicle_type_id: selected.value.source.required_vehicle_type.id, quantity: 1 }] }, {
-    onSuccess: () => { snapshotVisible.value = true; notice.value = 'Đã cập nhật snapshot năng lực.' },
-    onError: () => { notice.value = 'Không thể kiểm tra năng lực. Vui lòng thử lại.' },
+
+function toggleRow(row: TripSchedule): void {
+  const rowId = String(row.id)
+  if (expandedRowId.value === rowId) {
+    expandedRowId.value = null
+  } else {
+    expandedRowId.value = rowId
+    selectedVehicle.value = null
+    selectedDriver.value = null
+    replaceReason.value = ''
+    snapshotVisible.value = false
+  }
+}
+
+function resetScheduleForm(): void {
+  Object.assign(scheduleForm, {
+    contract_id: 0,
+    contract_item_id: 0,
+    scheduled_start_at: '',
+    scheduled_end_at: '',
+    pickup_location: '',
+    dropoff_location: '',
+    note: '',
+  })
+  editingSchedule.value = null
+  formErrors.value = {}
+}
+
+function openCreateSchedule(): void {
+  resetScheduleForm()
+  scheduleDialogOpen.value = true
+}
+
+function openEditSchedule(schedule: TripSchedule): void {
+  if (schedule.status !== 'PLANNED') return
+  editingSchedule.value = schedule
+  Object.assign(scheduleForm, {
+    contract_id: 0,
+    contract_item_id: 0,
+    scheduled_start_at: schedule.scheduled_start_at.slice(0, 16),
+    scheduled_end_at: schedule.scheduled_end_at.slice(0, 16),
+    pickup_location: schedule.pickup_location ?? '',
+    dropoff_location: schedule.dropoff_location ?? '',
+    note: schedule.note ?? '',
+  })
+  formErrors.value = {}
+  scheduleDialogOpen.value = true
+}
+
+function checkAvailability(schedule: TripSchedule): void {
+  if (!schedule.required_vehicle_type?.id) {
+    toast.error('Lịch chưa có loại xe yêu cầu.')
+    return
+  }
+  availability.mutate(
+    {
+      start_at: schedule.scheduled_start_at,
+      end_at: schedule.scheduled_end_at,
+      items: [{ vehicle_type_id: schedule.required_vehicle_type.id, quantity: 1 }],
+    },
+    {
+      onSuccess: () => {
+        snapshotVisible.value = true
+      },
+      onError: (error) => showError(error, 'Không thể kiểm tra năng lực.'),
+    },
+  )
+}
+
+function saveAssignment(): void {
+  if (!expandedSchedule.value || !selectedVehicle.value || !selectedDriver.value) {
+    toast.error('Chọn xe và tài xế từ snapshot năng lực.')
+    return
+  }
+  if (currentAssignment.value && !replaceReason.value.trim()) {
+    toast.error('Nhập lý do thay phân công.')
+    return
+  }
+  const payload = {
+    vehicle_id: selectedVehicle.value,
+    driver_id: selectedDriver.value,
+    replace_reason: currentAssignment.value ? replaceReason.value : undefined,
+  }
+  const mutation = currentAssignment.value ? mutations.substitute : mutations.assign
+  mutation.mutate(
+    { id: expandedSchedule.value.id, payload },
+    {
+      onSuccess: () => {
+        substituteDialogOpen.value = false
+        toast.success('Đã lưu phân công.')
+      },
+      onError: (error) => {
+        showError(error, 'Không thể lưu phân công.')
+        if (error instanceof ApiError && error.statusCode === 409) snapshotVisible.value = false
+      },
+    },
+  )
+}
+
+function saveSchedule(): void {
+  formErrors.value = {}
+
+  if (editingSchedule.value) {
+    const parsed = scheduleUpdateSchema.safeParse({
+      scheduled_start_at: scheduleForm.scheduled_start_at,
+      scheduled_end_at: scheduleForm.scheduled_end_at,
+      pickup_location: scheduleForm.pickup_location,
+      dropoff_location: scheduleForm.dropoff_location,
+      note: scheduleForm.note,
+    })
+    if (!parsed.success) {
+      const errs: Record<string, string> = {}
+      for (const issue of parsed.error.issues) {
+        const key = issue.path[0]?.toString() ?? '_'
+        errs[key] = issue.message
+      }
+      formErrors.value = errs
+      return
+    }
+    mutations.updateSchedule.mutate(
+      {
+        id: editingSchedule.value.id,
+        payload: {
+          scheduled_start_at: parsed.data.scheduled_start_at,
+          scheduled_end_at: parsed.data.scheduled_end_at,
+          pickup_location: parsed.data.pickup_location || null,
+          dropoff_location: parsed.data.dropoff_location || null,
+          note: parsed.data.note || null,
+        },
+      },
+      {
+        onSuccess: () => {
+          scheduleDialogOpen.value = false
+          resetScheduleForm()
+          toast.success('Đã cập nhật lịch chuyến.')
+        },
+        onError: (error) => showError(error, 'Không thể cập nhật lịch chuyến.'),
+      },
+    )
+    return
+  }
+
+  const parsed = scheduleCreateSchema.safeParse({
+    contract_id: scheduleForm.contract_id,
+    contract_item_id: scheduleForm.contract_item_id,
+    scheduled_start_at: scheduleForm.scheduled_start_at,
+    scheduled_end_at: scheduleForm.scheduled_end_at,
+    pickup_location: scheduleForm.pickup_location,
+    dropoff_location: scheduleForm.dropoff_location,
+    note: scheduleForm.note,
+  })
+  if (!parsed.success) {
+    const errs: Record<string, string> = {}
+    for (const issue of parsed.error.issues) {
+      const key = issue.path[0]?.toString() ?? '_'
+      errs[key] = issue.message
+    }
+    formErrors.value = errs
+    return
+  }
+
+  const item = selectedContract.value?.items.find(
+    (candidate) => candidate.id === parsed.data.contract_item_id,
+  )
+  if (!selectedContract.value || !item) {
+    formErrors.value.contract_item_id = 'Chọn hợp đồng đang hiệu lực và hạng mục dịch vụ.'
+    return
+  }
+
+  const payload: TripSchedulePayload = {
+    contract_id: selectedContract.value.id,
+    contract_item_id: item.id,
+    service_type: item.service_type,
+    route_id: item.route_id,
+    scheduled_start_at: parsed.data.scheduled_start_at,
+    scheduled_end_at: parsed.data.scheduled_end_at,
+    pickup_location: parsed.data.pickup_location || item.pickup_location,
+    dropoff_location: parsed.data.dropoff_location || item.dropoff_location,
+    required_vehicle_type_id: item.vehicle_type_id,
+    note: parsed.data.note || null,
+  }
+  mutations.createSchedule.mutate(payload, {
+    onSuccess: () => {
+      scheduleDialogOpen.value = false
+      resetScheduleForm()
+      toast.success('Đã tạo lịch chuyến.')
+    },
+    onError: (error) => showError(error, 'Không thể tạo lịch chuyến.'),
   })
 }
-function assign() {
-  const vehicle = vehicles.value.find((item) => item.plate === selectedVehicle.value)
-  const driver = drivers.value.find((item) => item.name === selectedDriver.value)
-  if (!selected.value || !vehicle || !driver) { notice.value = 'Hãy chọn xe và tài xế từ snapshot năng lực.'; return }
-  const hasCurrent = selected.value.source.assignments?.some((item) => item.is_current)
-  const mutation = hasCurrent ? dispatch.substitute : dispatch.assign
-  mutation.mutate({ id: selected.value.source.id, payload: { vehicle_id: vehicle.id, driver_id: driver.id, replace_reason: hasCurrent ? 'Điều hành thay phân công' : undefined } }, { onSuccess: () => { notice.value = 'Đã lưu phân công và làm mới lịch chuyến.' } })
+
+function issueOrder(): void {
+  if (!expandedSchedule.value) return
+  mutations.issue.mutate(expandedSchedule.value.id, {
+    onSuccess: () => {
+      issueDialogOpen.value = false
+      toast.success('Đã phát hành lệnh điều xe.')
+    },
+    onError: (error) => showError(error, 'Không thể phát hành lệnh.'),
+  })
 }
-function issueOrder() {
-  if (!selected.value) return
-  dispatch.issue.mutate(selected.value.source.id, { onSuccess: () => { issueDialogOpen.value = false; notice.value = 'Đã phát hành lệnh điều xe.' } })
+
+function removeAssignment(): void {
+  if (!currentAssignment.value) return
+  mutations.removeAssignment.mutate(currentAssignment.value.id, {
+    onSuccess: () => {
+      removeDialogOpen.value = false
+      toast.success('Đã gỡ phân công.')
+    },
+    onError: (error) => showError(error, 'Không thể gỡ phân công.'),
+  })
 }
+
+function cancelSchedule(): void {
+  if (!expandedSchedule.value) return
+  mutations.cancelSchedule.mutate(
+    { id: expandedSchedule.value.id, note: cancelNote.value || null },
+    {
+      onSuccess: () => {
+        cancelDialogOpen.value = false
+        cancelNote.value = ''
+        toast.success('Đã hủy lịch chuyến.')
+      },
+      onError: (error) => showError(error, 'Không thể hủy lịch.'),
+    },
+  )
+}
+
+function deactivateSchedule(): void {
+  if (!expandedSchedule.value) return
+  mutations.deactivateSchedule.mutate(expandedSchedule.value.id, {
+    onSuccess: () => {
+      deactivateDialogOpen.value = false
+      toast.success('Đã ngừng lịch chuyến.')
+    },
+    onError: (error) => showError(error, 'Không thể ngừng lịch.'),
+  })
+}
+
+// Reset snapshot when a different row is expanded
+watch(expandedRowId, () => {
+  snapshotVisible.value = false
+  availability.reset()
+})
 </script>
 
 <template>
-  <section class="mx-auto max-w-[1480px] space-y-4">
-    <header class="rounded-xl border border-border bg-card">
-      <div
-        class="flex flex-col gap-3 border-b border-border px-4 py-4 lg:flex-row lg:items-center lg:justify-between lg:px-5"
-      >
-        <div>
-          <h1 class="text-2xl font-bold tracking-tight text-foreground">Lịch chuyến</h1>
-          <p class="mt-1 text-sm text-muted-foreground">
-            Điều phối lịch xe, phân công và lệnh điều xe trong ngày.
-          </p>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <button
-            class="inline-flex h-9 items-center gap-2 rounded-lg border border-input px-3 text-sm font-semibold"
-          >
-            <CalendarDaysIcon class="size-4 text-primary" />{{ dateLabel
-            }}<ChevronDownIcon class="size-3.5" /></button
-          ><button class="h-9 rounded-lg border border-input px-3 text-sm">Hôm nay</button
-          ><button
-            class="h-9 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground"
-          >
-            + Tạo lịch chuyến
-          </button>
-        </div>
+  <section class="space-y-5">
+    <header class="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h1 class="text-2xl font-semibold">Lịch chuyến</h1>
+        <p class="mt-1 text-sm text-muted-foreground">
+          Điều phối lịch xe, phân công và phát hành lệnh điều xe.
+        </p>
       </div>
-      <div class="grid gap-2 p-4 sm:grid-cols-2 xl:grid-cols-6">
-        <label
-          v-for="filter in ['Thời gian', 'Trạng thái', 'Hợp đồng', 'Dịch vụ', 'Tuyến']"
-          :key="filter"
-          class="space-y-1 text-xs font-medium text-muted-foreground"
-          >{{ filter
-          }}<button
-            class="flex h-9 w-full items-center justify-between rounded-lg border border-input bg-background px-3 text-sm text-foreground"
-          >
-            Tất cả <ChevronDownIcon class="size-3.5" /></button></label
-        ><label class="space-y-1 text-xs font-medium text-muted-foreground"
-          >Xe / Tài xế<span class="relative block"
-            ><SearchIcon class="absolute left-3 top-2.5 size-4" /><input
-              v-model="search"
-              class="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring/20"
-              placeholder="Tìm xe, tài xế..." /></span
-        ></label>
-      </div>
+      <Button v-if="canScheduleManage" @click="openCreateSchedule">
+        <PlusIcon class="size-4" />Tạo lịch chuyến
+      </Button>
     </header>
-    <div class="grid gap-4 xl:grid-cols-[minmax(0,1.72fr)_minmax(380px,0.88fr)]">
-      <article class="overflow-hidden rounded-xl border border-border bg-card">
-        <div class="overflow-x-auto">
-          <table class="w-full min-w-[800px] text-left text-[13px]">
-            <thead
-              class="border-b border-border bg-muted/45 text-xs font-semibold text-muted-foreground"
-            >
-              <tr>
-                <th class="px-3 py-3">#</th>
-                <th class="px-3 py-3">Giờ đi</th>
-                <th class="px-3 py-3">Số lịch</th>
-                <th class="px-3 py-3">Dịch vụ</th>
-                <th class="px-3 py-3">Hợp đồng / Khách hàng</th>
-                <th class="px-3 py-3">Loại xe</th>
-                <th class="px-3 py-3">Trạng thái</th>
-                <th class="px-3 py-3">Phân công</th>
-              </tr>
-            </thead>
-            <tbody v-for="group in groups" :key="group.route">
-              <tr class="border-y border-border bg-primary/[0.055]">
-                <td colspan="8" class="px-3 py-2.5">
-                  <div class="flex justify-between gap-4">
-                    <span class="flex items-center gap-2 font-bold"
-                      ><BusFrontIcon class="size-4 text-primary" />{{ group.route }}</span
-                    ><span class="text-xs text-muted-foreground"
-                      >{{ group.rows.length }} chuyến</span
-                    >
-                  </div>
-                </td>
-              </tr>
-              <tr
-                v-for="(row, index) in group.rows"
-                :key="row.id"
-                class="cursor-pointer border-b border-border hover:bg-muted/60"
-                :class="
-                  selectedId === row.id
-                    ? 'bg-amber-50/70 ring-1 ring-inset ring-amber-300 dark:bg-amber-400/10'
-                    : ''
-                "
-                tabindex="0"
-                @click="choose(row.id)"
-                @keydown.enter="choose(row.id)"
+
+    <DataGrid
+      :data-source="dataSource"
+      :columns="scheduleColumns"
+      width="100%"
+      height="calc(100svh - 250px)"
+      :pagination="{ mode: 'client', pageSize: 25, pageSizeOptions: [10, 25, 50, 100] }"
+      filtering-mode="client"
+      sorting-mode="client"
+      :filter-row="isFilterRowVisible"
+      global-filter
+      :get-row-id="(schedule) => String(schedule.id)"
+      v-model:expanded-row-id="expandedRowId"
+      :persist="{ key: 'trip-schedules', url: true, queryPrefix: 'ts' }"
+      empty-title="Chưa có lịch chuyến"
+      empty-description="Lịch chuyến sẽ xuất hiện ở đây khi có bản ghi phù hợp."
+      @retry="schedulesQuery.refetch()"
+      @row-click="(row) => toggleRow(row)"
+    >
+      <template #toolbar-start>
+        <Button
+          variant="outline"
+          :class="
+            isFilterRowVisible
+              ? 'border-primary/30 bg-primary/10 text-primary hover:bg-primary/15'
+              : ''
+          "
+          @click="isFilterRowVisible = !isFilterRowVisible"
+        >
+          <FilterIcon class="size-4" />Lọc
+        </Button>
+      </template>
+      <template #row-detail>
+      <article
+        v-if="expandedSchedule"
+        class="bg-card"
+      >
+        <div class="border-b border-border px-5 py-4">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="text-lg font-bold tabular-nums">{{ expandedSchedule.schedule_no }}</h2>
+                <span
+                  class="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold"
+                  :class="{
+                    'bg-amber-500/10 text-amber-700': expandedSchedule.status === 'PLANNED',
+                    'bg-primary/10 text-primary': expandedSchedule.status === 'ASSIGNED',
+                    'bg-blue-500/10 text-blue-700': expandedSchedule.status === 'IN_PROGRESS',
+                    'bg-success/10 text-success': expandedSchedule.status === 'COMPLETED',
+                    'bg-destructive/10 text-destructive': expandedSchedule.status === 'CANCELLED',
+                  }"
+                >
+                  {{ scheduleStatusLabels[expandedSchedule.status] }}
+                </span>
+              </div>
+              <p class="mt-1 text-sm text-muted-foreground">
+                {{ expandedSchedule.contract?.customer?.name ?? expandedSchedule.contract?.contract_no ?? '—' }}
+                · {{ expandedSchedule.required_vehicle_type?.name ?? 'Chưa có loại xe' }}
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <Button
+                v-if="canScheduleManage && expandedSchedule.status === 'PLANNED'"
+                variant="outline"
+                size="icon"
+                @click="openEditSchedule(expandedSchedule)"
               >
-                <td class="px-3 py-3 tabular-nums text-muted-foreground">{{ index + 1 }}</td>
-                <td class="px-3 py-3 font-semibold tabular-nums">{{ row.time }}</td>
-                <td class="px-3 py-3 font-medium text-primary">{{ row.id }}</td>
-                <td class="px-3 py-3">{{ row.service }}</td>
-                <td class="px-3 py-3">{{ row.customer }}</td>
-                <td class="px-3 py-3">{{ row.vehicleType }}</td>
-                <td class="px-3 py-3">
-                  <span
-                    class="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold"
-                    :class="stateClass(row.status)"
-                    ><CircleDotIcon class="size-3" />{{ row.status }}</span
-                  >
-                </td>
-                <td class="px-3 py-3">
-                  <strong v-if="row.vehicle" class="block tabular-nums">{{ row.vehicle }}</strong
-                  ><span class="text-xs text-muted-foreground">{{ row.driver || '—' }}</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                <PencilIcon class="size-4" />
+                <span class="sr-only">Sửa lịch chuyến</span>
+              </Button>
+              <Button variant="outline" size="sm" @click="expandedRowId = null">
+                <ChevronDownIcon class="size-4 rotate-180" />Thu gọn
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(26rem,0.95fr)]">
+          <section class="rounded-lg border border-border bg-muted/20 p-4">
+            <h3 class="text-sm font-semibold">Thông tin chuyến</h3>
+            <dl class="mt-3 grid gap-x-5 gap-y-4 text-sm sm:grid-cols-2">
+              <div class="sm:col-span-2">
+                <dt class="text-xs font-medium text-muted-foreground">Tuyến</dt>
+                <dd class="mt-1 font-medium">{{ expandedSchedule.route?.name ?? `${expandedSchedule.pickup_location ?? '—'} → ${expandedSchedule.dropoff_location ?? '—'}` }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium text-muted-foreground">Loại xe</dt>
+                <dd class="mt-1">{{ expandedSchedule.required_vehicle_type?.name ?? '—' }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium text-muted-foreground">Khách hàng</dt>
+                <dd class="mt-1">{{ expandedSchedule.contract?.customer?.name ?? expandedSchedule.contract?.contract_no ?? '—' }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium text-muted-foreground">Bắt đầu</dt>
+                <dd class="mt-1 font-medium tabular-nums">{{ new Date(expandedSchedule.scheduled_start_at).toLocaleString('vi-VN') }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium text-muted-foreground">Kết thúc</dt>
+                <dd class="mt-1 font-medium tabular-nums">{{ new Date(expandedSchedule.scheduled_end_at).toLocaleString('vi-VN') }}</dd>
+              </div>
+            </dl>
+
+            <div class="mt-4 border-t border-border pt-4">
+              <p class="text-xs font-medium text-muted-foreground">Phân công hiện tại</p>
+              <div v-if="currentAssignment" class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                <span class="font-semibold tabular-nums">{{ currentAssignment.vehicle?.license_plate ?? '—' }}</span>
+                <span class="text-muted-foreground">{{ currentAssignment.driver?.full_name ?? '—' }}</span>
+              </div>
+              <p v-else class="mt-2 text-sm text-amber-700 dark:text-amber-400">Chờ phân công xe và tài xế.</p>
+            </div>
+
+            <p v-if="expandedSchedule.note" class="mt-4 border-t border-border pt-4 text-sm text-muted-foreground">
+              {{ expandedSchedule.note }}
+            </p>
+          </section>
+
+          <section class="rounded-lg border border-border bg-card">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+              <div>
+                <h3 class="text-sm font-semibold">Phân công</h3>
+                <p class="mt-0.5 text-xs text-muted-foreground">Kiểm tra nguồn lực trước khi lưu phân công.</p>
+              </div>
+              <Button
+                v-if="canAssignmentManage && expandedSchedule.status !== 'CANCELLED' && expandedSchedule.status !== 'COMPLETED'"
+                variant="outline"
+                size="sm"
+                class="gap-2"
+                :disabled="availability.isPending.value"
+                @click="checkAvailability(expandedSchedule)"
+              >
+                <SearchCheckIcon class="size-4" />Kiểm tra năng lực
+              </Button>
+            </div>
+
+            <div class="space-y-4 p-4">
+              <p v-if="snapshotVisible" class="rounded-md border border-primary/15 bg-primary/5 px-3 py-2 text-xs text-primary">
+                Đã kiểm tra lúc {{ new Date(availability.data.value?.checked_at ?? '').toLocaleString('vi-VN') }}. Kết quả không giữ tài nguyên.
+              </p>
+
+              <template v-if="snapshotVisible && canAssignmentManage">
+                <div class="grid gap-3 sm:grid-cols-2">
+                  <div class="grid gap-1.5">
+                    <Label for="schedule-vehicle">Xe</Label>
+                    <select
+                      id="schedule-vehicle"
+                      v-model.number="selectedVehicle"
+                      class="h-9 rounded-lg border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-ring"
+                    >
+                      <option :value="null">Chọn xe</option>
+                      <option v-for="vehicle in vehicles" :key="vehicle.id" :value="vehicle.id">
+                        {{ vehicle.license_plate }} · {{ vehicle.ownership_type === 'partner' ? 'Đối tác' : 'Công ty' }}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="grid gap-1.5">
+                    <Label for="schedule-driver">Tài xế</Label>
+                    <select
+                      id="schedule-driver"
+                      v-model.number="selectedDriver"
+                      class="h-9 rounded-lg border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-ring"
+                    >
+                      <option :value="null">Chọn tài xế</option>
+                      <option v-for="driver in drivers" :key="driver.id" :value="driver.id">
+                        {{ driver.code }} · {{ driver.full_name }}
+                      </option>
+                    </select>
+                  </div>
+                </div>
+                <Button class="w-full" @click="currentAssignment ? substituteDialogOpen = true : saveAssignment()">
+                  {{ currentAssignment ? 'Thay phân công' : 'Phân công' }}
+                </Button>
+              </template>
+
+              <p v-else-if="canAssignmentManage" class="text-sm text-muted-foreground">
+                Chọn “Kiểm tra năng lực” để lấy danh sách xe và tài xế phù hợp.
+              </p>
+
+              <Button
+                v-if="canOrderManage && expandedSchedule.status === 'ASSIGNED'"
+                class="w-full justify-center gap-2 bg-success text-white hover:bg-success/90"
+                :disabled="mutations.issue.isPending.value"
+                @click="issueDialogOpen = true"
+              >
+                <CheckCircle2Icon class="size-4" />Phát hành lệnh
+              </Button>
+            </div>
+
+            <div
+              v-if="(currentAssignment && canAssignmentManage) || (canScheduleManage && expandedSchedule.status === 'PLANNED')"
+              class="flex flex-wrap gap-2 border-t border-border bg-muted/15 px-4 py-3"
+            >
+              <Button
+                v-if="currentAssignment && canAssignmentManage"
+                variant="outline"
+                size="sm"
+                class="gap-2"
+                @click="removeDialogOpen = true"
+              >
+                <Trash2Icon class="size-4" />Gỡ phân công
+              </Button>
+              <template v-if="canScheduleManage && expandedSchedule.status === 'PLANNED'">
+                <Button variant="outline" size="sm" @click="deactivateDialogOpen = true">
+                  <BusFrontIcon class="size-4" />Ngừng lịch
+                </Button>
+                <Button variant="destructive" size="sm" @click="cancelDialogOpen = true">
+                  <XCircleIcon class="size-4" />Hủy lịch
+                </Button>
+              </template>
+            </div>
+          </section>
         </div>
       </article>
-      <aside class="space-y-3 rounded-xl border border-border bg-card p-4 lg:p-5">
-        <div class="flex items-start justify-between gap-3">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Phân công xe & tài xế
-            </p>
-            <h2 class="mt-1 text-xl font-bold">{{ selected.route }}</h2>
-            <p class="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Clock3Icon class="size-4" />{{ dateLabel }} · {{ selected.time }} – 16:00
-            </p>
+      </template>
+    </DataGrid>
+
+    <!-- Schedule Dialog (Create / Edit) -->
+    <Dialog v-model:open="scheduleDialogOpen">
+      <DialogContent class="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>
+            {{ editingSchedule ? 'Sửa lịch chuyến' : 'Tạo lịch chuyến' }}
+          </DialogTitle>
+          <DialogDescription>
+            {{ editingSchedule ? 'Chỉ lịch Planned chưa có lệnh mới được sửa.' : 'Chọn hợp đồng đang hiệu lực và hạng mục cần điều phối.' }}
+          </DialogDescription>
+        </DialogHeader>
+        <form class="grid gap-4" @submit.prevent="saveSchedule">
+          <template v-if="!editingSchedule">
+            <div class="grid gap-1.5">
+              <Label for="sched-contract">Hợp đồng</Label>
+              <select
+                id="sched-contract"
+                v-model.number="scheduleForm.contract_id"
+                class="h-9 rounded-lg border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-ring"
+                :class="formErrors.contract_id ? 'border-destructive' : ''"
+              >
+                <option :value="0">Chọn hợp đồng</option>
+                <option
+                  v-for="contract in (contractsQuery.data.value ?? []).filter((c) => c.status === 'active')"
+                  :key="contract.id"
+                  :value="contract.id"
+                >
+                  {{ contract.contract_no }} · {{ contract.customer_name ?? '—' }}
+                </option>
+              </select>
+              <p v-if="formErrors.contract_id" class="text-xs text-destructive">{{ formErrors.contract_id }}</p>
+            </div>
+            <div class="grid gap-1.5">
+              <Label for="sched-item">Hạng mục</Label>
+              <select
+                id="sched-item"
+                v-model.number="scheduleForm.contract_item_id"
+                :disabled="!selectedContract"
+                class="h-9 rounded-lg border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:bg-muted"
+                :class="formErrors.contract_item_id ? 'border-destructive' : ''"
+              >
+                <option :value="0">Chọn hạng mục</option>
+                <option
+                  v-for="item in selectedContract?.items ?? []"
+                  :key="item.id"
+                  :value="item.id"
+                >
+                  {{ item.route_name ?? item.service_type }} · {{ item.vehicle_type_name ?? 'Chưa có loại xe' }}
+                </option>
+              </select>
+              <p v-if="formErrors.contract_item_id" class="text-xs text-destructive">{{ formErrors.contract_item_id }}</p>
+            </div>
+          </template>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid gap-1.5">
+              <Label for="sched-start">Bắt đầu</Label>
+              <Input
+                id="sched-start"
+                v-model="scheduleForm.scheduled_start_at"
+                type="datetime-local"
+                :class="formErrors.scheduled_start_at ? 'border-destructive' : ''"
+              />
+              <p v-if="formErrors.scheduled_start_at" class="text-xs text-destructive">{{ formErrors.scheduled_start_at }}</p>
+            </div>
+            <div class="grid gap-1.5">
+              <Label for="sched-end">Kết thúc</Label>
+              <Input
+                id="sched-end"
+                v-model="scheduleForm.scheduled_end_at"
+                type="datetime-local"
+                :class="formErrors.scheduled_end_at ? 'border-destructive' : ''"
+              />
+              <p v-if="formErrors.scheduled_end_at" class="text-xs text-destructive">{{ formErrors.scheduled_end_at }}</p>
+            </div>
           </div>
-          <button class="rounded-md p-1.5 text-muted-foreground hover:bg-muted" type="button">
-            <XIcon class="size-4" />
-          </button>
-        </div>
-        <div class="flex gap-5 border-b border-border text-sm font-semibold">
-          <button class="border-b-2 px-1 pb-2.5" :class="activeTab === 'assignment' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'" type="button" @click="activeTab = 'assignment'">
-            Chọn xe & tài xế</button
-          ><button class="border-b-2 px-1 pb-2.5" :class="activeTab === 'history' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'" type="button" @click="activeTab = 'history'">
-            Lịch sử thay thế
-          </button>
-        </div>
-        <div
-          v-if="snapshotVisible"
-          class="flex gap-2 rounded-lg border border-primary/15 bg-primary/[0.06] px-3 py-2.5 text-xs text-primary"
-        >
-          <CheckCircle2Icon class="size-4 shrink-0" />Kết quả kiểm tra năng lực vừa cập nhật.
-          Snapshot không giữ tài nguyên.
-        </div>
-        <button
-          class="w-full rounded-lg border border-primary/30 px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/[0.05]"
-          type="button"
-          @click="checkAvailability"
-        >
-          Kiểm tra năng lực
-        </button>
-        <div v-if="activeTab === 'assignment'" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-2">
-          <div>
-            <h3 class="mb-2 text-sm font-bold">
-              Xe phù hợp <span class="text-muted-foreground">({{ selected.vehicleType }})</span>
-            </h3>
-            <label
-              v-for="vehicle in vehicles"
-              :key="vehicle.plate"
-              class="mb-2 flex cursor-pointer items-center gap-2 rounded-lg border p-2"
-              :class="[
-                selectedVehicle === vehicle.plate
-                  ? 'border-primary bg-primary/[0.045]'
-                  : 'border-border',
-                vehicle.available ? '' : 'opacity-50',
-              ]"
-              ><input
-                v-model="selectedVehicle"
-                :value="vehicle.plate"
-                :disabled="!vehicle.available"
-                type="radio"
-                class="size-3.5 accent-primary"
-              /><BusFrontIcon class="size-5 text-primary" /><span class="min-w-0"
-                ><strong class="block text-xs tabular-nums">{{ vehicle.plate }}</strong
-                ><span class="block text-[11px] text-muted-foreground">{{
-                  vehicle.type
-                }}</span></span
-              ></label
+
+          <div class="grid gap-1.5">
+            <Label for="sched-pickup">Điểm đón</Label>
+            <Input
+              id="sched-pickup"
+              v-model="scheduleForm.pickup_location"
+              placeholder="Điểm đón"
+            />
+          </div>
+          <div class="grid gap-1.5">
+            <Label for="sched-dropoff">Điểm trả</Label>
+            <Input
+              id="sched-dropoff"
+              v-model="scheduleForm.dropoff_location"
+              placeholder="Điểm trả"
+            />
+          </div>
+          <div class="grid gap-1.5">
+            <Label for="sched-note">Ghi chú</Label>
+            <textarea
+              id="sched-note"
+              v-model="scheduleForm.note"
+              class="min-h-20 rounded-lg border border-input bg-background p-3 text-sm focus:ring-2 focus:ring-ring"
+              placeholder="Ghi chú (tùy chọn)"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" type="button" @click="scheduleDialogOpen = false">Quay lại</Button>
+            <Button
+              type="submit"
+              :disabled="mutations.createSchedule.isPending.value || mutations.updateSchedule.isPending.value"
             >
-          </div>
-          <div>
-            <h3 class="mb-2 text-sm font-bold">Tài xế phù hợp</h3>
-            <label
-              v-for="driver in drivers"
-              :key="driver.name"
-              class="mb-2 flex cursor-pointer items-center gap-2 rounded-lg border p-2"
-              :class="[
-                selectedDriver === driver.name
-                  ? 'border-primary bg-primary/[0.045]'
-                  : 'border-border',
-                driver.available ? '' : 'opacity-50',
-              ]"
-              ><input
-                v-model="selectedDriver"
-                :value="driver.name"
-                :disabled="!driver.available"
-                type="radio"
-                class="size-3.5 accent-primary"
-              /><UserRoundIcon class="size-4 text-primary" /><span class="min-w-0"
-                ><strong class="block text-xs">{{ driver.name }}</strong
-                ><span class="block text-[11px] text-muted-foreground">{{
-                  driver.detail
-                }}</span></span
-              ></label
-            >
-          </div>
-        </div>
-        <div v-else class="space-y-2 rounded-lg border border-border p-3 text-sm">
-          <p v-if="replacementHistory.length === 0" class="text-muted-foreground">Chưa có lần thay phân công.</p>
-          <div v-for="assignment in replacementHistory" :key="assignment.id" class="border-b border-border pb-2 last:border-0">
-            <strong>{{ assignment.vehicle?.license_plate ?? '—' }} · {{ assignment.driver?.full_name ?? '—' }}</strong>
-            <p class="mt-1 text-xs text-muted-foreground">{{ assignment.replace_reason || 'Thay phân công' }}</p>
-          </div>
-        </div>
-        <div
-          v-if="snapshotVisible && availability.data.value && !availability.data.value.can_fulfill"
-          class="flex gap-2 rounded-lg border border-destructive/20 bg-destructive/5 p-2.5 text-xs text-destructive"
-        >
-          <AlertCircleIcon class="size-4 shrink-0" />Không đủ xe hoặc tài xế phù hợp trong khung giờ này.
-        </div>
-        <p
-          v-if="notice"
-          class="rounded-lg bg-success/10 px-3 py-2 text-xs font-medium text-success"
-          role="status"
-        >
-          {{ notice }}
-        </p>
-        <div class="flex justify-end gap-2 border-t border-border pt-3">
-          <button class="h-9 rounded-lg border border-input px-4 text-sm" type="button">Hủy</button
-          ><button
-            class="h-9 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-            :disabled="dispatch.assign.isPending.value || dispatch.substitute.isPending.value || activeTab !== 'assignment'"
-            type="button"
-            @click="assign"
-          >
-            <CheckCircle2Icon class="mr-1 inline size-4" />{{ selected.status === 'Đã phân công' ? 'Thay phân công' : 'Phân công' }}
-          </button>
-        </div>
-      </aside>
-    </div>
-    <article class="rounded-xl border border-border bg-card p-4 sm:p-5">
-      <div class="flex items-start justify-between gap-4">
-        <div class="flex gap-3">
-          <span class="grid size-9 place-items-center rounded-lg bg-success/10 text-success"
-            ><CheckCircle2Icon class="size-5"
-          /></span>
-          <div>
-            <h2 class="font-bold">Lệnh điều xe sẽ được tạo</h2>
-            <p class="mt-1 text-sm text-muted-foreground">
-              Sau khi lịch có xe và tài xế hợp lệ, tạo một lệnh duy nhất cho mỗi lịch chuyến.
-            </p>
-          </div>
-        </div>
-        <button class="rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success disabled:opacity-50" :disabled="selected.status !== 'Đã phân công' || dispatch.issue.isPending.value" type="button" @click="issueDialogOpen = true">Phát hành lệnh</button>
-      </div>
-      <div class="mt-4 grid gap-3 border-t border-border pt-4 text-sm sm:grid-cols-4">
-        <p>
-          <span class="block text-xs text-muted-foreground">Mã lệnh</span
-          ><strong>{{ selected.source.dispatch_order?.order_no ?? 'Chưa phát hành' }}</strong>
-        </p>
-        <p>
-          <span class="block text-xs text-muted-foreground">Xe / Tài xế</span
-          ><strong>{{ selected.vehicle ?? '—' }} · {{ selected.driver ?? '—' }}</strong>
-        </p>
-        <p>
-          <span class="block text-xs text-muted-foreground">Tuyến</span
-          ><strong>{{ selected.route }}</strong>
-        </p>
-        <p>
-          <span class="block text-xs text-muted-foreground">Giờ đi</span
-          ><strong class="tabular-nums">{{ selected.time }}</strong>
-        </p>
-      </div>
-    </article>
-    <AccessDialog :open="issueDialogOpen" title="Phát hành lệnh điều xe" :description="`Phát hành lệnh cho lịch ${selected.source.schedule_no}. Muốn thay xe hoặc tài xế sau đó phải hủy lệnh trước.`" confirm-label="Phát hành" cancel-label="Quay lại" :pending="dispatch.issue.isPending.value" @close="issueDialogOpen = false" @confirm="issueOrder" />
+              {{ mutations.createSchedule.isPending.value || mutations.updateSchedule.isPending.value ? 'Đang lưu…' : editingSchedule ? 'Lưu thay đổi' : 'Tạo lịch' }}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Substitute Assignment Dialog -->
+    <AccessDialog
+      :open="substituteDialogOpen"
+      title="Thay phân công"
+      description="Nêu lý do thay xe hoặc tài xế trước khi lưu."
+      confirm-label="Thay phân công"
+      cancel-label="Quay lại"
+      :pending="mutations.substitute.isPending.value"
+      @close="substituteDialogOpen = false"
+      @confirm="saveAssignment"
+    >
+      <textarea
+        v-model="replaceReason"
+        class="min-h-24 w-full rounded-lg border border-input bg-background p-3 text-sm focus:ring-2 focus:ring-ring"
+        placeholder="Lý do thay phân công"
+      />
+    </AccessDialog>
+
+    <AccessDialog
+      :open="removeDialogOpen"
+      title="Gỡ phân công"
+      description="Lịch sẽ quay về trạng thái chờ phân công."
+      confirm-label="Gỡ phân công"
+      cancel-label="Quay lại"
+      destructive
+      :pending="mutations.removeAssignment.isPending.value"
+      @close="removeDialogOpen = false"
+      @confirm="removeAssignment"
+    />
+
+    <AccessDialog
+      :open="issueDialogOpen"
+      title="Phát hành lệnh điều xe"
+      description="Sau khi phát hành, muốn thay phân công phải hủy lệnh trước."
+      confirm-label="Phát hành"
+      cancel-label="Quay lại"
+      :pending="mutations.issue.isPending.value"
+      @close="issueDialogOpen = false"
+      @confirm="issueOrder"
+    />
+
+    <AccessDialog
+      :open="deactivateDialogOpen"
+      title="Ngừng lịch chuyến"
+      description="Chỉ lịch Planned chưa có lệnh mới được ngừng."
+      confirm-label="Ngừng lịch"
+      cancel-label="Quay lại"
+      destructive
+      :pending="mutations.deactivateSchedule.isPending.value"
+      @close="deactivateDialogOpen = false"
+      @confirm="deactivateSchedule"
+    />
+
+    <AccessDialog
+      :open="cancelDialogOpen"
+      title="Hủy lịch chuyến"
+      description="Lịch đã hủy không thể tiếp tục phân công."
+      confirm-label="Hủy lịch"
+      cancel-label="Quay lại"
+      destructive
+      :pending="mutations.cancelSchedule.isPending.value"
+      @close="cancelDialogOpen = false"
+      @confirm="cancelSchedule"
+    >
+      <textarea
+        v-model="cancelNote"
+        class="min-h-20 w-full rounded-lg border border-input bg-background p-3 text-sm focus:ring-2 focus:ring-ring"
+        placeholder="Ghi chú hủy (tùy chọn)"
+      />
+    </AccessDialog>
   </section>
 </template>

@@ -93,7 +93,7 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
         to: '/my-dispatch-orders',
         routeName: 'my-dispatch-orders',
         icon: FileTextIcon,
-        roles: ['driver'],
+        permission: 'my-dispatch-orders.view',
       },
     ],
   },
