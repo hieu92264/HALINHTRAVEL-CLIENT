@@ -13,6 +13,8 @@ import {
   BadgeDollarSignIcon,
   RouteIcon,
   CircleDollarSignIcon,
+  CalendarClockIcon,
+  ClipboardCheckIcon,
   ClipboardListIcon,
   FileTextIcon,
   HandCoinsIcon,
@@ -28,6 +30,7 @@ export type SidebarLeaf = {
   routeName: string
   icon: Component
   permission?: string
+  roles?: string[]
 }
 
 export type SidebarGroup = {
@@ -47,6 +50,54 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
     to: '/',
     routeName: 'dashboard',
     icon: LayoutDashboardIcon,
+  },
+  {
+    kind: 'group',
+    id: 'dispatch',
+    label: 'Điều hành',
+    icon: CalendarClockIcon,
+    items: [
+      {
+        kind: 'item',
+        label: 'Lịch chuyến',
+        to: '/trip-schedules',
+        routeName: 'trip-schedules',
+        icon: CalendarClockIcon,
+        permission: 'trip-schedules.view',
+      },
+      {
+        kind: 'item',
+        label: 'Kiểm tra năng lực',
+        to: '/capacity',
+        routeName: 'rental-capacity',
+        icon: ClipboardCheckIcon,
+        permission: 'rental-capacity.view',
+      },
+      {
+        kind: 'item',
+        label: 'Lệnh điều xe',
+        to: '/dispatch-orders',
+        routeName: 'dispatch-orders',
+        icon: FileTextIcon,
+        permission: 'dispatch-orders.view',
+      },
+    ],
+  },
+  {
+    kind: 'group',
+    id: 'driver-workspace',
+    label: 'Không gian tài xế',
+    icon: BusFrontIcon,
+    items: [
+      {
+        kind: 'item',
+        label: 'Lệnh của tôi',
+        to: '/my-dispatch-orders',
+        routeName: 'my-dispatch-orders',
+        icon: FileTextIcon,
+        permission: 'my-dispatch-orders.view',
+      },
+    ],
   },
   {
     kind: 'group',

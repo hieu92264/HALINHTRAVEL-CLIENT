@@ -36,8 +36,13 @@ const openGroupIds = ref<string[]>([])
 const isCompact = computed(() => sidebarStore.isCollapsed && !sidebarStore.isMobileOpen)
 
 function canShowItem(item: SidebarLeaf): boolean {
+  const userRoles = authStore.user?.roles.map((role) => role.toLocaleLowerCase()) ?? []
+  const hasAllowedRole =
+    !item.roles?.length || item.roles.some((role) => userRoles.includes(role.toLocaleLowerCase()))
+
   return (
     router.hasRoute(item.routeName) &&
+    hasAllowedRole &&
     (!item.permission || authStore.user?.permissions.includes(item.permission) === true)
   )
 }
@@ -153,7 +158,9 @@ async function logout(): Promise<void> {
           :aria-current="route.name === node.routeName ? 'page' : undefined"
           class="group flex h-10 items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium text-sky-100/70 transition-colors hover:bg-white/[0.08] hover:text-white"
           :class="[
-            route.name === node.routeName ? 'bg-white/12 text-white shadow-sm ring-1 ring-white/10' : '',
+            route.name === node.routeName
+              ? 'bg-white/12 text-white shadow-sm ring-1 ring-white/10'
+              : '',
             isCompact ? 'justify-center px-0' : '',
           ]"
           @click="closeMobileSidebar"
@@ -218,7 +225,11 @@ async function logout(): Promise<void> {
               :to="item.to"
               :aria-current="route.name === item.routeName ? 'page' : undefined"
               class="group flex h-9 items-center gap-2.5 rounded-lg py-2 pl-8 pr-2.5 text-sm font-medium text-sky-100/70 transition-colors hover:bg-white/[0.08] hover:text-white"
-              :class="route.name === item.routeName ? 'bg-white/12 text-white shadow-sm ring-1 ring-white/10' : ''"
+              :class="
+                route.name === item.routeName
+                  ? 'bg-white/12 text-white shadow-sm ring-1 ring-white/10'
+                  : ''
+              "
               @click="closeMobileSidebar"
             >
               <component :is="item.icon" class="size-4 shrink-0" />

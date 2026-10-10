@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { nextTick } from 'vue'
+import { h, nextTick } from 'vue'
 import DataGrid from './DataGrid.vue'
 import type { DataGridColumnDef } from './types'
 
@@ -100,6 +100,56 @@ describe('DataGrid', () => {
     await nextTick()
 
     expect(table.style.getPropertyValue(sizeVariable)).toBe('120')
+    wrapper.unmount()
+  })
+
+  it('renders the row-detail slot immediately after the expanded row', () => {
+    const wrapper = mount(DataGrid<Row>, {
+      props: {
+        columns,
+        dataSource: {
+          data: [
+            { id: 1, email: 'first@example.test' },
+            { id: 2, email: 'second@example.test' },
+          ],
+        },
+        getRowId: (row) => String(row.id),
+        expandedRowId: '2',
+      },
+      slots: {
+        'row-detail': ({ row, rowId }) => h('div', { 'data-detail-id': rowId }, `Chi tiết ${row.email}`),
+      },
+    })
+
+    const detail = wrapper.get('[data-data-grid-row-detail]')
+    expect(detail.attributes('data-data-grid-row-detail')).toBeDefined()
+    expect(detail.get('[data-detail-id]').attributes('data-detail-id')).toBe('2')
+    expect(detail.text()).toContain('Chi tiết second@example.test')
+    expect(detail.get('td').attributes('colspan')).toBe('2')
+
+    const bodyRows = wrapper.findAll('tbody tr')
+    expect(bodyRows.findIndex((row) => row.element === detail.element)).toBe(2)
+    wrapper.unmount()
+  })
+
+  it('adds an expander for row detail and does not emit row-click from the control', async () => {
+    const wrapper = mount(DataGrid<Row>, {
+      props: {
+        columns,
+        dataSource: { data: [{ id: 1, email: 'expand@example.test' }] },
+        getRowId: (row) => String(row.id),
+      },
+      slots: {
+        'row-detail': ({ row }) => h('div', `Chi tiết ${row.email}`),
+      },
+    })
+
+    const button = wrapper.get('button[aria-label="Mở rộng dòng"]')
+    expect(button.attributes('aria-expanded')).toBe('false')
+    await button.trigger('click')
+
+    expect(wrapper.emitted('update:expandedRowId')).toEqual([['1']])
+    expect(wrapper.emitted('row-click')).toBeUndefined()
     wrapper.unmount()
   })
 })

@@ -8,6 +8,7 @@ import { SESSION_EXPIRED_EVENT } from '@/shared/lib/auth-events'
 import { AuthRoute } from '@/modules/auth/auth.route'
 import { OrganizationRoute } from '@/modules/organization/org.route'
 import { MasterDataRoute } from '@/modules/master-data/master-data.route'
+import { DispatchRoute } from '@/modules/dispatch/dispatch.route'
 import { PublicQuotationRoute, RentalRoute } from '@/modules/rental/rental.route'
 import { ContractRoute } from '@/modules/contract/contract.route'
 import { FinanceRoute } from '@/modules/finance/finance.route'
@@ -36,6 +37,7 @@ const router = createRouter({
         },
         ...OrganizationRoute,
         ...MasterDataRoute,
+        ...DispatchRoute,
         ...RentalRoute,
         ...ContractRoute,
         ...FinanceRoute,
@@ -102,6 +104,17 @@ router.beforeEach(async (to, from) => {
   }
 
   if (to.meta.permission && !authStore.user.permissions.includes(to.meta.permission)) {
+    return { name: 'forbidden' }
+  }
+
+  if (
+    to.meta.roles?.length &&
+    !authStore.user.roles.some((role) =>
+      to.meta.roles?.some(
+        (allowedRole) => allowedRole.toLocaleLowerCase() === role.toLocaleLowerCase(),
+      ),
+    )
+  ) {
     return { name: 'forbidden' }
   }
 

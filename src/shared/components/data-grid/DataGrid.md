@@ -198,6 +198,7 @@ Với API server, nên debounce `filters-change` và `global-filter-change` ở 
 | `selected-row-ids` | `RowSelectionState` | nội bộ | Dùng cùng `v-model:selected-row-ids` khi trang cha kiểm soát selection. |
 | `show-actions` | `boolean` | `false` | Hiện cột thao tác cố định bên phải; nội dung từ slot `actions`. |
 | `get-sub-rows` | `(row, index) => T[] \| undefined` | — | Bật dữ liệu cây/subrow và cột mở rộng cố định bên trái. |
+| `expanded-row-id` | `string \| null` | — | Dùng cùng `v-model:expanded-row-id` để chọn main row đang hiện nội dung từ slot `row-detail`. DataGrid hiện cột mũi tên cố định bên trái và không lưu state này vào `persist`. |
 | `get-row-id` | `(row, index, parent?) => string` | index | Cung cấp khoá ổn định cho selection, virtual và cập nhật dòng. |
 | `enable-grouping` | `boolean` | `false` | Hiện chọn nhóm. Cột có thể khai báo `aggregationFn`/`aggregatedCell` của TanStack. |
 | `enable-column-resizing` | `boolean` | `true` | Kéo cạnh header để thay đổi chiều rộng. Double-click để reset. |
@@ -235,6 +236,7 @@ Khai báo `fixed: 'left'` hoặc `fixed: 'right'` trực tiếp trên cột đ�
 | `toolbar-start` | `table`, `selectedRows` | Phần đầu toolbar: tạo mới, bulk action, thống kê selection. |
 | `toolbar-end` | `table`, `selectedRows` | Phần cuối toolbar: import/export Excel hoặc công cụ riêng. |
 | `actions` | `row`, `rowId`, `table` | Nút xem, sửa, xoá, copy trong cột action cố định. |
+| `row-detail` | `row`, `rowId` | Nội dung chi tiết trong một hàng thụt vào ngay sau main row đang có ID khớp `expanded-row-id`. Không hỗ trợ khi bật `virtual`. |
 | `edit-cell` | `cell`, `value`, `updateValue`, `save`, `cancel` | Editor riêng cho kiểu dữ liệu phức tạp. Không cung cấp slot thì dùng input theo `meta.inputType`. |
 | `empty` | — | Thay hoàn toàn empty state. |
 | `empty-action` | — | Nút thao tác thêm trong empty state mặc định. |
@@ -254,6 +256,35 @@ Khai báo `fixed: 'left'` hoặc `fixed: 'right'` trực tiếp trên cột đ�
 | `row-context-menu` | `payload, event` | Bổ sung hành vi ngoài menu slot nếu cần. |
 | `cell-update` | `DataGridCellUpdate<T>` | Nhận thay đổi inline edit để mutation/cập nhật data nguồn. |
 | `retry` | — | Thử tải lại sau error state. |
+
+## Row detail
+
+`get-sub-rows` dùng cho cấu trúc dữ liệu cây: dòng con phải có cùng kiểu dữ liệu và tham gia sort/filter như một row. Với thông tin nghiệp vụ mở rộng, dùng `row-detail` để render một ô trải hết các cột ngay sau main row. DataGrid tự hiện nút mũi tên mở/đóng; nút này phát `update:expanded-row-id` và không phát `row-click`.
+
+Không kết hợp `get-sub-rows` và `row-detail` trên cùng DataGrid ở v1: cột mũi tên ưu tiên điều khiển cấu trúc cây khi `get-sub-rows` được truyền vào.
+
+```vue
+<script setup lang="ts">
+const expandedRowId = ref<string | null>(null)
+
+function toggleRow(user: UserRow): void {
+  const rowId = String(user.id)
+  expandedRowId.value = expandedRowId.value === rowId ? null : rowId
+}
+</script>
+
+<DataGrid
+  v-model:expanded-row-id="expandedRowId"
+  :columns="userColumns"
+  :data-source="dataSource"
+  :get-row-id="(user) => String(user.id)"
+  @row-click="toggleRow"
+>
+  <template #row-detail="{ row }">
+    <section class="p-4">Chi tiết {{ row.user_name }}</section>
+  </template>
+</DataGrid>
+```
 
 ## Inline edit và context menu
 
