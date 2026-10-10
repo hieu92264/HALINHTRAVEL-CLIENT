@@ -17,6 +17,8 @@ import {
   ClipboardCheckIcon,
   ClipboardListIcon,
   FileTextIcon,
+  HandCoinsIcon,
+  WalletCardsIcon,
 } from '@lucide/vue'
 import type { Component } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
@@ -238,6 +240,30 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
         routeName: 'contracts',
         icon: FileTextIcon,
         permission: 'contracts.view',
+      },
+    ],
+  },
+  {
+    kind: 'group',
+    id: 'finance',
+    label: 'Tài chính và nhân sự',
+    icon: HandCoinsIcon,
+    items: [
+      {
+        kind: 'item',
+        label: 'Thu chi và công nợ',
+        to: { name: 'finance' },
+        routeName: 'finance',
+        icon: WalletCardsIcon,
+        permission: 'receipts.view',
+      },
+      {
+        kind: 'item',
+        label: 'Chấm công và lương',
+        to: { name: 'driver-payroll' },
+        routeName: 'driver-payroll',
+        icon: ClipboardListIcon,
+        permission: 'driver-advances.view',
       },
     ],
   },
