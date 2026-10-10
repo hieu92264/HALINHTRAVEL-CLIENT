@@ -33,7 +33,7 @@ import {
   useVueTable,
 } from '@tanstack/vue-table'
 import { useVirtualizer, type VirtualItem } from '@tanstack/vue-virtual'
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, useSlots, watch } from 'vue'
 import { Button } from '@/shared/components/ui/button'
 import DataGridContextMenuPartial from './partials/DataGridContextMenu.vue'
 import DataGridPagination from './partials/DataGridPagination.vue'
@@ -85,6 +85,8 @@ interface Props {
   /** Cấu trúc cây/subrow của dữ liệu. */
   getSubRows?: (row: TData, index: number) => TData[] | undefined
   getRowId?: (row: TData, index: number, parent?: Row<TData>) => string
+  /** ID dòng đang mở phần chi tiết từ slot #row-detail. Không lưu vào persist. */
+  expandedRowId?: string | null
   enableColumnResizing?: boolean
   enableColumnReordering?: boolean
   /** Chỉ bật khi số dòng mỗi trang lớn; mặc định tắt. */
@@ -114,6 +116,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   'update:selectedRowIds': [value: RowSelectionState]
+  'update:expandedRowId': [value: string | null]
   'selection-change': [value: RowSelectionState, rows: TData[]]
   'pagination-change': [value: PaginationState]
   'sorting-change': [value: SortingState]
@@ -134,6 +137,7 @@ const draggedColumnId = ref<string | null>(null)
 const editingCell = ref<{ rowId: string; columnId: string } | null>(null)
 const editingValue = ref('')
 const contextMenu = ref<DataGridContextMenu<TData> | null>(null)
+const slots = useSlots()
 
 const isResizingColumn = ref<string | null>(null)
 
@@ -218,6 +222,15 @@ const virtualOptions = computed(() => {
   }
 })
 const hasSubRows = computed(() => Boolean(props.getSubRows))
+const hasRowDetail = computed(() => Boolean(slots['row-detail']) && !virtualOptions.value)
+
+function isRowDetailExpanded(row: Row<TData>): boolean {
+  return hasRowDetail.value && props.expandedRowId === row.id
+}
+
+function toggleRowDetail(row: Row<TData>): void {
+  emit('update:expandedRowId', isRowDetailExpanded(row) ? null : row.id)
+}
 
 const pagination = ref<PaginationState>(
   initialState.pagination || {
@@ -270,7 +283,7 @@ const systemColumns = computed<ColumnDef<TData>[]>(() => {
     })
   }
 
-  if (hasSubRows.value) {
+  if (hasSubRows.value || hasRowDetail.value) {
     columns.push({
       id: EXPAND_COLUMN_ID,
       header: () => null,
@@ -1131,13 +1144,17 @@ function focusEditInput(): void {
                 </template>
                 <template v-else-if="cell.column.id === EXPAND_COLUMN_ID">
                   <button
-                    v-if="cell.row.getCanExpand()"
+                    v-if="hasSubRows ? cell.row.getCanExpand() : hasRowDetail"
                     class="grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     type="button"
-                    :aria-label="cell.row.getIsExpanded() ? 'Thu gọn dòng' : 'Mở rộng dòng'"
-                    @click.stop="cell.row.toggleExpanded()"
+                    :aria-expanded="hasSubRows ? cell.row.getIsExpanded() : isRowDetailExpanded(cell.row)"
+                    :aria-label="(hasSubRows ? cell.row.getIsExpanded() : isRowDetailExpanded(cell.row)) ? 'Thu gọn dòng' : 'Mở rộng dòng'"
+                    @click.stop="hasSubRows ? cell.row.toggleExpanded() : toggleRowDetail(cell.row)"
                   >
-                    <ChevronRightIcon class="size-4 transition-transform" :class="cell.row.getIsExpanded() ? 'rotate-90' : ''" />
+                    <ChevronRightIcon
+                      class="size-4 transition-transform"
+                      :class="(hasSubRows ? cell.row.getIsExpanded() : isRowDetailExpanded(cell.row)) ? 'rotate-90' : ''"
+                    />
                   </button>
                 </template>
                 <template v-else-if="cell.column.id === ACTION_COLUMN_ID">
@@ -1201,9 +1218,8 @@ function focusEditInput(): void {
           </template>
 
           <template v-else>
-            <tr
-              v-for="row in rows"
-              :key="row.id"
+            <template v-for="row in rows" :key="row.id">
+              <tr
               class="group transition-colors hover:bg-muted/55 focus-within:bg-muted/55"
               :class="row.getIsSelected() ? 'bg-primary/[0.045]' : ''"
               tabindex="0"
@@ -1212,7 +1228,7 @@ function focusEditInput(): void {
               @dblclick="emit('row-double-click', row.original, $event)"
               @keydown.enter.prevent="emit('row-click', row.original, $event)"
               @contextmenu.prevent="openContextMenu($event, row)"
-            >
+              >
               <td
                 v-for="cell in row.getVisibleCells()"
                 :key="cell.id"
@@ -1239,13 +1255,17 @@ function focusEditInput(): void {
                 </template>
                 <template v-else-if="cell.column.id === EXPAND_COLUMN_ID">
                   <button
-                    v-if="cell.row.getCanExpand()"
+                    v-if="hasSubRows ? cell.row.getCanExpand() : hasRowDetail"
                     class="grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     type="button"
-                    :aria-label="cell.row.getIsExpanded() ? 'Thu gọn dòng' : 'Mở rộng dòng'"
-                    @click.stop="cell.row.toggleExpanded()"
+                    :aria-expanded="hasSubRows ? cell.row.getIsExpanded() : isRowDetailExpanded(cell.row)"
+                    :aria-label="(hasSubRows ? cell.row.getIsExpanded() : isRowDetailExpanded(cell.row)) ? 'Thu gọn dòng' : 'Mở rộng dòng'"
+                    @click.stop="hasSubRows ? cell.row.toggleExpanded() : toggleRowDetail(cell.row)"
                   >
-                    <ChevronRightIcon class="size-4 transition-transform" :class="cell.row.getIsExpanded() ? 'rotate-90' : ''" />
+                    <ChevronRightIcon
+                      class="size-4 transition-transform"
+                      :class="(hasSubRows ? cell.row.getIsExpanded() : isRowDetailExpanded(cell.row)) ? 'rotate-90' : ''"
+                    />
                   </button>
                 </template>
                 <template v-else-if="cell.column.id === ACTION_COLUMN_ID">
@@ -1305,7 +1325,15 @@ function focusEditInput(): void {
                   <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
                 </div>
               </td>
-            </tr>
+              </tr>
+              <tr v-if="isRowDetailExpanded(row)" data-data-grid-row-detail>
+                <td :colspan="leafColumns.length" class="border-b border-border bg-muted/35 px-3 py-3 align-top sm:px-5">
+                  <div class="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+                    <slot name="row-detail" :row="row.original" :row-id="row.id" />
+                  </div>
+                </td>
+              </tr>
+            </template>
           </template>
 
           <tr v-if="virtualOptions && bottomPadding" aria-hidden="true">

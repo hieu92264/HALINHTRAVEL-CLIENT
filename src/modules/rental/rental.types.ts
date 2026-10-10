@@ -132,6 +132,13 @@ export type AvailabilityVehicleCapacity = {
   partner_available_count: number
   available_count: number
   is_sufficient: boolean
+  candidates: Array<{
+    id: number
+    license_plate: string
+    ownership_type: 'company' | 'partner' | null
+    partner_id: number | null
+    partner_name: string | null
+  }>
 }
 
 export type AvailabilityDriverCapacity = {
@@ -140,6 +147,16 @@ export type AvailabilityDriverCapacity = {
   partner_available_count: number
   available_count: number
   is_sufficient: boolean
+  candidates: Array<{
+    id: number
+    code: string
+    full_name: string
+    phone: string | null
+    ownership_type: 'company' | 'partner' | null
+    partner_id: number | null
+    partner_name: string | null
+    license_expired_at: string | null
+  }>
 }
 
 export type AvailabilityResult = {
