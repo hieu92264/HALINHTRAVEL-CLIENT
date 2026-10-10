@@ -1,0 +1,3 @@
+export const scheduleStatusLabel = (value: string) => ({ PLANNED: 'Chờ phân công', ASSIGNED: 'Đã xác nhận', IN_PROGRESS: 'Đang chạy', COMPLETED: 'Hoàn tất', CANCELLED: 'Đã hủy', ISSUED: 'Đã ban hành' })[value] ?? value
+export const statusClass = (value: string) => value === 'COMPLETED' ? 'bg-success/15 text-success' : value === 'IN_PROGRESS' ? 'bg-primary/10 text-primary' : value === 'CANCELLED' ? 'bg-destructive/10 text-destructive' : value === 'ASSIGNED' ? 'bg-emerald-500/15 text-emerald-700' : 'bg-amber-500/15 text-amber-700'
+export const formatDispatchDate = (value: string | null) => value ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : '—'

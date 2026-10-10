@@ -216,4 +216,36 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
       },
     ],
   },
+  {
+    kind: 'group',
+    id: 'dispatch',
+    label: 'Điều hành',
+    icon: BusFrontIcon,
+    items: [
+      {
+        kind: 'item',
+        label: 'Lịch chuyến',
+        to: { name: 'dispatch-schedules' },
+        routeName: 'dispatch-schedules',
+        icon: RouteIcon,
+        permission: 'trip-schedules.view',
+      },
+      {
+        kind: 'item',
+        label: 'Lệnh điều xe',
+        to: { name: 'dispatch-orders' },
+        routeName: 'dispatch-orders',
+        icon: ClipboardListIcon,
+        permission: 'dispatch-orders.view',
+      },
+      {
+        kind: 'item',
+        label: 'Lệnh của tôi',
+        to: { name: 'my-orders' },
+        routeName: 'my-orders',
+        icon: BusFrontIcon,
+        permission: 'driver-orders.view',
+      },
+    ],
+  },
 ]
