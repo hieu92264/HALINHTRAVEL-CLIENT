@@ -28,6 +28,16 @@ async function unwrapResponseBody<TMetadata>(
 }
 
 export const httpService = {
+  async download(url: string, config?: AxiosRequestConfig): Promise<{ blob: Blob; filename: string }> {
+    try {
+      const response = await apiClient.get<Blob>(url, { ...config, responseType: 'blob' })
+      const disposition = String(response.headers['content-disposition'] ?? '')
+      const filename = /filename="?([^";]+)"?/i.exec(disposition)?.[1] ?? 'report.xlsx'
+      return { blob: response.data, filename }
+    } catch (error) {
+      throw toApiError(error)
+    }
+  },
   async get<TMetadata>(url: string, config?: AxiosRequestConfig): Promise<TMetadata> {
     return unwrapMetadata<TMetadata>(apiClient.get<ResponseBody<TMetadata>>(url, config))
   },

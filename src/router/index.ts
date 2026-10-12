@@ -12,6 +12,7 @@ import { DispatchRoute } from '@/modules/dispatch/dispatch.route'
 import { PublicQuotationRoute, RentalRoute } from '@/modules/rental/rental.route'
 import { ContractRoute } from '@/modules/contract/contract.route'
 import { FinanceRoute } from '@/modules/finance/finance.route'
+import { ReportRoute } from '@/modules/reports/report.route'
 
 NProgress.configure({
   showSpinner: false,
@@ -41,6 +42,7 @@ const router = createRouter({
         ...RentalRoute,
         ...ContractRoute,
         ...FinanceRoute,
+        ...ReportRoute,
       ],
     },
     {
