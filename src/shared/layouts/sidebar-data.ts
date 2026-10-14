@@ -19,6 +19,7 @@ import {
   FileTextIcon,
   HandCoinsIcon,
   WalletCardsIcon,
+  BarChart3Icon,
 } from '@lucide/vue'
 import type { Component } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
@@ -43,13 +44,26 @@ export type SidebarGroup = {
 
 export type SidebarNavigationNode = SidebarLeaf | SidebarGroup
 
-export const sidebarNavigation: SidebarNavigationNode[] = [
+const unorderedSidebarNavigation: SidebarNavigationNode[] = [
   {
     kind: 'item',
     label: 'Tổng quan',
     to: '/',
     routeName: 'dashboard',
     icon: LayoutDashboardIcon,
+  },
+  {
+    kind: 'group',
+    id: 'reports',
+    label: 'Báo cáo',
+    icon: BarChart3Icon,
+    items: [
+      { kind: 'item', label: 'Xe chạy tuyến', to: { name: 'report-fixed-trips' }, routeName: 'report-fixed-trips', icon: RouteIcon, permission: 'dispatch-orders.view' },
+      { kind: 'item', label: 'Xe du lịch/công tác', to: { name: 'report-tourism-trips' }, routeName: 'report-tourism-trips', icon: BusFrontIcon, permission: 'dispatch-orders.view' },
+      { kind: 'item', label: 'Thu chi và công nợ', to: { name: 'report-finance' }, routeName: 'report-finance', icon: WalletCardsIcon },
+      { kind: 'item', label: 'Báo cáo lương', to: { name: 'report-driver-payroll' }, routeName: 'report-driver-payroll', icon: ClipboardListIcon, permission: 'payrolls.view' },
+      { kind: 'item', label: 'Lợi nhuận', to: { name: 'report-profit-loss' }, routeName: 'report-profit-loss', icon: BarChart3Icon, permission: 'payrolls.view' },
+    ],
   },
   {
     kind: 'group',
@@ -147,7 +161,7 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
       },
       {
         kind: 'item',
-        label: 'Tuyến xe',
+        label: 'Tuyến đường',
         to: '/routes',
         routeName: 'routes',
         icon: MapPinnedIcon,
@@ -268,3 +282,41 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
     ],
   },
 ]
+
+const sidebarGroupOrder = [
+  'dashboard',
+  'rental',
+  'dispatch',
+  'driver-workspace',
+  'finance',
+  'reports',
+  'master-data',
+  'organization',
+]
+
+const masterDataOrder = [
+  'customers',
+  'partners',
+  'vehicle-types',
+  'vehicles',
+  'drivers',
+  'routes',
+  'route-rates',
+  'expense-types',
+]
+
+const navigationOrder = (node: SidebarNavigationNode) =>
+  node.kind === 'item' ? sidebarGroupOrder.indexOf(node.routeName) : sidebarGroupOrder.indexOf(node.id)
+
+export const sidebarNavigation: SidebarNavigationNode[] = unorderedSidebarNavigation
+  .map((node) => {
+    if (node.kind !== 'group' || node.id !== 'master-data') return node
+
+    return {
+      ...node,
+      items: node.items
+        .filter((item, index, items) => item.routeName !== 'routes' || items.findIndex(({ routeName }) => routeName === item.routeName) === index)
+        .sort((a, b) => masterDataOrder.indexOf(a.routeName) - masterDataOrder.indexOf(b.routeName)),
+    }
+  })
+  .sort((a, b) => navigationOrder(a) - navigationOrder(b))
