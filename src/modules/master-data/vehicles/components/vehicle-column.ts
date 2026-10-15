@@ -2,6 +2,14 @@ import type { Vehicle } from '@/modules/master-data/master-data.type'
 import type { DataGridColumnDef } from '@/shared/components/data-grid'
 import { h } from 'vue'
 
+const vehicleStatusLabels = {
+  available: 'Sẵn sàng',
+  assigned: 'Đã phân công',
+  maintenance: 'Bảo dưỡng',
+  inactive: 'Ngừng hoạt động',
+  other: 'Khác',
+} as const
+
 export const vehicleColumns: DataGridColumnDef<Vehicle>[] = [
   {
     id: 'stt',
@@ -15,29 +23,30 @@ export const vehicleColumns: DataGridColumnDef<Vehicle>[] = [
     meta: { label: 'STT' },
   },
   {
-    accessorKey: 'is_active',
-    header: 'Trạng thái',
+    accessorKey: 'vehicle_status',
+    header: 'Trạng thái vận hành',
     cell: ({ getValue }) => {
-      const isActive = getValue<boolean | null>() === true
+      const status = getValue<keyof typeof vehicleStatusLabels | null>()
+      const isAvailable = status === 'available'
 
       return h(
         'span',
         {
           class: [
             'inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium',
-            isActive ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground',
+            isAvailable ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground',
           ],
         },
         [
           h('span', {
-            class: ['size-1.5 rounded-full', isActive ? 'bg-success' : 'bg-muted-foreground'],
+            class: ['size-1.5 rounded-full', isAvailable ? 'bg-success' : 'bg-muted-foreground'],
           }),
-          isActive ? 'Đang hoạt động' : 'Vô hiệu hóa',
+          status ? vehicleStatusLabels[status] : '—',
         ],
       )
     },
-    width: 120,
-    meta: { label: 'Trạng thái', filterPlaceholder: 'Trạng thái...' },
+    width: 150,
+    meta: { label: 'Trạng thái vận hành', filterPlaceholder: 'Trạng thái vận hành...' },
   },
   {
     accessorKey: 'license_plate',
@@ -96,11 +105,11 @@ export const vehicleColumns: DataGridColumnDef<Vehicle>[] = [
     meta: { label: 'Số km hiện tại', filterPlaceholder: 'Số km hiện tại...' },
   },
   {
-    accessorKey: 'vehicle_status',
-    header: 'Trạng thái xe',
-    cell: ({ row }) => row.original.vehicle_status || '—',
+    accessorKey: 'is_active',
+    header: 'Hiệu lực hồ sơ',
+    cell: ({ getValue }) => (getValue<boolean | null>() === true ? 'Đang hiệu lực' : 'Vô hiệu hóa'),
     width: 112,
-    meta: { label: 'Trạng thái xe', filterPlaceholder: 'Trạng thái xe...' },
+    meta: { label: 'Hiệu lực hồ sơ', filterPlaceholder: 'Hiệu lực hồ sơ...' },
   },
   {
     accessorKey: 'notes',

@@ -75,6 +75,23 @@ export const routeFieldsSchema = z.object({
   estimated_distance_km: estimatedDistanceKmSchema.optional(),
 })
 
-export const createRouteSchema = routeFieldsSchema
+export const validateRouteTimes = <T extends z.ZodTypeAny>(schema: T) =>
+  schema.superRefine((value, context) => {
+    const route = value as { default_pickup_time?: string | null; default_return_time?: string | null }
+
+    if (
+      route.default_pickup_time &&
+      route.default_return_time &&
+      route.default_pickup_time === route.default_return_time
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['default_return_time'],
+        message: 'Giờ về phải khác giờ đón. Tuyến qua đêm có thể chọn giờ về sớm hơn giờ đón.',
+      })
+    }
+  })
+
+export const createRouteSchema = validateRouteTimes(routeFieldsSchema)
 
 export type CreateRouteDto = z.infer<typeof createRouteSchema>

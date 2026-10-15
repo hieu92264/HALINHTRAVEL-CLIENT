@@ -1,6 +1,13 @@
 <script setup lang="ts" generic="TData extends RowData">
 import { ChevronDownIcon, Columns3Icon, SearchIcon, SlidersHorizontalIcon } from '@lucide/vue'
 import type { Column, GroupingState, RowData, Table } from '@tanstack/vue-table'
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/shared/components/ui/dropdown-menu'
 
 interface Props {
   table: Table<TData>
@@ -53,31 +60,30 @@ defineProps<Props>()
     </div>
 
     <div class="flex items-center gap-2 self-end sm:self-auto">
-      <details class="group relative">
-        <summary
-          class="flex h-8 cursor-pointer list-none items-center gap-1.5 rounded-lg border border-input bg-background px-2.5 text-sm font-medium text-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/30 [&::-webkit-details-marker]:hidden"
-        >
-          <Columns3Icon class="size-4 text-muted-foreground" />
-          Cột
-          <ChevronDownIcon class="size-3.5 text-muted-foreground transition-transform group-open:rotate-180" />
-        </summary>
-        <div class="absolute right-0 z-50 mt-1.5 w-56 rounded-lg border border-border bg-popover p-1.5 text-popover-foreground shadow-lg">
-          <p class="px-2 py-1.5 text-xs font-medium text-muted-foreground">Hiển thị cột</p>
-          <label
+      <DropdownMenu>
+        <DropdownMenuTrigger as-child>
+          <button
+            type="button"
+            class="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-input bg-background px-2.5 text-sm font-medium text-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/30"
+          >
+            <Columns3Icon class="size-4 text-muted-foreground" />
+            Cột
+            <ChevronDownIcon class="size-3.5 text-muted-foreground" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" class="w-56 p-1.5">
+          <DropdownMenuLabel class="px-2 py-1.5 text-xs text-muted-foreground">Hiển thị cột</DropdownMenuLabel>
+          <DropdownMenuCheckboxItem
             v-for="column in table.getAllLeafColumns().filter((item) => item.getCanHide())"
             :key="column.id"
-            class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
+            :checked="column.getIsVisible()"
+            @select.prevent
+            @update:checked="column.toggleVisibility"
           >
-            <input
-              :checked="column.getIsVisible()"
-              class="size-3.5 rounded border-input text-primary focus:ring-ring"
-              type="checkbox"
-              @change="column.toggleVisibility(($event.target as HTMLInputElement).checked)"
-            />
             <span class="truncate">{{ getColumnLabel(column) }}</span>
-          </label>
-        </div>
-      </details>
+          </DropdownMenuCheckboxItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <slot name="toolbar-end" :table="table" :selected-rows="table.getSelectedRowModel().flatRows" />
     </div>
   </div>

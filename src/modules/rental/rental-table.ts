@@ -20,6 +20,7 @@ export function filterByDateRange<T>(
 
 export const isRentalRequestMutable = (status: RentalRequestStatus) => status === 'new'
 export const isQuotationDraft = (status: QuotationStatus) => status === 'draft'
+export const canManageQuotationDraft = (quotation: Quotation) => isQuotationDraft(quotation.status)
 export const canSendQuotation = (quotation: Quotation) =>
   isQuotationDraft(quotation.status) && Boolean(quotation.customer_email) && isQuotationCurrent(quotation)
 export const canRecordQuotationByPhone = (quotation: Quotation) =>

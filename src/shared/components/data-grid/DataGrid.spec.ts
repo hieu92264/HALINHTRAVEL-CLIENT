@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { h, nextTick } from 'vue'
 import DataGrid from './DataGrid.vue'
+import DataGridToolbar from './partials/DataGridToolbar.vue'
 import type { DataGridColumnDef } from './types'
 
 type Row = {
@@ -58,6 +59,40 @@ describe('DataGrid', () => {
     expect(content.classes()).toEqual(expect.arrayContaining(['truncate', 'justify-end', 'text-right']))
     expect(content.attributes('style')).toContain('min-height: 60px')
     expect(content.attributes('title')).toBe(email)
+
+    wrapper.unmount()
+  })
+
+  it('renders the column picker as an accessible popup instead of persistent details', async () => {
+    const column = {
+      id: 'email',
+      getCanHide: () => true,
+      getIsVisible: () => true,
+      toggleVisibility: vi.fn(),
+    }
+    const table = {
+      getSelectedRowModel: () => ({ flatRows: [] }),
+      getState: () => ({ globalFilter: '' }),
+      getAllLeafColumns: () => [column],
+    }
+    const wrapper = mount(DataGridToolbar, {
+      attachTo: document.body,
+      props: {
+        table: table as never,
+        globalFilter: false,
+        enableGrouping: false,
+        grouping: [],
+        hasToolbarStart: false,
+        hasToolbarEnd: true,
+        getColumnLabel: () => 'Email',
+        setGlobalFilter: () => undefined,
+      },
+    })
+
+    await wrapper.get('button').trigger('click')
+    await nextTick()
+    expect(document.body.textContent).toContain('Hiển thị cột')
+    expect(wrapper.find('details').exists()).toBe(false)
 
     wrapper.unmount()
   })
