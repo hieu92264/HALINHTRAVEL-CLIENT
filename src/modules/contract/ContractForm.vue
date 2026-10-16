@@ -118,58 +118,76 @@
             :key="item.key"
             class="grid gap-3 rounded-md border p-3 lg:grid-cols-[1fr_1fr_1fr_100px_140px_140px_auto]"
           >
-            <select
-              v-model.number="item.vehicle_type_id"
-              class="h-10 rounded-md border bg-background px-3"
-            >
-              <option :value="0">Loại xe *</option>
-              <option v-for="type in vehicleTypes" :key="type.id" :value="type.id">
-                {{ type.name }}
-              </option></select
-            ><select
-              v-model.number="item.route_id"
-              class="h-10 rounded-md border bg-background px-3"
-            >
-              <option :value="0">Không chọn tuyến</option>
-              <option
-                v-for="routeItem in availableRoutes"
-                :key="routeItem.id"
-                :value="routeItem.id"
+            <label class="space-y-1">
+              <span class="text-xs font-medium text-muted-foreground">Loại xe <span class="text-destructive">*</span></span>
+              <select
+                v-model.number="item.vehicle_type_id"
+                class="h-10 w-full rounded-md border bg-background px-3"
               >
-                {{ routeItem.name }}
-              </option></select
-            ><select v-model="item.service_type" class="h-10 rounded-md border bg-background px-3">
-              <option value="tourism">Tour du lịch</option>
-              <option value="school">Đưa đón học sinh</option>
-              <option value="business">Đưa đón công nhân</option>
-              <option value="fixed">Tuyến cố định</option></select
-            ><Input v-model.number="item.quantity" class="h-10" min="1" type="number" /><Input
-              v-model="item.unit_price"
-              class="h-10"
-              min="0"
-              type="number"
-              placeholder="Đơn giá"
-            /><Input
-              v-model="item.driver_wage"
-              class="h-10"
-              min="0"
-              type="number"
-              placeholder="Lương tài xế"
-            /><Button
-              type="button"
-              variant="ghost"
-              :disabled="form.items.length === 1"
-              @click="removeItem(index)"
-              >Xóa</Button
-            ><Input
-              v-model="item.pickup_location"
-              class="h-10 lg:col-span-2"
-              placeholder="Điểm đón"
-            /><Input
-              v-model="item.dropoff_location"
-              class="h-10 lg:col-span-2"
-              placeholder="Điểm trả"
-            /><Input v-model="item.note" class="h-10 lg:col-span-3" placeholder="Ghi chú" />
+                <option :value="0">Chọn loại xe</option>
+                <option v-for="type in vehicleTypes" :key="type.id" :value="type.id">
+                  {{ type.name }}
+                </option>
+              </select>
+            </label>
+            <label class="space-y-1">
+              <span class="text-xs font-medium text-muted-foreground">Tuyến</span>
+              <select
+                v-model.number="item.route_id"
+                class="h-10 w-full rounded-md border bg-background px-3"
+              >
+                <option :value="0">Không chọn tuyến</option>
+                <option
+                  v-for="routeItem in availableRoutes"
+                  :key="routeItem.id"
+                  :value="routeItem.id"
+                >
+                  {{ routeItem.name }}
+                </option>
+              </select>
+            </label>
+            <label class="space-y-1">
+              <span class="text-xs font-medium text-muted-foreground">Loại dịch vụ</span>
+              <select v-model="item.service_type" class="h-10 w-full rounded-md border bg-background px-3">
+                <option value="tourism">Tour du lịch</option>
+                <option value="school">Đưa đón học sinh</option>
+                <option value="business">Đưa đón công nhân</option>
+                <option value="fixed">Tuyến cố định</option>
+              </select>
+            </label>
+            <label class="space-y-1">
+              <span class="text-xs font-medium text-muted-foreground">Số lượng</span>
+              <Input v-model.number="item.quantity" class="h-10" min="1" type="number" />
+            </label>
+            <label class="space-y-1">
+              <span class="text-xs font-medium text-muted-foreground">Đơn giá (đ)</span>
+              <Input v-model="item.unit_price" class="h-10" min="0" type="number" />
+            </label>
+            <label class="space-y-1">
+              <span class="text-xs font-medium text-muted-foreground">Lương tài xế (đ)</span>
+              <Input v-model="item.driver_wage" class="h-10" min="0" type="number" />
+            </label>
+            <div class="flex items-end">
+              <Button
+                type="button"
+                variant="ghost"
+                :disabled="form.items.length === 1"
+                @click="removeItem(index)"
+                >Xóa</Button
+              >
+            </div>
+            <label class="space-y-1 lg:col-span-2">
+              <span class="text-xs font-medium text-muted-foreground">Điểm đón</span>
+              <Input v-model="item.pickup_location" class="h-10" placeholder="Nhập điểm đón" />
+            </label>
+            <label class="space-y-1 lg:col-span-2">
+              <span class="text-xs font-medium text-muted-foreground">Điểm trả</span>
+              <Input v-model="item.dropoff_location" class="h-10" placeholder="Nhập điểm trả" />
+            </label>
+            <label class="space-y-1 lg:col-span-3">
+              <span class="text-xs font-medium text-muted-foreground">Ghi chú</span>
+              <Input v-model="item.note" class="h-10" placeholder="Nhập ghi chú" />
+            </label>
             <p class="text-sm text-muted-foreground lg:col-span-7">
               Thành tiền:
               {{ formatCurrency(Number(item.quantity || 0) * Number(item.unit_price || 0)) }}
