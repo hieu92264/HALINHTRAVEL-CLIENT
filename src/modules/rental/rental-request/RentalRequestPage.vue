@@ -84,7 +84,7 @@
               @click="remove(row.id)"
             >
               <Trash2 class="size-4" />
-              Xóa
+              Ngừng hoạt động
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -135,13 +135,13 @@ const dataSource = computed<DataGridDataSource<RentalRequest>>(() => ({
 }))
 
 async function remove(id: number) {
-  if (!window.confirm('Xóa yêu cầu thuê xe này?')) return
+  if (!window.confirm('Ngừng hoạt động yêu cầu thuê xe này?')) return
 
   try {
     await mutations.deleteRequest.mutateAsync(id)
-    toast.success('Đã xóa yêu cầu thuê.')
+    toast.success('Đã ngừng hoạt động yêu cầu thuê.')
   } catch {
-    toast.error('Không thể xóa yêu cầu thuê.')
+    toast.error('Không thể ngừng hoạt động yêu cầu thuê.')
   }
 }
 </script>

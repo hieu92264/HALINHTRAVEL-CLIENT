@@ -3,11 +3,14 @@
     <header class="flex flex-wrap items-end justify-between gap-3">
       <div>
         <h1 class="text-2xl font-semibold">Báo giá</h1>
-        <p class="mt-1 text-sm text-muted-foreground">Lập, gửi và theo dõi báo giá thuê xe.</p>
+        <p class="mt-1 text-sm text-muted-foreground">
+          Báo giá được lập từ yêu cầu thuê xe. Tạo yêu cầu, kiểm tra năng lực, rồi lập báo giá từ
+          trang chi tiết của yêu cầu.
+        </p>
       </div>
       <Button v-if="canManage" @click="router.push({ name: 'rental-requests-create' })">
         <Plus class="size-4" />
-        Tạo yêu cầu thuê
+        Tạo yêu cầu thuê xe
       </Button>
     </header>
 
@@ -70,7 +73,7 @@
               Xem chi tiết
             </DropdownMenuItem>
             <DropdownMenuItem
-              v-if="canManage && isQuotationDraft(row.status) && isQuotationCurrent(row)"
+              v-if="canManage && canManageQuotationDraft(row)"
               class="min-w-40 gap-2"
               @click="router.push({ name: 'quotations-edit', params: { id: row.id } })"
             >
@@ -102,7 +105,7 @@
               Đánh dấu hết hạn
             </DropdownMenuItem>
             <DropdownMenuItem
-              v-if="canManage && isQuotationDraft(row.status) && isQuotationCurrent(row)"
+              v-if="canManage && canManageQuotationDraft(row)"
               variant="destructive"
               class="min-w-40 gap-2"
               @click="remove(row.id)"
@@ -121,11 +124,10 @@
 import { useAuthStore } from '@/modules/auth/auth.store'
 import {
   canExpireQuotation,
+  canManageQuotationDraft,
   canRecordQuotationByPhone,
   canSendQuotation,
   filterByDateRange,
-  isQuotationCurrent,
-  isQuotationDraft,
   type DateRange,
 } from '@/modules/rental/rental-table'
 import { useQuotationsQuery, useRentalMutations } from '@/modules/rental/rental.composables'
