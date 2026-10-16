@@ -104,8 +104,65 @@
         /></label>
         <label v-if="kind === 'receipt'" class="grid gap-1.5 text-sm font-medium"
           >Mã hợp đồng
-          <Input v-model="form.contract_id" type="number" min="1" placeholder="Không bắt buộc"
-        /></label>
+          <div class="relative">
+            <Input
+              v-model="contractQuery"
+              type="search"
+              role="combobox"
+              aria-controls="receipt-contract-options"
+              :aria-expanded="contractMenuOpen"
+              :disabled="!form.customer_id"
+              :aria-invalid="Boolean(contractError)"
+              :placeholder="form.customer_id ? 'Tìm mã hợp đồng' : 'Chọn khách hàng trước'"
+              @focus="openContractMenu"
+              @input="searchContracts"
+              @keydown.esc="contractMenuOpen = false"
+            />
+            <button
+              v-if="form.contract_id"
+              type="button"
+              class="absolute top-1/2 right-2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
+              aria-label="Bỏ chọn hợp đồng"
+              @click="clearContract"
+            >
+              Xóa
+            </button>
+            <div
+              v-if="contractMenuOpen && form.customer_id"
+              id="receipt-contract-options"
+              role="listbox"
+              class="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-md border bg-popover p-1 shadow-md"
+            >
+              <p v-if="contracts.isLoading.value" class="px-2 py-2 text-sm text-muted-foreground">
+                Đang tải hợp đồng...
+              </p>
+              <p v-else-if="contracts.isError.value" class="px-2 py-2 text-sm text-destructive">
+                Không thể tải danh sách hợp đồng.
+              </p>
+              <p v-else-if="filteredReceiptContracts.length === 0" class="px-2 py-2 text-sm text-muted-foreground">
+                Không có hợp đồng phù hợp.
+              </p>
+              <template v-else>
+                <button
+                  v-for="contract in filteredReceiptContracts"
+                  :key="contract.id"
+                  type="button"
+                  role="option"
+                  :aria-selected="form.contract_id === contract.id"
+                  :data-contract-id="contract.id"
+                  class="flex w-full items-center rounded-sm px-2 py-2 text-left text-sm hover:bg-muted focus:bg-muted focus:outline-none"
+                  @mousedown.prevent
+                  @click="selectContract(contract.id)"
+                >
+                  {{ contract.contract_no }}
+                </button>
+              </template>
+            </div>
+          </div>
+          <span v-if="contractError" class="text-xs font-normal text-destructive">{{
+            contractError
+          }}</span>
+        </label>
         <label
           v-if="kind === 'expense' && form.scope === 'vehicle'"
           class="grid gap-1.5 text-sm font-medium"
@@ -155,6 +212,7 @@
 
 <script setup lang="ts">
 import type { Expense, PartnerPayment, Receipt } from '@/modules/finance/finance.types'
+import { useContractsQuery } from '@/modules/contract/contract.composables'
 import { useCustomerQuery } from '@/modules/master-data/customer/composables/useCustomerQueries'
 import { useExpenseTypeQuery } from '@/modules/master-data/expense-type/composables/useExpenseTypeQueries'
 import { usePartnerQuery } from '@/modules/master-data/partner/composables/usePartnerQueries'
@@ -168,16 +226,21 @@ import {
   DialogTitle,
 } from '@/shared/components/ui/dialog'
 import { Input } from '@/shared/components/ui/input'
-import { computed, reactive, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 
 type Kind = 'receipt' | 'expense' | 'partner-payment'
 type Row = Receipt | Expense | PartnerPayment
 const props = defineProps<{ open: boolean; kind: Kind; row: Row | null; pending?: boolean }>()
 const emit = defineEmits<{ close: []; save: [data: Record<string, unknown>] }>()
 const customers = useCustomerQuery()
+const contracts = useContractsQuery()
 const partners = usePartnerQuery()
 const expenseTypes = useExpenseTypeQuery()
 const form = reactive<Record<string, string | number | undefined>>({})
+const contractQuery = ref('')
+const contractMenuOpen = ref(false)
+const contractSearchDirty = ref(false)
+const submitted = ref(false)
 const isEdit = computed(() => Boolean(props.row))
 const title = computed(
   () =>
@@ -189,6 +252,28 @@ const description = computed(() =>
     : 'Số tiền và liên kết nghiệp vụ sẽ được kiểm tra lại khi lưu.',
 )
 const dateLabel = computed(() => (props.kind === 'receipt' ? 'Ngày thu' : 'Ngày chi'))
+const receiptContracts = computed(() =>
+  (contracts.data.value ?? []).filter(
+    (contract) => contract.is_active && contract.customer_id === form.customer_id,
+  ),
+)
+const filteredReceiptContracts = computed(() => {
+  const query = contractSearchDirty.value ? contractQuery.value.trim().toLocaleLowerCase() : ''
+
+  return receiptContracts.value.filter((contract) =>
+    contract.contract_no.toLocaleLowerCase().includes(query),
+  )
+})
+const requiresContract = computed(
+  () => props.kind === 'receipt' && ['deposit', 'contract_payment'].includes(String(form.receipt_type)),
+)
+const contractError = computed(() => {
+  if (!submitted.value) return null
+  if (requiresContract.value && !form.contract_id) return 'Vui lòng chọn mã hợp đồng.'
+  if (contractQuery.value && !form.contract_id) return 'Chọn một hợp đồng trong danh sách.'
+
+  return null
+})
 const open = computed({
   get: () => props.open,
   set: (value: boolean) => {
@@ -197,6 +282,11 @@ const open = computed({
 })
 function hydrate(row: Row | null) {
   const value = row ?? {}
+  submitted.value = false
+  contractMenuOpen.value = false
+  contractSearchDirty.value = false
+  contractQuery.value =
+    'contract_no' in value && typeof value.contract_no === 'string' ? value.contract_no : ''
   Object.assign(form, {
     customer_id: 'customer_id' in value ? value.customer_id : undefined,
     expense_type_id: 'expense_type_id' in value ? value.expense_type_id : undefined,
@@ -229,6 +319,51 @@ watch(
   },
   { immediate: true },
 )
+watch(
+  () => form.customer_id,
+  (customerId) => {
+    const selectedContract = (contracts.data.value ?? []).find(
+      (contract) => contract.id === form.contract_id,
+    )
+    if (selectedContract && selectedContract.customer_id !== customerId) {
+      clearContract()
+    }
+  },
+)
+watch(
+  () => contracts.data.value,
+  () => {
+    if (contractQuery.value || !form.contract_id) return
+    contractQuery.value =
+      (contracts.data.value ?? []).find((contract) => contract.id === form.contract_id)?.contract_no ?? ''
+  },
+)
+function openContractMenu() {
+  if (form.customer_id) {
+    contractMenuOpen.value = true
+    contractSearchDirty.value = false
+  }
+}
+function searchContracts() {
+  form.contract_id = undefined
+  contractSearchDirty.value = true
+  if (form.customer_id) contractMenuOpen.value = true
+}
+function selectContract(contractId: number) {
+  const selectedContract = receiptContracts.value.find((contract) => contract.id === contractId)
+  if (!selectedContract) return
+
+  form.contract_id = selectedContract.id
+  contractQuery.value = selectedContract.contract_no
+  contractMenuOpen.value = false
+  contractSearchDirty.value = false
+}
+function clearContract() {
+  form.contract_id = undefined
+  contractQuery.value = ''
+  contractMenuOpen.value = false
+  contractSearchDirty.value = false
+}
 function resetExpenseReferences() {
   if (form.scope === 'general') {
     form.vehicle_id = undefined
@@ -237,6 +372,9 @@ function resetExpenseReferences() {
   else form.vehicle_id = undefined
 }
 function submit() {
+  submitted.value = true
+  if (props.kind === 'receipt' && contractError.value) return
+
   const base = {
     amount: String(form.amount),
     payment_method: form.payment_method,
