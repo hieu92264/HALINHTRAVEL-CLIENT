@@ -1,6 +1,7 @@
 import type {
   CustomerTypeEnum,
   ExpenseTypeEnum,
+  ProfitCategoryEnum,
   OwnershipTypeEnum,
   PartnerTypeEnum,
   VehicleStatusEnum,
@@ -78,6 +79,7 @@ export interface ExpenseType extends BaseEntity {
   code: string
   name: string
   scope: ExpenseTypeEnum
+  profit_category: ProfitCategoryEnum | null
 }
 
 export interface Route extends BaseEntity {

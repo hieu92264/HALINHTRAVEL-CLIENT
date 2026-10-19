@@ -2,6 +2,9 @@
 import type { ReportFilters, ReportKind } from './report.types'
 import { ReportService } from '@/services/report.service'
 import { useAuthStore } from '@/modules/auth/auth.store'
+import { useCustomerOptionsQuery } from '@/modules/master-data/customer/composables/useCustomerQueries'
+import { usePartnerOptionsQuery } from '@/modules/master-data/partner/composables/usePartnerQueries'
+import { usePayrollsQuery } from '@/modules/finance/finance.composables'
 import {
   DataGrid,
   type DataGridColumnDef,
@@ -22,13 +25,28 @@ const first = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice
 const last = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10)
 const filters = ref<ReportFilters>({ from_date: first, to_date: last, basis: 'accrual' })
 const financeTab = ref('cashflow')
+const customers = useCustomerOptionsQuery()
+const partners = usePartnerOptionsQuery()
+const payrolls = usePayrollsQuery()
+const requiresCustomer = computed(() => props.kind === 'customer-debt-details')
+const requiresPartner = computed(() => props.kind === 'partner-debt-details')
+const requiresPayroll = computed(() => props.kind === 'driver-payroll-details')
+const hasRequiredFilter = computed(
+  () => (!requiresCustomer.value || Boolean(filters.value.customer_id)) && (!requiresPartner.value || Boolean(filters.value.partner_id)) && (!requiresPayroll.value || Boolean(filters.value.payroll_id)),
+)
 const title = computed(
   () =>
     ({
       'fixed-trips': 'Báo cáo xe chạy tuyến',
       'tourism-trips': 'Báo cáo xe du lịch/công tác',
       finance: 'Thu chi, chi phí và công nợ',
+      'customer-debts': 'Công nợ khách hàng',
+      'customer-debt-details': 'Chi tiết công nợ khách hàng',
+      'partner-debts': 'Công nợ chủ xe',
+      'partner-debt-details': 'Chi tiết công nợ chủ xe',
       'driver-payroll': 'Báo cáo lương',
+      'driver-payroll-details': 'Chi tiết lương lái xe',
+      'vehicle-profit': 'Báo cáo lợi nhuận xe',
       'profit-loss': 'Báo cáo lợi nhuận',
     })[props.kind],
 )
@@ -36,6 +54,7 @@ const slug = computed(() => (props.kind === 'finance' ? financeTab.value : props
 const query = useQuery({
   queryKey: computed(() => ['reports', slug.value, filters.value]),
   queryFn: () => ReportService.get(slug.value, filters.value),
+  enabled: hasRequiredFilter,
 })
 const columns = computed<DataGridColumnDef<Record<string, unknown>>[]>(() =>
   Object.keys(query.data.value?.rows[0] ?? {})
@@ -105,7 +124,7 @@ async function download() {
           Đối soát dữ liệu vận hành và tài chính theo kỳ.
         </p>
       </div>
-      <Button :disabled="query.isFetching.value" @click="download"
+      <Button :disabled="query.isFetching.value || !hasRequiredFilter" @click="download"
         ><Download class="size-4" />Xuất Excel</Button
       >
     </header>
@@ -125,6 +144,21 @@ async function download() {
         >Cơ sở<select v-model="filters.basis" class="h-9 rounded-md border bg-background px-3">
           <option value="accrual">Dồn tích</option>
           <option value="cash">Tiền mặt</option>
+        </select></label
+      ><label v-if="requiresCustomer" class="grid gap-1 text-sm"
+        >Khách hàng<select v-model="filters.customer_id" class="h-9 min-w-56 rounded-md border bg-background px-3">
+          <option value="">Chọn khách hàng</option>
+          <option v-for="customer in customers.data.value ?? []" :key="customer.value" :value="String(customer.value)">{{ customer.label }}</option>
+        </select></label
+      ><label v-if="requiresPartner" class="grid gap-1 text-sm"
+        >Chủ xe/hãng vận tải<select v-model="filters.partner_id" class="h-9 min-w-56 rounded-md border bg-background px-3">
+          <option value="">Chọn chủ xe/hãng vận tải</option>
+          <option v-for="partner in partners.data.value ?? []" :key="partner.id" :value="String(partner.id)">{{ partner.name }}</option>
+        </select></label
+      ><label v-if="requiresPayroll" class="grid gap-1 text-sm"
+        >Kỳ lương<select v-model="filters.payroll_id" class="h-9 min-w-56 rounded-md border bg-background px-3">
+          <option value="">Chọn kỳ lương</option>
+          <option v-for="payroll in payrolls.data.value ?? []" :key="payroll.id" :value="String(payroll.id)">{{ payroll.code }} ({{ payroll.from_date }} - {{ payroll.to_date }})</option>
         </select></label
       ><Button variant="outline" @click="reset">Đặt lại</Button
       ><Button variant="outline" @click="query.refetch()"

@@ -48,6 +48,24 @@
           </FormItem>
         </FormField>
 
+        <FormField v-slot="{ componentField }" name="profit_category">
+          <FormItem>
+            <FormLabel>Nhóm chi phí lợi nhuận</FormLabel>
+            <Select v-bind="componentField">
+              <FormControl>
+                <SelectTrigger class="w-full"><SelectValue placeholder="Mặc định: Chi khác" /></SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem :value="ProfitCategoryEnum.FUEL">Dầu</SelectItem>
+                <SelectItem :value="ProfitCategoryEnum.REPAIR">Sửa chữa</SelectItem>
+                <SelectItem :value="ProfitCategoryEnum.INSURANCE_REGISTRATION">Bảo hiểm, đăng kiểm</SelectItem>
+                <SelectItem :value="ProfitCategoryEnum.OTHER">Chi khác</SelectItem>
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        </FormField>
+
         <FormField
           v-if="isEdit && !row?.is_active"
           v-slot="{ value, handleChange }"
@@ -87,7 +105,7 @@ import {
 } from '@/modules/master-data/expense-type/composables/useExpenseTypeMutation'
 import { createExpenseTypeSchema } from '@/modules/master-data/expense-type/schemas/create-expense-type.schema'
 import { updateExpenseTypeSchema } from '@/modules/master-data/expense-type/schemas/update-expense-type.schema'
-import { ExpenseTypeEnum } from '@/modules/master-data/master-data.enum'
+import { ExpenseTypeEnum, ProfitCategoryEnum } from '@/modules/master-data/master-data.enum'
 import type { ExpenseType } from '@/modules/master-data/master-data.type'
 import { Button } from '@/shared/components/ui/button'
 import {
@@ -130,13 +148,14 @@ const updateMutation = useUpdateExpenseTypeMutation()
 const isEdit = computed(() => Boolean(props.row))
 const isPending = computed(() => createMutation.isPending.value || updateMutation.isPending.value)
 
-const expenseTypeFieldKeys = ['code', 'name', 'scope'] as const
+const expenseTypeFieldKeys = ['code', 'name', 'scope', 'profit_category'] as const
 
 function getFormValues(expenseType?: ExpenseType | null) {
   return {
     code: expenseType?.code ?? '',
     name: expenseType?.name ?? '',
     scope: expenseType?.scope ?? undefined,
+    profit_category: expenseType?.profit_category ?? undefined,
     is_active: false,
   }
 }

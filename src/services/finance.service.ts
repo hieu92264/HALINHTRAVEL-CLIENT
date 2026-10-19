@@ -1,6 +1,8 @@
 import type {
   DebtRow,
   DebtReport,
+  DriverCashRemittance,
+  DriverCashRemittancePayload,
   Expense,
   ExpensePayload,
   PartnerPayment,
@@ -33,6 +35,19 @@ export class FinanceService {
   }
   static lockReceipt(id: number) {
     return httpService.post<Receipt>(`${financeUrl}/receipts/${id}/lock`)
+  }
+
+  static getDriverCashRemittances() {
+    return httpService.get<DriverCashRemittance[]>(`${financeUrl}/driver-cash-remittances`)
+  }
+  static createDriverCashRemittance(payload: DriverCashRemittancePayload) {
+    return httpService.post<DriverCashRemittance, DriverCashRemittancePayload>(`${financeUrl}/driver-cash-remittances`, payload)
+  }
+  static updateDriverCashRemittance(id: number, payload: Partial<DriverCashRemittancePayload>) {
+    return httpService.patch<DriverCashRemittance, Partial<DriverCashRemittancePayload>>(`${financeUrl}/driver-cash-remittances/${id}`, payload)
+  }
+  static deleteDriverCashRemittance(id: number) {
+    return httpService.delete<void>(`${financeUrl}/driver-cash-remittances/${id}`)
   }
 
   static getExpenses() {

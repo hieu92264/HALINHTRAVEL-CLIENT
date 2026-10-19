@@ -209,6 +209,13 @@
             </option>
           </select>
         </label>
+        <label v-if="kind === 'receipt' && form.settlement_type === 'standard'" class="grid gap-1.5 text-sm font-medium">
+          Lệnh điều xe (không bắt buộc)
+          <select v-model.number="form.dispatch_order_id" class="h-10 rounded-md border bg-background px-3 font-normal">
+            <option :value="undefined">Không liên kết chuyến</option>
+            <option v-for="order in completedOrders" :key="order.id" :value="order.id">{{ order.order_no }}</option>
+          </select>
+        </label>
         <label v-if="requiresDriverSettlement" class="grid gap-1.5 text-sm font-medium"
           >Lái xe được phân công
           <select
@@ -470,7 +477,7 @@ function submit() {
       contract_id: form.contract_id || null,
       receipt_type: form.receipt_type,
       settlement_type: form.settlement_type,
-      dispatch_order_id: requiresDriverSettlement.value ? form.dispatch_order_id : null,
+      dispatch_order_id: form.dispatch_order_id || null,
       driver_id: requiresDriverSettlement.value ? form.driver_id : null,
       received_at: form.date,
       payer_name: form.payer_name || null,

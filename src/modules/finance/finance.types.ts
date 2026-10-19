@@ -64,6 +64,20 @@ export interface PartnerPayment extends FinancialDocument {
   description: string | null
 }
 
+export interface DriverCashRemittance extends FinancialDocument {
+  remittance_no: string
+  receipt_id: number
+  receipt_no?: string | null
+  dispatch_order_id: number
+  dispatch_order_no?: string | null
+  driver_id: number
+  driver_name?: string | null
+  remitted_at: string
+  amount: Money
+  payment_method: PaymentMethod
+  description: string | null
+}
+
 export interface DebtRow {
   id?: number
   code?: string
@@ -132,6 +146,7 @@ export interface PayrollItemDetail {
   dispatch_order_no?: string | null
   receipt_no?: string | null
   expense_no?: string | null
+  remittance_no?: string | null
   work_date?: string | null
 }
 
@@ -149,6 +164,7 @@ export interface PayrollItem {
   deduction_amount: Money
   direct_customer_collection: Money
   driver_reimbursement: Money
+  driver_remittance_amount: Money
   gross_salary: Money
   net_salary: Money
   note: string | null
@@ -193,6 +209,10 @@ export type ExpensePayload = Omit<
 export type PartnerPaymentPayload = Omit<
   PartnerPayment,
   keyof FinancialDocument | 'payment_no' | 'partner_name' | 'dispatch_order_no'
+>
+export type DriverCashRemittancePayload = Omit<
+  DriverCashRemittance,
+  keyof FinancialDocument | 'remittance_no' | 'receipt_no' | 'dispatch_order_no' | 'driver_name'
 >
 export type DriverAdvancePayload = Pick<
   DriverAdvance,

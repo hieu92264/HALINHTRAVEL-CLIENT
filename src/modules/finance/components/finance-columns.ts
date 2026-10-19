@@ -3,6 +3,7 @@ import type {
   DebtRow,
   DriverAdvance,
   DriverAttendance,
+  DriverCashRemittance,
   Expense,
   PartnerPayment,
   Payroll,
@@ -114,6 +115,31 @@ export const partnerPaymentColumns: DataGridColumnDef<PartnerPayment>[] = [
     cell: ({ getValue }) => String(getValue() ?? '—'),
     meta: { label: 'Lệnh điều xe' },
   },
+  {
+    accessorKey: 'amount',
+    header: 'Số tiền',
+    cell: ({ getValue }) => formatMoney(getValue() as string | number),
+    align: 'right',
+    meta: { label: 'Số tiền' },
+  },
+  {
+    accessorKey: 'payment_method',
+    header: 'Phương thức',
+    cell: ({ getValue }) => paymentMethodLabel(String(getValue())),
+    meta: { label: 'Phương thức' },
+  },
+]
+export const driverCashRemittanceColumns: DataGridColumnDef<DriverCashRemittance>[] = [
+  { accessorKey: 'remittance_no', header: 'Số chứng từ', fixed: 'left', meta: { label: 'Số chứng từ' } },
+  {
+    accessorKey: 'remitted_at',
+    header: 'Ngày nộp',
+    cell: ({ getValue }) => formatDate(String(getValue())),
+    meta: { label: 'Ngày nộp' },
+  },
+  { accessorKey: 'receipt_no', header: 'Phiếu khách trả lái xe', meta: { label: 'Phiếu khách trả lái xe' } },
+  { accessorKey: 'dispatch_order_no', header: 'Lệnh điều xe', meta: { label: 'Lệnh điều xe' } },
+  { accessorKey: 'driver_name', header: 'Lái xe', meta: { label: 'Lái xe' } },
   {
     accessorKey: 'amount',
     header: 'Số tiền',

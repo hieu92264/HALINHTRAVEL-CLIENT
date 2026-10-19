@@ -1,4 +1,15 @@
-export type ReportKind = 'fixed-trips' | 'tourism-trips' | 'finance' | 'driver-payroll' | 'profit-loss'
+export type ReportKind =
+  | 'fixed-trips'
+  | 'tourism-trips'
+  | 'finance'
+  | 'customer-debts'
+  | 'customer-debt-details'
+  | 'partner-debts'
+  | 'partner-debt-details'
+  | 'driver-payroll'
+  | 'driver-payroll-details'
+  | 'vehicle-profit'
+  | 'profit-loss'
 
 export type ReportFilters = {
   from_date: string
@@ -9,6 +20,7 @@ export type ReportFilters = {
   vehicle_id?: string
   driver_id?: string
   partner_id?: string
+  payroll_id?: string
 }
 
 export type ReportResponse = {
