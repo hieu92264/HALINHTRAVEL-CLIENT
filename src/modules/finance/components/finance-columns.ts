@@ -158,6 +158,20 @@ export const debtColumns: DataGridColumnDef<DebtRow>[] = [
     meta: { label: 'Phát sinh' },
   },
   {
+    accessorKey: 'received_amount',
+    header: 'Đã thu',
+    cell: ({ getValue }) => formatMoney((getValue() as string | number | null) ?? 0),
+    align: 'right',
+    meta: { label: 'Đã thu' },
+  },
+  {
+    accessorKey: 'paid_amount',
+    header: 'Đã chi',
+    cell: ({ getValue }) => formatMoney((getValue() as string | number | null) ?? 0),
+    align: 'right',
+    meta: { label: 'Đã chi' },
+  },
+  {
     accessorKey: 'closing_balance',
     header: 'Dư cuối kỳ',
     cell: ({ getValue }) => formatMoney(getValue() as string | number),

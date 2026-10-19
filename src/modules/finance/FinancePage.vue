@@ -110,7 +110,8 @@
         <Tabs v-model="debtTab"
           ><TabsList
             ><TabsTrigger value="customer">Khách hàng</TabsTrigger
-            ><TabsTrigger value="partner">Đối tác</TabsTrigger></TabsList
+            ><TabsTrigger value="partner">Hãng vận tải</TabsTrigger
+            ><TabsTrigger value="external-driver">Thuê lái</TabsTrigger></TabsList
           ><TabsContent value="customer"
             ><DataGrid
               :data-source="customerDebtSource"
@@ -132,7 +133,18 @@
               :get-row-id="(row, index) => String(row.id ?? row.partner_id ?? index)"
               empty-title="Không có dữ liệu trong kỳ"
               empty-description="Thử thay đổi khoảng thời gian hoặc kiểm tra dữ liệu nguồn."
-              @retry="partnerDebts.refetch()" /></TabsContent></Tabs
+              @retry="partnerDebts.refetch()" /></TabsContent
+          ><TabsContent value="external-driver"
+            ><DataGrid
+              :data-source="externalDriverDebtSource"
+              :columns="debtColumns"
+              :pagination="pagination"
+              filter-row
+              global-filter
+              :get-row-id="(row, index) => String(row.id ?? row.driver_id ?? index)"
+              empty-title="Không có công nợ thuê lái"
+              empty-description="Thử thay đổi khoảng thời gian hoặc kiểm tra phiếu chi thuê lái."
+              @retry="externalDriverDebts.refetch()" /></TabsContent></Tabs
       ></TabsContent>
     </Tabs>
   </section>
@@ -167,6 +179,7 @@ import {
 } from '@/modules/finance/components/finance-columns'
 import {
   useCustomerDebtsQuery,
+  useExternalDriverDebtsQuery,
   useExpensesQuery,
   useFinanceMutations,
   usePartnerDebtsQuery,
@@ -201,10 +214,15 @@ const mutations = useFinanceMutations()
 const activeTab = ref('receipts')
 const debtTab = ref('customer')
 const showFilters = ref(true)
-const debtFilter = reactive({ from_date: '', to_date: '' })
+const now = new Date()
+const debtFilter = reactive({
+  from_date: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`,
+  to_date: now.toISOString().slice(0, 10),
+})
 const debtParams = computed(() => ({ ...debtFilter }))
 const customerDebts = useCustomerDebtsQuery(() => debtParams.value)
 const partnerDebts = usePartnerDebtsQuery(() => debtParams.value)
+const externalDriverDebts = useExternalDriverDebtsQuery(() => debtParams.value)
 const dialog = ref<{ kind: Kind; row: Row | null } | null>(null)
 const confirmation = ref<{ action: Action; row: Row } | null>(null)
 const canManage = computed(
@@ -231,6 +249,7 @@ const expenseSource = source(expenses)
 const paymentSource = source(payments)
 const customerDebtSource = source(customerDebts)
 const partnerDebtSource = source(partnerDebts)
+const externalDriverDebtSource = source(externalDriverDebts)
 const createLabel = computed(
   () =>
     ({ receipts: 'Tạo phiếu thu', expenses: 'Tạo chi phí', payments: 'Tạo phiếu chi' })[
@@ -316,7 +335,7 @@ function ask(action: Action, row: Row) {
   confirmation.value = { action, row }
 }
 function refetchDebts() {
-  void Promise.all([customerDebts.refetch(), partnerDebts.refetch()])
+  void Promise.all([customerDebts.refetch(), partnerDebts.refetch(), externalDriverDebts.refetch()])
 }
 async function save(data: Record<string, unknown>) {
   const current = dialog.value

@@ -196,7 +196,7 @@ const unorderedSidebarNavigation: SidebarNavigationNode[] = [
   {
     kind: 'group',
     id: 'organization',
-    label: 'Quản lý tổ chức',
+    label: 'Quản lý hệ thống',
     icon: Building2Icon,
     items: [
       {
@@ -284,14 +284,14 @@ const unorderedSidebarNavigation: SidebarNavigationNode[] = [
 ]
 
 const sidebarGroupOrder = [
+  'organization',
   'dashboard',
   'rental',
   'dispatch',
   'driver-workspace',
   'finance',
-  'reports',
   'master-data',
-  'organization',
+  'reports',
 ]
 
 const masterDataOrder = [

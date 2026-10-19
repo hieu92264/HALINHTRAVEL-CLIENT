@@ -1,5 +1,6 @@
 import type {
   DebtRow,
+  DebtReport,
   Expense,
   ExpensePayload,
   PartnerPayment,
@@ -75,10 +76,13 @@ export class FinanceService {
     return httpService.post<PartnerPayment>(`${financeUrl}/partner-payments/${id}/lock`)
   }
 
-  static getCustomerDebts(params?: Record<string, string>) {
-    return httpService.get<DebtRow[]>('/other/reports/customer-debts', { params })
+  static async getCustomerDebts(params?: Record<string, string>): Promise<DebtRow[]> {
+    return (await httpService.get<DebtReport>('/other/reports/customer-debts', { params })).rows
   }
-  static getPartnerDebts(params?: Record<string, string>) {
-    return httpService.get<DebtRow[]>('/other/reports/partner-debts', { params })
+  static async getPartnerDebts(params?: Record<string, string>): Promise<DebtRow[]> {
+    return (await httpService.get<DebtReport>('/other/reports/partner-debts', { params })).rows
+  }
+  static async getExternalDriverDebts(params?: Record<string, string>): Promise<DebtRow[]> {
+    return (await httpService.get<DebtReport>('/other/reports/external-driver-debts', { params })).rows
   }
 }

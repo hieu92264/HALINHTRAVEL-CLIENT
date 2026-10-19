@@ -9,6 +9,7 @@ export const financeKeys = {
   partnerPayments: ['finance', 'partner-payments'] as const,
   customerDebts: (params: Record<string, string>) => ['finance', 'customer-debts', params] as const,
   partnerDebts: (params: Record<string, string>) => ['finance', 'partner-debts', params] as const,
+  externalDriverDebts: (params: Record<string, string>) => ['finance', 'external-driver-debts', params] as const,
   advances: ['driver-payroll', 'advances'] as const,
   attendances: ['driver-payroll', 'attendances'] as const,
   payrolls: ['driver-payroll', 'payrolls'] as const,
@@ -30,6 +31,11 @@ export const usePartnerDebtsQuery = (params: () => Record<string, string>) =>
   useQuery({
     queryKey: computed(() => financeKeys.partnerDebts(params())),
     queryFn: () => FinanceService.getPartnerDebts(params()),
+  })
+export const useExternalDriverDebtsQuery = (params: () => Record<string, string>) =>
+  useQuery({
+    queryKey: computed(() => financeKeys.externalDriverDebts(params())),
+    queryFn: () => FinanceService.getExternalDriverDebts(params()),
   })
 export const useAdvancesQuery = () =>
   useQuery({ queryKey: financeKeys.advances, queryFn: DriverPayrollService.getAdvances })
