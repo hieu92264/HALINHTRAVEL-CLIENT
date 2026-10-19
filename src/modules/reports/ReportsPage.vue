@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ReportFilters, ReportKind } from './report.types'
+import type { ReportExportFormat, ReportFilters, ReportKind } from './report.types'
 import { ReportService } from '@/services/report.service'
 import { useAuthStore } from '@/modules/auth/auth.store'
 import { useCustomerOptionsQuery } from '@/modules/master-data/customer/composables/useCustomerQueries'
@@ -17,6 +17,7 @@ import { computed, ref, watch } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { Download, RefreshCw } from '@lucide/vue'
 import { toast } from 'vue-sonner'
+import { formatDate, formatMoney } from '@/modules/finance/finance.format'
 
 const props = defineProps<{ kind: ReportKind }>()
 const auth = useAuthStore()
@@ -31,20 +32,26 @@ const payrolls = usePayrollsQuery()
 const requiresCustomer = computed(() => props.kind === 'customer-debt-details')
 const requiresPartner = computed(() => props.kind === 'partner-debt-details')
 const requiresPayroll = computed(() => props.kind === 'driver-payroll-details')
+const exportFormat = computed<ReportExportFormat>(() =>
+  ['fixed-trips', 'tourism-trips', 'customer-debts', 'customer-debt-details', 'partner-debts', 'partner-debt-details', 'driver-payroll', 'driver-payroll-details', 'vehicle-profit'].includes(props.kind) ? 'docx' : 'xlsx',
+)
+const exportLabel = computed(() =>
+  exportFormat.value === 'docx' ? 'Xuất Word' : 'Xuất Excel',
+)
 const hasRequiredFilter = computed(
   () => (!requiresCustomer.value || Boolean(filters.value.customer_id)) && (!requiresPartner.value || Boolean(filters.value.partner_id)) && (!requiresPayroll.value || Boolean(filters.value.payroll_id)),
 )
 const title = computed(
   () =>
     ({
-      'fixed-trips': 'Báo cáo xe chạy tuyến',
-      'tourism-trips': 'Báo cáo xe du lịch/công tác',
+      'fixed-trips': 'Báo cáo xe chạy công nhân',
+      'tourism-trips': 'Báo cáo xe chạy du lịch',
       finance: 'Thu chi, chi phí và công nợ',
       'customer-debts': 'Công nợ khách hàng',
       'customer-debt-details': 'Chi tiết công nợ khách hàng',
       'partner-debts': 'Công nợ chủ xe',
       'partner-debt-details': 'Chi tiết công nợ chủ xe',
-      'driver-payroll': 'Báo cáo lương',
+      'driver-payroll': 'Bảng lương lái xe',
       'driver-payroll-details': 'Chi tiết lương lái xe',
       'vehicle-profit': 'Báo cáo lợi nhuận xe',
       'profit-loss': 'Báo cáo lợi nhuận',
@@ -56,22 +63,72 @@ const query = useQuery({
   queryFn: () => ReportService.get(slug.value, filters.value),
   enabled: hasRequiredFilter,
 })
-const columns = computed<DataGridColumnDef<Record<string, unknown>>[]>(() =>
-  Object.keys(query.data.value?.rows[0] ?? {})
+const customerDebtDetailColumns: DataGridColumnDef<Record<string, unknown>>[] = [
+  { accessorKey: 'stt', header: 'STT', meta: { label: 'STT' } },
+  {
+    accessorKey: 'date',
+    header: 'Ngày',
+    meta: { label: 'Ngày' },
+    cell: ({ getValue }) => formatDate(String(getValue() ?? '')),
+  },
+  {
+    id: 'description',
+    header: 'Diễn giải/Hành trình',
+    meta: { label: 'Diễn giải/Hành trình' },
+    cell: ({ row }) =>
+      [row.original.type, row.original.journey].filter(Boolean).join(' ') || '—',
+  },
+  { accessorKey: 'vehicle_plate', header: 'Biển số', meta: { label: 'Biển số' } },
+  { accessorKey: 'pickup_time', header: 'Giờ đón', meta: { label: 'Giờ đón' } },
+  { accessorKey: 'return_time', header: 'Giờ về', meta: { label: 'Giờ về' } },
+  { accessorKey: 'note', header: 'Ghi chú', meta: { label: 'Ghi chú' } },
+  {
+    accessorKey: 'debit',
+    header: 'Nợ phát sinh',
+    meta: { label: 'Nợ phát sinh' },
+    cell: ({ getValue }) => formatMoney(Number(getValue() ?? 0)),
+  },
+  {
+    accessorKey: 'credit',
+    header: 'Có phát sinh',
+    meta: { label: 'Có phát sinh' },
+    cell: ({ getValue }) => formatMoney(Number(getValue() ?? 0)),
+  },
+  {
+    accessorKey: 'balance',
+    header: 'Nợ cuối kỳ',
+    meta: { label: 'Nợ cuối kỳ' },
+    cell: ({ getValue }) => formatMoney(Number(getValue() ?? 0)),
+  },
+]
+const columns = computed<DataGridColumnDef<Record<string, unknown>>[]>(() => {
+  if (props.kind === 'customer-debt-details') return customerDebtDetailColumns
+
+  return Object.keys(query.data.value?.rows[0] ?? {})
     .filter((key) => !['id', 'schedule_id', 'details', 'expense_breakdown'].includes(key))
     .map((key) => ({
       accessorKey: key,
       header: key.replaceAll('_', ' '),
       meta: { label: key.replaceAll('_', ' ') },
-    })),
-)
+    }))
+})
 const source = computed<DataGridDataSource<Record<string, unknown>>>(() => ({
   data: query.data.value?.rows ?? [],
   isLoading: query.isLoading.value,
   isFetching: query.isFetching.value,
   error: query.error.value,
 }))
-const totals = computed(() => Object.entries(query.data.value?.totals ?? {}))
+const totals = computed(() => {
+  if (props.kind === 'customer-debt-details') {
+    const data = query.data.value?.totals ?? {}
+    return [
+      ['Nợ đầu kỳ', formatMoney(Number(data.opening_balance ?? 0))],
+      ['Nợ cuối kỳ', formatMoney(Number(data.closing_balance ?? 0))],
+    ]
+  }
+
+  return Object.entries(query.data.value?.totals ?? {})
+})
 const can = (permission: string) => auth.user?.permissions.includes(permission) ?? false
 type FinanceTab = [string, string]
 const financeTabs = computed<FinanceTab[]>(() => {
@@ -102,7 +159,7 @@ function reset() {
 }
 async function download() {
   try {
-    const file = await ReportService.download(slug.value, filters.value)
+    const file = await ReportService.download(slug.value, filters.value, exportFormat.value)
     const url = URL.createObjectURL(file.blob)
     const link = document.createElement('a')
     link.href = url
@@ -110,7 +167,7 @@ async function download() {
     link.click()
     URL.revokeObjectURL(url)
   } catch (error) {
-    toast.error(error instanceof Error ? error.message : 'Không thể xuất Excel.')
+    toast.error(error instanceof Error ? error.message : `Không thể xuất ${exportLabel.value}.`)
   }
 }
 </script>
@@ -125,7 +182,7 @@ async function download() {
         </p>
       </div>
       <Button :disabled="query.isFetching.value || !hasRequiredFilter" @click="download"
-        ><Download class="size-4" />Xuất Excel</Button
+        ><Download class="size-4" />{{ exportLabel }}</Button
       >
     </header>
     <Tabs v-if="kind === 'finance'" v-model="financeTab"

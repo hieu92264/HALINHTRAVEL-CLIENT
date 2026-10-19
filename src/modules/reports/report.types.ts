@@ -23,6 +23,8 @@ export type ReportFilters = {
   payroll_id?: string
 }
 
+export type ReportExportFormat = 'xlsx' | 'docx'
+
 export type ReportResponse = {
   filters: Record<string, unknown>
   generated_at: string
