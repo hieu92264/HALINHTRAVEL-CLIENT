@@ -18,6 +18,12 @@ import { useQuery } from '@tanstack/vue-query'
 import { Download, RefreshCw } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import { formatDate, formatMoney } from '@/modules/finance/finance.format'
+import {
+  createReportColumn,
+  createReportTotals,
+  formatReportValue,
+  getReportField,
+} from './report.presentation'
 
 const props = defineProps<{ kind: ReportKind }>()
 const auth = useAuthStore()
@@ -76,7 +82,9 @@ const customerDebtDetailColumns: DataGridColumnDef<Record<string, unknown>>[] = 
     header: 'Diễn giải/Hành trình',
     meta: { label: 'Diễn giải/Hành trình' },
     cell: ({ row }) =>
-      [row.original.type, row.original.journey].filter(Boolean).join(' ') || '—',
+      [formatReportValue('type', row.original.type), row.original.journey]
+        .filter((value) => value !== '—')
+        .join(' ') || '—',
   },
   { accessorKey: 'vehicle_plate', header: 'Biển số', meta: { label: 'Biển số' } },
   { accessorKey: 'pickup_time', header: 'Giờ đón', meta: { label: 'Giờ đón' } },
@@ -106,11 +114,7 @@ const columns = computed<DataGridColumnDef<Record<string, unknown>>[]>(() => {
 
   return Object.keys(query.data.value?.rows[0] ?? {})
     .filter((key) => !['id', 'schedule_id', 'details', 'expense_breakdown'].includes(key))
-    .map((key) => ({
-      accessorKey: key,
-      header: key.replaceAll('_', ' '),
-      meta: { label: key.replaceAll('_', ' ') },
-    }))
+    .map(createReportColumn)
 })
 const source = computed<DataGridDataSource<Record<string, unknown>>>(() => ({
   data: query.data.value?.rows ?? [],
@@ -122,12 +126,20 @@ const totals = computed(() => {
   if (props.kind === 'customer-debt-details') {
     const data = query.data.value?.totals ?? {}
     return [
-      ['Nợ đầu kỳ', formatMoney(Number(data.opening_balance ?? 0))],
-      ['Nợ cuối kỳ', formatMoney(Number(data.closing_balance ?? 0))],
+      {
+        key: 'opening_balance',
+        label: getReportField('opening_balance').label,
+        value: formatMoney(Number(data.opening_balance ?? 0)),
+      },
+      {
+        key: 'closing_balance',
+        label: getReportField('closing_balance').label,
+        value: formatMoney(Number(data.closing_balance ?? 0)),
+      },
     ]
   }
 
-  return Object.entries(query.data.value?.totals ?? {})
+  return createReportTotals(query.data.value?.totals ?? {})
 })
 const can = (permission: string) => auth.user?.permissions.includes(permission) ?? false
 type FinanceTab = [string, string]
@@ -223,9 +235,9 @@ async function download() {
       >
     </div>
     <div v-if="totals.length" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <article v-for="[key, value] in totals" :key="key" class="rounded-lg border bg-card p-4">
-        <p class="text-xs text-muted-foreground">{{ key.replaceAll('_', ' ') }}</p>
-        <p class="mt-1 text-lg font-semibold tabular-nums">{{ value }}</p>
+      <article v-for="total in totals" :key="total.key" class="rounded-lg border bg-card p-4">
+        <p class="text-xs text-muted-foreground">{{ total.label }}</p>
+        <p class="mt-1 text-lg font-semibold tabular-nums">{{ total.value }}</p>
       </article>
     </div>
     <DataGrid
