@@ -12,7 +12,6 @@ import {
   UsersIcon,
   BadgeDollarSignIcon,
   RouteIcon,
-  CircleDollarSignIcon,
   CalendarClockIcon,
   ClipboardCheckIcon,
   ClipboardListIcon,
@@ -187,14 +186,6 @@ const unorderedSidebarNavigation: SidebarNavigationNode[] = [
         icon: RouteIcon,
         permission: 'routes.view',
       },
-      {
-        kind: 'item',
-        label: 'Bảng giá tuyến xe',
-        to: '/route-rates',
-        routeName: 'route-rates',
-        icon: CircleDollarSignIcon,
-        permission: 'route-rates.view',
-      },
     ],
   },
   {
@@ -305,7 +296,6 @@ const masterDataOrder = [
   'vehicles',
   'drivers',
   'routes',
-  'route-rates',
   'expense-types',
 ]
 
