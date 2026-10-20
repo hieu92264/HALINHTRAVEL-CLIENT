@@ -1,5 +1,8 @@
 import type {
   DebtRow,
+  DebtReport,
+  DriverCashRemittance,
+  DriverCashRemittancePayload,
   Expense,
   ExpensePayload,
   PartnerPayment,
@@ -32,6 +35,19 @@ export class FinanceService {
   }
   static lockReceipt(id: number) {
     return httpService.post<Receipt>(`${financeUrl}/receipts/${id}/lock`)
+  }
+
+  static getDriverCashRemittances() {
+    return httpService.get<DriverCashRemittance[]>(`${financeUrl}/driver-cash-remittances`)
+  }
+  static createDriverCashRemittance(payload: DriverCashRemittancePayload) {
+    return httpService.post<DriverCashRemittance, DriverCashRemittancePayload>(`${financeUrl}/driver-cash-remittances`, payload)
+  }
+  static updateDriverCashRemittance(id: number, payload: Partial<DriverCashRemittancePayload>) {
+    return httpService.patch<DriverCashRemittance, Partial<DriverCashRemittancePayload>>(`${financeUrl}/driver-cash-remittances/${id}`, payload)
+  }
+  static deleteDriverCashRemittance(id: number) {
+    return httpService.delete<void>(`${financeUrl}/driver-cash-remittances/${id}`)
   }
 
   static getExpenses() {
@@ -75,10 +91,13 @@ export class FinanceService {
     return httpService.post<PartnerPayment>(`${financeUrl}/partner-payments/${id}/lock`)
   }
 
-  static getCustomerDebts(params?: Record<string, string>) {
-    return httpService.get<DebtRow[]>('/other/reports/customer-debts', { params })
+  static async getCustomerDebts(params?: Record<string, string>): Promise<DebtRow[]> {
+    return (await httpService.get<DebtReport>('/other/reports/customer-debts', { params })).rows
   }
-  static getPartnerDebts(params?: Record<string, string>) {
-    return httpService.get<DebtRow[]>('/other/reports/partner-debts', { params })
+  static async getPartnerDebts(params?: Record<string, string>): Promise<DebtRow[]> {
+    return (await httpService.get<DebtReport>('/other/reports/partner-debts', { params })).rows
+  }
+  static async getExternalDriverDebts(params?: Record<string, string>): Promise<DebtRow[]> {
+    return (await httpService.get<DebtReport>('/other/reports/external-driver-debts', { params })).rows
   }
 }

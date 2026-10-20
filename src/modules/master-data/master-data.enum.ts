@@ -29,3 +29,10 @@ export enum ExpenseTypeEnum {
   TRIP = 'trip',
   GENERAL = 'general',
 }
+
+export enum ProfitCategoryEnum {
+  FUEL = 'fuel',
+  REPAIR = 'repair',
+  INSURANCE_REGISTRATION = 'insurance_registration',
+  OTHER = 'other',
+}

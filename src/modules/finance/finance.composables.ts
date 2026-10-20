@@ -5,10 +5,12 @@ import { computed } from 'vue'
 
 export const financeKeys = {
   receipts: ['finance', 'receipts'] as const,
+  driverCashRemittances: ['finance', 'driver-cash-remittances'] as const,
   expenses: ['finance', 'expenses'] as const,
   partnerPayments: ['finance', 'partner-payments'] as const,
   customerDebts: (params: Record<string, string>) => ['finance', 'customer-debts', params] as const,
   partnerDebts: (params: Record<string, string>) => ['finance', 'partner-debts', params] as const,
+  externalDriverDebts: (params: Record<string, string>) => ['finance', 'external-driver-debts', params] as const,
   advances: ['driver-payroll', 'advances'] as const,
   attendances: ['driver-payroll', 'attendances'] as const,
   payrolls: ['driver-payroll', 'payrolls'] as const,
@@ -17,6 +19,8 @@ export const financeKeys = {
 
 export const useReceiptsQuery = () =>
   useQuery({ queryKey: financeKeys.receipts, queryFn: FinanceService.getReceipts })
+export const useDriverCashRemittancesQuery = () =>
+  useQuery({ queryKey: financeKeys.driverCashRemittances, queryFn: FinanceService.getDriverCashRemittances })
 export const useExpensesQuery = () =>
   useQuery({ queryKey: financeKeys.expenses, queryFn: FinanceService.getExpenses })
 export const usePartnerPaymentsQuery = () =>
@@ -30,6 +34,11 @@ export const usePartnerDebtsQuery = (params: () => Record<string, string>) =>
   useQuery({
     queryKey: computed(() => financeKeys.partnerDebts(params())),
     queryFn: () => FinanceService.getPartnerDebts(params()),
+  })
+export const useExternalDriverDebtsQuery = (params: () => Record<string, string>) =>
+  useQuery({
+    queryKey: computed(() => financeKeys.externalDriverDebts(params())),
+    queryFn: () => FinanceService.getExternalDriverDebts(params()),
   })
 export const useAdvancesQuery = () =>
   useQuery({ queryKey: financeKeys.advances, queryFn: DriverPayrollService.getAdvances })
@@ -61,6 +70,9 @@ export function useFinanceMutations() {
     }),
     deleteReceipt: useMutation({ mutationFn: FinanceService.deleteReceipt, onSuccess: invalidate }),
     lockReceipt: useMutation({ mutationFn: FinanceService.lockReceipt, onSuccess: invalidate }),
+    createDriverCashRemittance: useMutation({ mutationFn: FinanceService.createDriverCashRemittance, onSuccess: invalidate }),
+    updateDriverCashRemittance: useMutation({ mutationFn: ({ id, data }: { id: number; data: Parameters<typeof FinanceService.updateDriverCashRemittance>[1] }) => FinanceService.updateDriverCashRemittance(id, data), onSuccess: invalidate }),
+    deleteDriverCashRemittance: useMutation({ mutationFn: FinanceService.deleteDriverCashRemittance, onSuccess: invalidate }),
     createExpense: useMutation({ mutationFn: FinanceService.createExpense, onSuccess: invalidate }),
     updateExpense: useMutation({
       mutationFn: ({

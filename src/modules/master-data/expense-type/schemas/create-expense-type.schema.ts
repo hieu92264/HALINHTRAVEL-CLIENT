@@ -1,4 +1,4 @@
-import { ExpenseTypeEnum } from '@/modules/master-data/master-data.enum'
+import { ExpenseTypeEnum, ProfitCategoryEnum } from '@/modules/master-data/master-data.enum'
 import z from 'zod'
 
 export const expenseTypeFieldsSchema = z.object({
@@ -13,6 +13,7 @@ export const expenseTypeFieldsSchema = z.object({
     .min(1, { message: 'Tên loại chi phí không được để trống' })
     .max(150, { message: 'Tên loại chi phí không được vượt quá 150 ký tự' }),
   scope: z.nativeEnum(ExpenseTypeEnum),
+  profit_category: z.nativeEnum(ProfitCategoryEnum).nullable().optional(),
 })
 
 export const createExpenseTypeSchema = expenseTypeFieldsSchema

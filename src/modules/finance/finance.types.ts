@@ -16,6 +16,11 @@ export interface Receipt extends FinancialDocument {
   contract_id: number | null
   contract_no?: string | null
   receipt_type: 'deposit' | 'contract_payment' | 'other'
+  settlement_type: 'standard' | 'driver_direct_collection'
+  dispatch_order_id: number | null
+  dispatch_order_no?: string | null
+  driver_id: number | null
+  driver_name?: string | null
   received_at: string
   amount: Money
   payment_method: PaymentMethod
@@ -44,6 +49,7 @@ export interface Expense extends FinancialDocument {
   payment_method: PaymentMethod
   document_no: string | null
   description: string | null
+  settlement_type: 'standard' | 'driver_reimbursement' | 'external_driver_payment'
 }
 
 export interface PartnerPayment extends FinancialDocument {
@@ -58,6 +64,20 @@ export interface PartnerPayment extends FinancialDocument {
   description: string | null
 }
 
+export interface DriverCashRemittance extends FinancialDocument {
+  remittance_no: string
+  receipt_id: number
+  receipt_no?: string | null
+  dispatch_order_id: number
+  dispatch_order_no?: string | null
+  driver_id: number
+  driver_name?: string | null
+  remitted_at: string
+  amount: Money
+  payment_method: PaymentMethod
+  description: string | null
+}
+
 export interface DebtRow {
   id?: number
   code?: string
@@ -66,13 +86,25 @@ export interface DebtRow {
   customer_name?: string
   partner_id?: number
   partner_name?: string
+  driver_id?: number
+  driver_name?: string
   contract_no?: string | null
   opening_balance: Money
   incurred_amount?: Money
   contract_amount?: Money
   received_amount?: Money
   paid_amount?: Money
+  fixed_trip_amount?: Money
+  tourism_trip_amount?: Money
+  other_trip_amount?: Money
   closing_balance: Money
+}
+
+export interface DebtReport {
+  filters: Record<string, string>
+  generated_at: string
+  totals: Record<string, Money>
+  rows: DebtRow[]
 }
 
 export interface DriverAdvance {
@@ -112,6 +144,9 @@ export interface PayrollItemDetail {
   amount: Money
   driver_attendance_id?: number | null
   dispatch_order_no?: string | null
+  receipt_no?: string | null
+  expense_no?: string | null
+  remittance_no?: string | null
   work_date?: string | null
 }
 
@@ -127,6 +162,9 @@ export interface PayrollItem {
   other_allowance: Money
   advance_amount: Money
   deduction_amount: Money
+  direct_customer_collection: Money
+  driver_reimbursement: Money
+  driver_remittance_amount: Money
   gross_salary: Money
   net_salary: Money
   note: string | null
@@ -171,6 +209,10 @@ export type ExpensePayload = Omit<
 export type PartnerPaymentPayload = Omit<
   PartnerPayment,
   keyof FinancialDocument | 'payment_no' | 'partner_name' | 'dispatch_order_no'
+>
+export type DriverCashRemittancePayload = Omit<
+  DriverCashRemittance,
+  keyof FinancialDocument | 'remittance_no' | 'receipt_no' | 'dispatch_order_no' | 'driver_name'
 >
 export type DriverAdvancePayload = Pick<
   DriverAdvance,

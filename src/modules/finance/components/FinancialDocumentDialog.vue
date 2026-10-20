@@ -65,6 +65,17 @@
             <option value="other">Khác</option>
           </select>
         </label>
+        <label v-if="kind === 'receipt'" class="grid gap-1.5 text-sm font-medium"
+          >Hình thức quyết toán
+          <select
+            v-model="form.settlement_type"
+            class="h-10 rounded-md border bg-background px-3 font-normal"
+            @change="syncSettlementReferences"
+          >
+            <option value="standard">Thu thông thường</option>
+            <option value="driver_direct_collection">Khách trả trực tiếp cho lái xe</option>
+          </select>
+        </label>
         <label v-if="kind === 'expense'" class="grid gap-1.5 text-sm font-medium"
           >Phạm vi
           <select
@@ -75,6 +86,18 @@
             <option value="vehicle">Xe</option>
             <option value="trip">Chuyến xe</option>
             <option value="general">Chi phí chung</option>
+          </select>
+        </label>
+        <label v-if="kind === 'expense'" class="grid gap-1.5 text-sm font-medium"
+          >Loại quyết toán
+          <select
+            v-model="form.settlement_type"
+            class="h-10 rounded-md border bg-background px-3 font-normal"
+            @change="syncSettlementReferences"
+          >
+            <option value="standard">Chi phí thông thường</option>
+            <option value="driver_reimbursement">Lái xe tự chi</option>
+            <option value="external_driver_payment">Chi thuê lái</option>
           </select>
         </label>
         <label class="grid gap-1.5 text-sm font-medium"
@@ -169,10 +192,43 @@
           >Mã xe<Input v-model="form.vehicle_id" type="number" min="1" required
         /></label>
         <label
-          v-if="kind === 'expense' && form.scope === 'trip'"
+          v-if="kind === 'expense' && form.scope === 'trip' && !requiresDriverSettlement"
           class="grid gap-1.5 text-sm font-medium"
           >Mã lệnh điều xe<Input v-model="form.dispatch_order_id" type="number" min="1" required
         /></label>
+        <label v-if="requiresDriverSettlement" class="grid gap-1.5 text-sm font-medium"
+          >Lệnh điều xe
+          <select
+            v-model.number="form.dispatch_order_id"
+            required
+            class="h-10 rounded-md border bg-background px-3 font-normal"
+          >
+            <option :value="undefined" disabled>Chọn lệnh đã hoàn tất</option>
+            <option v-for="order in completedOrders" :key="order.id" :value="order.id">
+              {{ order.order_no }}
+            </option>
+          </select>
+        </label>
+        <label v-if="kind === 'receipt' && form.settlement_type === 'standard'" class="grid gap-1.5 text-sm font-medium">
+          Lệnh điều xe (không bắt buộc)
+          <select v-model.number="form.dispatch_order_id" class="h-10 rounded-md border bg-background px-3 font-normal">
+            <option :value="undefined">Không liên kết chuyến</option>
+            <option v-for="order in completedOrders" :key="order.id" :value="order.id">{{ order.order_no }}</option>
+          </select>
+        </label>
+        <label v-if="requiresDriverSettlement" class="grid gap-1.5 text-sm font-medium"
+          >Lái xe được phân công
+          <select
+            v-model.number="form.driver_id"
+            required
+            class="h-10 rounded-md border bg-background px-3 font-normal"
+          >
+            <option :value="undefined" disabled>Chọn lái xe</option>
+            <option v-for="driver in settlementDrivers" :key="driver.id" :value="driver.id">
+              {{ driver.code }} — {{ driver.full_name }}
+            </option>
+          </select>
+        </label>
         <label v-if="kind === 'expense'" class="grid gap-1.5 text-sm font-medium"
           >Số hóa đơn<Input v-model="form.document_no" placeholder="Không bắt buộc"
         /></label>
@@ -214,6 +270,8 @@
 import type { Expense, PartnerPayment, Receipt } from '@/modules/finance/finance.types'
 import { useContractsQuery } from '@/modules/contract/contract.composables'
 import { useCustomerQuery } from '@/modules/master-data/customer/composables/useCustomerQueries'
+import { useDispatchOrders } from '@/modules/dispatch/dispatch.composables'
+import { useDriverQuery } from '@/modules/master-data/drivers/composables/useDriverQueries'
 import { useExpenseTypeQuery } from '@/modules/master-data/expense-type/composables/useExpenseTypeQueries'
 import { usePartnerQuery } from '@/modules/master-data/partner/composables/usePartnerQueries'
 import { Button } from '@/shared/components/ui/button'
@@ -236,6 +294,8 @@ const customers = useCustomerQuery()
 const contracts = useContractsQuery()
 const partners = usePartnerQuery()
 const expenseTypes = useExpenseTypeQuery()
+const orders = useDispatchOrders()
+const drivers = useDriverQuery()
 const form = reactive<Record<string, string | number | undefined>>({})
 const contractQuery = ref('')
 const contractMenuOpen = ref(false)
@@ -252,6 +312,20 @@ const description = computed(() =>
     : 'Số tiền và liên kết nghiệp vụ sẽ được kiểm tra lại khi lưu.',
 )
 const dateLabel = computed(() => (props.kind === 'receipt' ? 'Ngày thu' : 'Ngày chi'))
+const requiresDriverSettlement = computed(
+  () =>
+    (props.kind === 'receipt' && form.settlement_type === 'driver_direct_collection') ||
+    (props.kind === 'expense' && form.settlement_type !== 'standard'),
+)
+const completedOrders = computed(() =>
+  (orders.data.value ?? []).filter((order) => order.status === 'COMPLETED'),
+)
+const settlementDrivers = computed(() => {
+  const order = completedOrders.value.find((item) => item.id === form.dispatch_order_id)
+  const driverId = order?.trip_assignment?.driver_id
+
+  return (drivers.data.value ?? []).filter((driver) => driver.is_active && driver.id === driverId)
+})
 const receiptContracts = computed(() =>
   (contracts.data.value ?? []).filter(
     (contract) => contract.is_active && contract.customer_id === form.customer_id,
@@ -295,8 +369,15 @@ function hydrate(row: Row | null) {
     dispatch_order_id:
       'dispatch_order_id' in value ? (value.dispatch_order_id ?? undefined) : undefined,
     vehicle_id: 'vehicle_id' in value ? (value.vehicle_id ?? undefined) : undefined,
+    driver_id: 'driver_id' in value ? (value.driver_id ?? undefined) : undefined,
     receipt_type: 'receipt_type' in value ? value.receipt_type : 'contract_payment',
     scope: 'scope' in value ? value.scope : 'general',
+    settlement_type:
+      'settlement_type' in value
+        ? value.settlement_type
+        : props.kind === 'receipt'
+          ? 'standard'
+          : 'standard',
     payment_method: 'payment_method' in value ? value.payment_method : 'cash',
     date:
       'received_at' in value
@@ -371,6 +452,15 @@ function resetExpenseReferences() {
   } else if (form.scope === 'vehicle') form.dispatch_order_id = undefined
   else form.vehicle_id = undefined
 }
+function syncSettlementReferences() {
+  if (requiresDriverSettlement.value) {
+    form.scope = 'trip'
+    form.vehicle_id = undefined
+    if (props.kind === 'receipt' && !form.contract_id) form.receipt_type = 'other'
+  } else {
+    form.driver_id = undefined
+  }
+}
 function submit() {
   submitted.value = true
   if (props.kind === 'receipt' && contractError.value) return
@@ -386,6 +476,9 @@ function submit() {
       customer_id: form.customer_id,
       contract_id: form.contract_id || null,
       receipt_type: form.receipt_type,
+      settlement_type: form.settlement_type,
+      dispatch_order_id: form.dispatch_order_id || null,
+      driver_id: requiresDriverSettlement.value ? form.driver_id : null,
       received_at: form.date,
       payer_name: form.payer_name || null,
     })
@@ -398,7 +491,8 @@ function submit() {
       vehicle_id: form.scope === 'vehicle' ? form.vehicle_id : null,
       dispatch_order_id: form.scope === 'trip' ? form.dispatch_order_id : null,
       partner_id: null,
-      driver_id: null,
+      driver_id: requiresDriverSettlement.value ? form.driver_id : null,
+      settlement_type: form.settlement_type,
       document_no: form.document_no || null,
     })
   else

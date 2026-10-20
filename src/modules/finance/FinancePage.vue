@@ -17,6 +17,7 @@
         ><TabsTrigger value="receipts">Phiếu thu</TabsTrigger
         ><TabsTrigger value="expenses">Chi phí</TabsTrigger
         ><TabsTrigger value="payments">Chi trả đối tác</TabsTrigger
+        ><TabsTrigger value="remittances">Lái xe nộp tiền</TabsTrigger
         ><TabsTrigger value="debts">Công nợ nhanh</TabsTrigger></TabsList
       >
       <TabsContent value="receipts"
@@ -94,6 +95,26 @@
               @lock="ask('lock-payment', row)"
               @remove="ask('delete-payment', row)" /></template></DataGrid
       ></TabsContent>
+      <TabsContent value="remittances"
+        ><DataGrid
+          :data-source="remittanceSource"
+          :columns="driverCashRemittanceColumns"
+          :pagination="pagination"
+          filter-row
+          global-filter
+          show-actions
+          :get-row-id="(row) => String(row.id)"
+          :persist="{ key: 'finance-driver-cash-remittances', url: true, queryPrefix: 'remittance' }"
+          empty-title="Chưa có chứng từ lái xe nộp tiền"
+          empty-description="Ghi nhận khoản lái xe đã nộp lại từ tiền khách trả trực tiếp."
+          @retry="remittances.refetch()"
+          ><template #actions="{ row }"
+            ><div v-if="canManage" class="flex h-full items-center justify-center gap-1"
+              ><Button variant="ghost" size="icon-xs" title="Sửa" @click="remittanceDialog = { row }"
+                ><PencilLine class="size-4" /></Button
+              ><Button variant="ghost" size="icon-xs" title="Ngừng hoạt động" @click="removeRemittance(row)"
+                ><Trash2 class="size-4 text-destructive" /></Button></div></template></DataGrid
+      ></TabsContent>
       <TabsContent value="debts" class="space-y-4"
         ><div class="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-4">
           <label class="grid gap-1 text-sm"
@@ -110,7 +131,8 @@
         <Tabs v-model="debtTab"
           ><TabsList
             ><TabsTrigger value="customer">Khách hàng</TabsTrigger
-            ><TabsTrigger value="partner">Đối tác</TabsTrigger></TabsList
+            ><TabsTrigger value="partner">Hãng vận tải</TabsTrigger
+            ><TabsTrigger value="external-driver">Thuê lái</TabsTrigger></TabsList
           ><TabsContent value="customer"
             ><DataGrid
               :data-source="customerDebtSource"
@@ -132,7 +154,18 @@
               :get-row-id="(row, index) => String(row.id ?? row.partner_id ?? index)"
               empty-title="Không có dữ liệu trong kỳ"
               empty-description="Thử thay đổi khoảng thời gian hoặc kiểm tra dữ liệu nguồn."
-              @retry="partnerDebts.refetch()" /></TabsContent></Tabs
+              @retry="partnerDebts.refetch()" /></TabsContent
+          ><TabsContent value="external-driver"
+            ><DataGrid
+              :data-source="externalDriverDebtSource"
+              :columns="debtColumns"
+              :pagination="pagination"
+              filter-row
+              global-filter
+              :get-row-id="(row, index) => String(row.id ?? row.driver_id ?? index)"
+              empty-title="Không có công nợ thuê lái"
+              empty-description="Thử thay đổi khoảng thời gian hoặc kiểm tra phiếu chi thuê lái."
+              @retry="externalDriverDebts.refetch()" /></TabsContent></Tabs
       ></TabsContent>
     </Tabs>
   </section>
@@ -143,6 +176,13 @@
     :pending="isSaving"
     @close="dialog = null"
     @save="save"
+  />
+  <DriverCashRemittanceDialog
+    :open="remittanceDialog !== null"
+    :row="remittanceDialog?.row ?? null"
+    :pending="isSavingRemittance"
+    @close="remittanceDialog = null"
+    @save="saveRemittance"
   />
   <AccessDialog
     :open="confirmation !== null"
@@ -159,21 +199,25 @@
 
 <script setup lang="ts">
 import FinancialDocumentDialog from '@/modules/finance/components/FinancialDocumentDialog.vue'
+import DriverCashRemittanceDialog from '@/modules/finance/components/DriverCashRemittanceDialog.vue'
 import {
   debtColumns,
+  driverCashRemittanceColumns,
   expenseColumns,
   partnerPaymentColumns,
   receiptColumns,
 } from '@/modules/finance/components/finance-columns'
 import {
   useCustomerDebtsQuery,
+  useDriverCashRemittancesQuery,
+  useExternalDriverDebtsQuery,
   useExpensesQuery,
   useFinanceMutations,
   usePartnerDebtsQuery,
   usePartnerPaymentsQuery,
   useReceiptsQuery,
 } from '@/modules/finance/finance.composables'
-import type { Expense, PartnerPayment, Receipt } from '@/modules/finance/finance.types'
+import type { DriverCashRemittance, Expense, PartnerPayment, Receipt } from '@/modules/finance/finance.types'
 import { useAuthStore } from '@/modules/auth/auth.store'
 import { DataGrid, type DataGridDataSource } from '@/shared/components/data-grid'
 import AccessDialog from '@/shared/components/feedback/AccessDialog.vue'
@@ -195,17 +239,24 @@ type Action =
   | 'delete-payment'
 const auth = useAuthStore()
 const receipts = useReceiptsQuery()
+const remittances = useDriverCashRemittancesQuery()
 const expenses = useExpensesQuery()
 const payments = usePartnerPaymentsQuery()
 const mutations = useFinanceMutations()
 const activeTab = ref('receipts')
 const debtTab = ref('customer')
 const showFilters = ref(true)
-const debtFilter = reactive({ from_date: '', to_date: '' })
+const now = new Date()
+const debtFilter = reactive({
+  from_date: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`,
+  to_date: now.toISOString().slice(0, 10),
+})
 const debtParams = computed(() => ({ ...debtFilter }))
 const customerDebts = useCustomerDebtsQuery(() => debtParams.value)
 const partnerDebts = usePartnerDebtsQuery(() => debtParams.value)
+const externalDriverDebts = useExternalDriverDebtsQuery(() => debtParams.value)
 const dialog = ref<{ kind: Kind; row: Row | null } | null>(null)
+const remittanceDialog = ref<{ row: DriverCashRemittance | null } | null>(null)
 const confirmation = ref<{ action: Action; row: Row } | null>(null)
 const canManage = computed(
   () =>
@@ -229,11 +280,18 @@ const source = <T,>(query: {
 const receiptSource = source(receipts)
 const expenseSource = source(expenses)
 const paymentSource = source(payments)
+const remittanceSource = source(remittances)
 const customerDebtSource = source(customerDebts)
 const partnerDebtSource = source(partnerDebts)
+const externalDriverDebtSource = source(externalDriverDebts)
 const createLabel = computed(
   () =>
-    ({ receipts: 'Tạo phiếu thu', expenses: 'Tạo chi phí', payments: 'Tạo phiếu chi' })[
+    ({
+      receipts: 'Tạo phiếu thu',
+      expenses: 'Tạo chi phí',
+      payments: 'Tạo phiếu chi',
+      remittances: 'Ghi nhận nộp tiền',
+    })[
       activeTab.value
     ] ?? '',
 )
@@ -245,6 +303,11 @@ const isSaving = computed(
     mutations.updateExpense.isPending.value ||
     mutations.createPartnerPayment.isPending.value ||
     mutations.updatePartnerPayment.isPending.value,
+)
+const isSavingRemittance = computed(
+  () =>
+    mutations.createDriverCashRemittance.isPending.value ||
+    mutations.updateDriverCashRemittance.isPending.value,
 )
 const isActing = computed(() =>
   Object.values(mutations).some((mutation) => mutation.isPending.value),
@@ -303,10 +366,35 @@ const DocumentActions = defineComponent({
   },
 })
 function openCreate() {
+  if (activeTab.value === 'remittances') {
+    remittanceDialog.value = { row: null }
+    return
+  }
   dialog.value = {
     kind:
       activeTab.value === 'payments' ? 'partner-payment' : (activeTab.value.slice(0, -1) as Kind),
     row: null,
+  }
+}
+async function saveRemittance(data: Record<string, unknown>) {
+  const current = remittanceDialog.value
+  if (!current) return
+  try {
+    if (current.row)
+      await mutations.updateDriverCashRemittance.mutateAsync({ id: current.row.id, data: data as never })
+    else await mutations.createDriverCashRemittance.mutateAsync(data as never)
+    toast.success(current.row ? 'Đã cập nhật chứng từ nộp tiền.' : 'Đã ghi nhận lái xe nộp tiền.')
+    remittanceDialog.value = null
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : 'Không thể lưu chứng từ nộp tiền.')
+  }
+}
+async function removeRemittance(row: DriverCashRemittance) {
+  try {
+    await mutations.deleteDriverCashRemittance.mutateAsync(row.id)
+    toast.success('Đã ngừng hoạt động chứng từ nộp tiền.')
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : 'Không thể cập nhật chứng từ nộp tiền.')
   }
 }
 function openEdit(kind: Kind, row: Row) {
@@ -316,7 +404,7 @@ function ask(action: Action, row: Row) {
   confirmation.value = { action, row }
 }
 function refetchDebts() {
-  void Promise.all([customerDebts.refetch(), partnerDebts.refetch()])
+  void Promise.all([customerDebts.refetch(), partnerDebts.refetch(), externalDriverDebts.refetch()])
 }
 async function save(data: Record<string, unknown>) {
   const current = dialog.value

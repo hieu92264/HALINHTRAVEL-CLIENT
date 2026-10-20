@@ -1,5 +1,24 @@
 import { AxiosError } from 'axios'
 
+const fallbackMessage = 'Đã xảy ra lỗi. Vui lòng thử lại.'
+const fallbackFieldMessage = 'Giá trị không hợp lệ.'
+const vietnameseCharacterPattern = /[À-ỹĐđ]/u
+
+function toVietnameseMessage(message: unknown, fallback = fallbackMessage): string {
+  if (typeof message !== 'string') return fallback
+  const normalized = message.trim()
+  return vietnameseCharacterPattern.test(normalized) ? normalized : fallback
+}
+
+function normalizeFieldErrors(errors: Record<string, string[]> | undefined): Record<string, string[]> {
+  return Object.fromEntries(
+    Object.entries(errors ?? {}).map(([field, messages]) => [
+      field,
+      messages.map((message) => toVietnameseMessage(message, fallbackFieldMessage)),
+    ]),
+  )
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -18,14 +37,14 @@ export function toApiError(error: unknown): ApiError {
     const response = error.response?.data as
       (Partial<ResponseBody<unknown>> & { errors?: Record<string, string[]> }) | undefined
     return new ApiError(
-      response?.message || error.message || 'Không thể kết nối đến máy chủ.',
+      toVietnameseMessage(response?.message || error.message),
       error.response?.status,
-      response?.errors ?? {},
+      normalizeFieldErrors(response?.errors),
     )
   }
 
-  if (error instanceof Error) return new ApiError(error.message)
-  return new ApiError('Đã xảy ra lỗi không xác định.')
+  if (error instanceof Error) return new ApiError(toVietnameseMessage(error.message))
+  return new ApiError(fallbackMessage)
 }
 
 export function applyApiFieldErrors(
@@ -34,7 +53,7 @@ export function applyApiFieldErrors(
 ): boolean {
   if (!(error instanceof ApiError) || !Object.keys(error.fieldErrors).length) return false
   Object.entries(error.fieldErrors).forEach(([field, messages]) =>
-    setFieldError(field, messages[0] || 'Giá trị không hợp lệ'),
+    setFieldError(field, messages[0] || fallbackFieldMessage),
   )
   return true
 }
