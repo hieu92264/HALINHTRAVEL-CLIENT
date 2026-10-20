@@ -10,6 +10,7 @@
     :filter-row="isFilterRowVisible"
     show-actions
     :get-row-id="(route) => String(route.id)"
+    v-model:expanded-row-id="expandedRowId"
     :persist="{ key: 'master-data-routes', url: true }"
     empty-title="Chưa có tuyến xe"
     empty-description="Danh sách tuyến xe sẽ hiển thị tại đây khi có dữ liệu."
@@ -61,13 +62,27 @@
         </DropdownMenuContent>
       </DropdownMenu>
     </template>
+
+    <template #row-detail="{ row }">
+      <RouteRateSubtable
+        :rates="routeRatesByRouteId.get(row.id) ?? []"
+        :is-loading="routeRatesQuery.isLoading.value"
+        :error="routeRatesQuery.error.value"
+        :can-manage="canManageRates"
+        @create="emit('create-rate', row)"
+        @edit="emit('edit-rate', $event)"
+        @deactivate="emit('deactivate-rate', $event)"
+      />
+    </template>
   </DataGrid>
 </template>
 
 <script setup lang="ts">
 import { routeColumns } from '@/modules/master-data/route/components/route-column'
 import { useRouteQuery } from '@/modules/master-data/route/composables/useRouteQueries'
-import type { Route } from '@/modules/master-data/master-data.type'
+import RouteRateSubtable from '@/modules/master-data/route/components/RouteRateSubtable.vue'
+import { useRouteRateQuery } from '@/modules/master-data/route-rate/composables/useRouteRateQueries'
+import type { Route, RouteRate } from '@/modules/master-data/master-data.type'
 import { DataGrid, type DataGridDataSource } from '@/shared/components/data-grid'
 import { Button } from '@/shared/components/ui/button'
 import {
@@ -81,14 +96,21 @@ import {
 import { Filter, MoreHorizontal, PencilLine, Plus, Trash2 } from '@lucide/vue'
 import { computed, ref } from 'vue'
 
+const props = defineProps<{ canManageRates: boolean }>()
+
 const emit = defineEmits<{
   create: []
   edit: [route: Route]
   deactivate: [route: Route]
+  'create-rate': [route: Route]
+  'edit-rate': [rate: RouteRate]
+  'deactivate-rate': [rate: RouteRate]
 }>()
 
 const routesQuery = useRouteQuery()
+const routeRatesQuery = useRouteRateQuery()
 const isFilterRowVisible = ref(true)
+const expandedRowId = ref<string | null>(null)
 
 const dataSource = computed<DataGridDataSource<Route>>(() => ({
   data: routesQuery.data.value ?? [],
@@ -96,4 +118,18 @@ const dataSource = computed<DataGridDataSource<Route>>(() => ({
   isFetching: routesQuery.isFetching.value,
   error: routesQuery.error.value,
 }))
+
+const routeRatesByRouteId = computed(() => {
+  const groups = new Map<number, RouteRate[]>()
+
+  for (const rate of routeRatesQuery.data.value ?? []) {
+    const rates = groups.get(rate.route_id) ?? []
+    rates.push(rate)
+    groups.set(rate.route_id, rates)
+  }
+
+  return groups
+})
+
+const canManageRates = computed(() => props.canManageRates)
 </script>

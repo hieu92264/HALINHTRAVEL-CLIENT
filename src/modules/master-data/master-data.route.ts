@@ -46,7 +46,7 @@ export const MasterDataRoute: RouteRecordRaw[] = [
   {
     path: 'route-rates',
     name: 'route-rates',
-    component: () => import('@/modules/master-data/route-rate/RouteRatePage.vue'),
-    meta: { permission: 'route-rates.view', title: 'Bảng giá tuyến xe' },
+    redirect: { name: 'routes' },
+    meta: { permission: 'routes.view', title: 'Tuyến xe' },
   },
 ]

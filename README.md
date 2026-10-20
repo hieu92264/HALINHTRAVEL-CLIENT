@@ -29,3 +29,10 @@ pnpm build
 ```
 
 `pnpm lint` chỉ kiểm tra. Dùng `pnpm lint:fix` khi muốn tự động sửa các lỗi có thể sửa được.
+
+`pnpm run build:production`
+`docker compose --env-file .env.production -f compose.production.yaml build`
+
+`docker compose --env-file .env.production -f compose.production.yaml run --rm --no-deps app \ php artisan migrate:status`
+
+`docker compose --env-file .env.production -f compose.production.yaml run --rm --no-deps app \ php artisan migrate --force`

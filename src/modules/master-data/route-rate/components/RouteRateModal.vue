@@ -14,7 +14,7 @@
             <FormLabel>Tuyến xe</FormLabel>
             <Select
               :model-value="value == null ? undefined : String(value)"
-              :disabled="routesQuery.isLoading.value"
+              :disabled="routesQuery.isLoading.value || isRoutePreset"
               @update:model-value="handleChange(Number($event))"
             >
               <FormControl>
@@ -173,6 +173,7 @@ import { useForm } from 'vee-validate'
 const props = defineProps<{
   isOpen: boolean
   row?: RouteRate | null
+  presetRouteId?: number | null
 }>()
 
 const emit = defineEmits<{ close: [] }>()
@@ -193,9 +194,11 @@ const routeRateFieldKeys = [
   'effective_to',
 ] as const
 
+const isRoutePreset = computed(() => !props.row && props.presetRouteId != null)
+
 function getFormValues(routeRate?: RouteRate | null) {
   return {
-    route_id: routeRate?.route_id ?? undefined,
+    route_id: routeRate?.route_id ?? props.presetRouteId ?? undefined,
     vehicle_type_id: routeRate?.vehicle_type_id ?? undefined,
     customer_price: routeRate?.customer_price ?? undefined,
     driver_wage: routeRate?.driver_wage ?? 0,
@@ -211,7 +214,7 @@ const form = useForm({
 })
 
 watch(
-  [() => props.isOpen, () => props.row],
+  [() => props.isOpen, () => props.row, () => props.presetRouteId],
   ([isOpen]) => {
     if (isOpen) form.resetForm({ values: getFormValues(props.row) })
   },
