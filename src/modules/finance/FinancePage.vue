@@ -15,7 +15,7 @@
     <Tabs v-model="activeTab" class="space-y-4">
       <TabsList class="h-auto max-w-full flex-wrap justify-start"
         ><TabsTrigger value="receipts">Phiếu thu</TabsTrigger
-        ><TabsTrigger value="expenses">Chi phí</TabsTrigger
+        ><TabsTrigger value="expenses">Chi phí chung</TabsTrigger
         ><TabsTrigger value="payments">Chi trả đối tác</TabsTrigger
         ><TabsTrigger value="remittances">Lái xe nộp tiền</TabsTrigger
         ><TabsTrigger value="debts">Công nợ nhanh</TabsTrigger></TabsList
