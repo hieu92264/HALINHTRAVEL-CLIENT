@@ -210,8 +210,8 @@ function getFormValues(route?: Route | null) {
     shift_name: route?.shift_name ?? null,
     pickup_location: route?.pickup_location ?? '',
     dropoff_location: route?.dropoff_location ?? '',
-    default_pickup_time: route?.default_pickup_time ?? null,
-    default_return_time: route?.default_return_time ?? null,
+    default_pickup_time: route?.default_pickup_time?.slice(0, 5) ?? null,
+    default_return_time: route?.default_return_time?.slice(0, 5) ?? null,
     estimated_distance_km: route?.estimated_distance_km ?? null,
     is_active: false,
   }

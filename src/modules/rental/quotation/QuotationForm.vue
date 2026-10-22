@@ -246,13 +246,13 @@
               class="h-10"
               min="1"
               type="number"
-            /><Input
+            /><label class="space-y-1 text-xs text-muted-foreground"><span>Đơn giá (đ)</span><Input
               v-model="item.unit_price"
               class="h-10"
               min="0"
               type="number"
-              placeholder="Đơn giá"
-            /><Button
+              aria-label="Đơn giá (đ)"
+            /></label><Button
               v-if="!isRequestPrefill"
               type="button"
               variant="ghost"

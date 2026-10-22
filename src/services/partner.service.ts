@@ -1,4 +1,5 @@
 import type { Partner } from '@/modules/master-data/master-data.type'
+import type { PartnerTypeEnum } from '@/modules/master-data/master-data.enum'
 import type { CreatePartnerDto } from '@/modules/master-data/partner/schemas/create-partner.schema'
 import type { UpdatePartnerDto } from '@/modules/master-data/partner/schemas/update-partner.schema'
 import { httpService } from '@/services/http.service'
@@ -33,8 +34,10 @@ export class PartnerService {
     return response
   }
 
-  public static async getPartnerOptions(): Promise<{ id: number; name: string }[]> {
-    const response = await httpService.get<{ id: number; name: string }[]>(PartnerURL + '/options')
+  public static async getPartnerOptions(types: PartnerTypeEnum[] = []): Promise<{ id: number; name: string }[]> {
+    const response = await httpService.get<{ id: number; name: string }[]>(PartnerURL + '/options', {
+      params: types.length ? { types } : undefined,
+    })
     console.log('response', response)
     return response
   }

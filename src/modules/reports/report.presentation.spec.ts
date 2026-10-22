@@ -18,11 +18,25 @@ describe('trình bày báo cáo', () => {
     expect(formatReportValue('date', '2026-10-30')).toMatch(/30.*10.*2026/)
   })
 
-  it('dùng nhãn tiếng Việt an toàn cho trường chưa biết và tổng số', () => {
-    expect(getReportField('unknown_backend_field').label).toBe('Thông tin khác')
+  it('dùng nhãn có mã trường cho dữ liệu API chưa được khai báo', () => {
+    expect(getReportField('unknown_backend_field').label).toBe(
+      'Dữ liệu chưa đặt tên (unknown_backend_field)',
+    )
     expect(createReportTotals({ closing_balance: 0, unknown_backend_field: 1 })).toEqual([
       { key: 'closing_balance', label: 'Số dư cuối kỳ', value: expect.any(String) },
-      { key: 'unknown_backend_field', label: 'Thông tin khác', value: '1' },
+      {
+        key: 'unknown_backend_field',
+        label: 'Dữ liệu chưa đặt tên (unknown_backend_field)',
+        value: '1',
+      },
     ])
+  })
+
+  it('đặt đúng nhãn vận hành cho dữ liệu xe chạy công nhân', () => {
+    expect(getReportField('order_no').label).toBe('Số lệnh điều xe')
+    expect(getReportField('start_odometer').label).toBe('ODO đầu')
+    expect(getReportField('end_odometer').label).toBe('ODO cuối')
+    expect(getReportField('trip_count').label).toBe('Số chuyến chạy')
+    expect(formatReportValue('total_distance_km', 312)).toBe('312 km')
   })
 })

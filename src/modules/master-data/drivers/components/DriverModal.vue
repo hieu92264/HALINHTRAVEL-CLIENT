@@ -221,13 +221,14 @@
 </template>
 
 <script setup lang="ts">
-import { OwnershipTypeEnum } from '@/modules/master-data/master-data.enum'
+import { OwnershipTypeEnum, PartnerTypeEnum } from '@/modules/master-data/master-data.enum'
 import type { Driver } from '@/modules/master-data/master-data.type'
 import { usePartnerOptionsQuery } from '@/modules/master-data/partner/composables/usePartnerQueries'
 import {
   useStoreDriverMutation,
   useUpdateDriverMutation,
 } from '@/modules/master-data/drivers/composables/useDriverMutation'
+import { useDriverQuery } from '@/modules/master-data/drivers/composables/useDriverQueries'
 import { createDriverSchema } from '@/modules/master-data/drivers/schemas/create-driver.schema'
 import { updateDriverSchema } from '@/modules/master-data/drivers/schemas/update-driver.schema'
 import { useUserQuery } from '@/modules/organization/user/composables/useUserQueries'
@@ -271,15 +272,26 @@ const emit = defineEmits<{ close: [] }>()
 
 const createMutation = useStoreDriverMutation()
 const updateMutation = useUpdateDriverMutation()
-const partnerOptionsQuery = usePartnerOptionsQuery()
+const partnerOptionsQuery = usePartnerOptionsQuery([
+  PartnerTypeEnum.VEHICLE_OWNER,
+  PartnerTypeEnum.TRANSPORT_COMPANY,
+])
 const usersQuery = useUserQuery()
+const driversQuery = useDriverQuery()
 const isEdit = computed(() => Boolean(props.row))
 const isPending = computed(() => createMutation.isPending.value || updateMutation.isPending.value)
 const isPartnerDriver = computed(() => form.values.type === OwnershipTypeEnum.INDIVIDUAL)
 const userOptions = computed(() =>
-  (usersQuery.data.value ?? []).flatMap((user) =>
-    user.user_name ? [{ id: user.id, user_name: user.user_name }] : [],
-  ),
+  (usersQuery.data.value ?? []).flatMap((user) => {
+    const userName = user.user_name
+    const roles = Array.isArray(user.roles) ? user.roles.map((role) => typeof role === 'string' ? role : role.name) : []
+    const isCurrentDriverUser = userName !== null && userName !== undefined && userName === props.row?.user_name
+    const isLinkedElsewhere = (driversQuery.data.value ?? []).some((driver) => driver.user_name === userName && driver.id !== props.row?.id)
+
+    return userName && (isCurrentDriverUser || (user.is_active !== false && roles.includes('driver') && !isLinkedElsewhere))
+      ? [{ id: user.id, user_name: userName }]
+      : []
+  }),
 )
 
 const driverFieldKeys = [

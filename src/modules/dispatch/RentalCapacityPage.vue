@@ -17,6 +17,7 @@ import { useMutation } from '@tanstack/vue-query'
 import { DispatchService } from '@/services/dispatch.service'
 import { useVehicleTypeQuery } from '@/modules/master-data/vehicle-type/composables/useVehicleTypeQueries'
 import { usePartnerOptionsQuery } from '@/modules/master-data/partner/composables/usePartnerQueries'
+import { PartnerTypeEnum } from '@/modules/master-data/master-data.enum'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
@@ -44,7 +45,10 @@ const validationVisible = ref(false)
 const formElement = ref<HTMLElement | null>(null)
 const filtersOpen = ref(false)
 const vehicleTypesQuery = useVehicleTypeQuery()
-const partnerOptionsQuery = usePartnerOptionsQuery()
+const partnerOptionsQuery = usePartnerOptionsQuery([
+  PartnerTypeEnum.VEHICLE_OWNER,
+  PartnerTypeEnum.TRANSPORT_COMPANY,
+])
 const availability = useMutation({ mutationFn: DispatchService.checkAvailability })
 
 const form = computed(() => ({

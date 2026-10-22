@@ -45,9 +45,17 @@ async function submit(): Promise<void> {
     await router.replace(redirectPath.value)
   } catch (error) {
     authStore.clearSession()
-    toast.error('Không thể đăng nhập.', {
-      description: toApiError(error).message,
-    })
+    const apiError = toApiError(error)
+    const userNameError = apiError.fieldErrors.user_name?.[0] ?? apiError.fieldErrors.email?.[0]
+    const nextErrors: Partial<Record<keyof LoginCredentials, string>> = {}
+
+    if (userNameError) {
+      nextErrors.user_name = userNameError
+    }
+    if (apiError.fieldErrors.password?.[0]) nextErrors.password = apiError.fieldErrors.password[0]
+    errors.value = nextErrors
+
+    toast.error('Không thể đăng nhập.', { description: apiError.message })
   } finally {
     isSubmitting.value = false
   }
