@@ -83,7 +83,7 @@ function open(row?: PermissionRow) {
 
 function submit() {
   if (!/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/.test(name.value)) {
-    error.value = 'Mã quyền phải có ít nhất một dấu chấm.'
+    error.value = 'Mã quyền phải gồm chữ thường, số hoặc dấu gạch ngang; các phần cách nhau đúng một dấu chấm (ví dụ: customers.view).'
     return
   }
   save.mutate()
@@ -162,6 +162,7 @@ function submit() {
           placeholder="customers.view"
         >
       </label>
+      <p class="text-xs text-muted-foreground">Dùng chữ thường; mỗi phần cách nhau đúng một dấu chấm.</p>
       <p v-if="error" class="mt-2 text-sm text-destructive">{{ error }}</p>
     </AccessDialog>
 

@@ -195,7 +195,7 @@
 </template>
 
 <script setup lang="ts">
-import { OwnershipTypeEnum, VehicleStatusEnum } from '@/modules/master-data/master-data.enum'
+import { OwnershipTypeEnum, PartnerTypeEnum, VehicleStatusEnum } from '@/modules/master-data/master-data.enum'
 import type { Vehicle } from '@/modules/master-data/master-data.type'
 import { usePartnerOptionsQuery } from '@/modules/master-data/partner/composables/usePartnerQueries'
 import { useVehicleTypeOptionsQuery } from '@/modules/master-data/vehicle-type/composables/useVehicleTypeQueries'
@@ -243,7 +243,10 @@ const emit = defineEmits<{ close: [] }>()
 
 const createMutation = useStoreVehicleMutation()
 const updateMutation = useUpdateVehicleMutation()
-const partnerOptionsQuery = usePartnerOptionsQuery()
+const partnerOptionsQuery = usePartnerOptionsQuery([
+  PartnerTypeEnum.VEHICLE_OWNER,
+  PartnerTypeEnum.TRANSPORT_COMPANY,
+])
 const vehicleTypeOptionsQuery = useVehicleTypeOptionsQuery()
 const isEdit = computed(() => Boolean(props.row))
 const isPending = computed(() => createMutation.isPending.value || updateMutation.isPending.value)

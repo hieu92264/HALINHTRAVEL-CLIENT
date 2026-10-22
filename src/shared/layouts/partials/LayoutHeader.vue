@@ -14,11 +14,24 @@ import {
 import { useAuthStore } from '@/modules/auth/auth.store'
 import { useNotificationStore } from '@/stores/notification.store'
 import { useSidebarStore } from '@/stores/sidebar.store'
+import { useTabsStore } from '@/stores/tabs.store'
 import { useTheme } from '@/shared/composables/useTheme'
+import { AuthService } from '@/services/auth.service'
+import { useRouter } from 'vue-router'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/shared/components/ui/dropdown-menu'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 const sidebarStore = useSidebarStore()
+const tabsStore = useTabsStore()
 const notificationStore = useNotificationStore()
 const { isDark, toggleTheme } = useTheme()
 
@@ -27,6 +40,13 @@ const isNotificationsOpen = ref(false)
 const displayName = computed(() => authStore.user?.user_name || authStore.user?.email || 'Tài khoản')
 const userRole = computed(() => (authStore.user?.roles?.[0]) || 'Quản trị viên')
 const userInitials = computed(() => displayName.value.slice(0, 2).toUpperCase())
+
+async function logout(): Promise<void> {
+  await AuthService.logout().catch(() => undefined)
+  authStore.clearSession()
+  tabsStore.reset()
+  await router.replace({ name: 'login' })
+}
 </script>
 
 <template>
@@ -174,16 +194,28 @@ const userInitials = computed(() => displayName.value.slice(0, 2).toUpperCase())
       </div>
 
       <!-- User avatar -->
-      <div class="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-muted">
-        <div class="grid size-7 shrink-0 place-items-center rounded-full bg-blue-600 text-[11px] font-bold text-white">
-          {{ userInitials }}
-        </div>
-        <div class="hidden text-right sm:block">
-          <p class="max-w-[120px] truncate text-xs font-semibold leading-tight">{{ displayName }}</p>
-          <p class="text-[10px] leading-tight text-muted-foreground">{{ userRole }}</p>
-        </div>
-        <ChevronDownIcon class="hidden size-3 text-muted-foreground sm:block" />
-      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger as-child>
+          <button class="flex items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-muted" type="button">
+            <div class="grid size-7 shrink-0 place-items-center rounded-full bg-blue-600 text-[11px] font-bold text-white">
+              {{ userInitials }}
+            </div>
+            <div class="hidden text-right sm:block">
+              <p class="max-w-[120px] truncate text-xs font-semibold leading-tight">{{ displayName }}</p>
+              <p class="text-[10px] leading-tight text-muted-foreground">{{ userRole }}</p>
+            </div>
+            <ChevronDownIcon class="hidden size-3 text-muted-foreground sm:block" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" class="min-w-52">
+          <DropdownMenuLabel>
+            <p class="truncate text-sm">{{ displayName }}</p>
+            <p class="mt-0.5 text-xs font-normal text-muted-foreground">{{ userRole }}</p>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem @click="logout">Đăng xuất</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   </header>
 </template>
