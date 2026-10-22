@@ -39,4 +39,27 @@ describe('trình bày báo cáo', () => {
     expect(getReportField('trip_count').label).toBe('Số chuyến chạy')
     expect(formatReportValue('total_distance_km', 312)).toBe('312 km')
   })
+
+  it('đặt tên và định dạng các khoản tiền của báo cáo chuyến', () => {
+    expect(getReportField('external_vehicle_profit').label).toBe('Lợi nhuận')
+    expect(getReportField('expense_amount').label).toBe('Tổng chi phí')
+    expect(getReportField('driver_collected_amount').label).toBe('Lái xe thu')
+    expect(getReportField('driver_remitted_amount').label).toBe('Lái xe nộp')
+    expect(getReportField('company_collected_amount').label).toBe('Công ty thu')
+    expect(getReportField('remaining_receivable').label).toBe('Còn phải thu')
+    expect(formatReportValue('expense_amount', 1850000)).toContain('1.850.000')
+  })
+
+  it('đặt tên đầy đủ cho các trường báo cáo động còn lại', () => {
+    expect(getReportField('direction').label).toBe('Chiều thu chi')
+    expect(formatReportValue('direction', 'in')).toBe('Thu')
+    expect(formatReportValue('direction', 'out')).toBe('Chi')
+    expect(getReportField('vehicle_type').label).toBe('Loại xe')
+    expect(getReportField('general_cost_allocated').label).toBe('Chi phí chung phân bổ')
+    expect(getReportField('net_cash').label).toBe('Chênh lệch thu chi')
+    expect(formatReportValue('net_cash', 250000)).toContain('250.000')
+    expect(getReportField('payroll_id').label).toBe('ID kỳ lương')
+    expect(formatReportValue('rate', 0.125)).toBe('12,5%')
+    expect(formatReportValue('calculation_type', 'driver_cash_remittance')).toBe('Lái xe nộp tiền')
+  })
 })
