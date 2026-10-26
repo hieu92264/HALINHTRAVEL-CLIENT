@@ -8,8 +8,6 @@ import {
   MapPinIcon,
   RefreshCwIcon,
   UserRoundIcon,
-  WifiIcon,
-  WifiOffIcon,
 } from '@lucide/vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { computed, onBeforeUnmount, ref } from 'vue'
@@ -49,7 +47,7 @@ const onDashboardUpdated = (_event: DashboardUpdatedEvent) => {
     void queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.overview(selectedDate.value) })
   }, 800)
 }
-const { status: realtimeStatus } = useDashboardRealtime(onDashboardUpdated)
+useDashboardRealtime(onDashboardUpdated)
 
 onBeforeUnmount(() => {
   if (refreshTimer) clearTimeout(refreshTimer)
@@ -67,10 +65,6 @@ onBeforeUnmount(() => {
       <div class="flex flex-wrap items-center gap-2">
         <label class="sr-only" for="dashboard-date">Ngày điều hành</label>
         <input id="dashboard-date" v-model="selectedDate" type="date" class="h-9 rounded-lg border border-input bg-background px-3 text-sm" />
-        <span class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-xs font-medium" :class="realtimeStatus === 'connected' ? 'text-emerald-600' : 'text-muted-foreground'">
-          <WifiIcon v-if="realtimeStatus === 'connected'" class="size-3.5" /><WifiOffIcon v-else class="size-3.5" />
-          {{ realtimeStatus === 'connected' ? 'Realtime đang hoạt động' : realtimeStatus === 'connecting' ? 'Đang kết nối realtime' : realtimeStatus === 'disabled' ? 'Realtime chưa cấu hình' : realtimeStatus === 'unavailable' ? 'Realtime không áp dụng' : 'Mất kết nối realtime' }}
-        </span>
         <button type="button" class="inline-flex h-9 items-center gap-2 rounded-lg border border-border px-3 text-sm font-medium hover:bg-muted disabled:opacity-50" :disabled="overviewQuery.isFetching.value" @click="refresh">
           <RefreshCwIcon class="size-4" :class="overviewQuery.isFetching.value ? 'animate-spin' : ''" />Làm mới
         </button>

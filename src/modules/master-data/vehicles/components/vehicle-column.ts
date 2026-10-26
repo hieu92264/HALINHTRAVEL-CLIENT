@@ -1,3 +1,4 @@
+import { ownershipTypeLabel } from '@/modules/master-data/type-labels'
 import type { Vehicle } from '@/modules/master-data/master-data.type'
 import type { DataGridColumnDef } from '@/shared/components/data-grid'
 import { h } from 'vue'
@@ -63,9 +64,10 @@ export const vehicleColumns: DataGridColumnDef<Vehicle>[] = [
     meta: { label: 'Loại xe', filterPlaceholder: 'Loại xe...' },
   },
   {
-    accessorKey: 'ownership_type',
+    id: 'ownership_type',
+    accessorFn: (row) => ownershipTypeLabel(row.ownership_type),
     header: 'Loại sở hữu',
-    cell: ({ row }) => row.original.ownership_type || '—',
+    cell: ({ getValue }) => getValue() || '—',
     width: 112,
     meta: { label: 'Loại sở hữu', filterPlaceholder: 'Loại sở hữu...' },
   },

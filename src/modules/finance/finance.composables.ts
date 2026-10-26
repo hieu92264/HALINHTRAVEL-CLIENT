@@ -155,6 +155,10 @@ export function useDriverPayrollMutations() {
       mutationFn: DriverPayrollService.createPayroll,
       onSuccess: invalidate,
     }),
+    updatePayroll: useMutation({
+      mutationFn: ({ id, data }: { id: number; data: Parameters<typeof DriverPayrollService.updatePayroll>[1] }) => DriverPayrollService.updatePayroll(id, data),
+      onSuccess: invalidate,
+    }),
     calculatePayroll: useMutation({
       mutationFn: DriverPayrollService.calculatePayroll,
       onSuccess: invalidate,

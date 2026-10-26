@@ -10,7 +10,6 @@ import {
   PlayIcon,
   XCircleIcon,
   CircleDotIcon,
-  CalendarDaysIcon,
 } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -62,14 +61,10 @@ const toScheduledIso = (time: string) => {
 }
 
 const displayTime = (value?: string | null) =>
-  value
-    ? new Date(value).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-    : '—'
+  value ? new Date(value).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '—'
 
 const displayDate = (value?: string | null) =>
-  value
-    ? new Date(value).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
-    : '—'
+  value ? new Date(value).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) : '—'
 
 function reportError(error: unknown, fallback: string): void {
   formError.value = error instanceof ApiError ? error.message : fallback
@@ -103,8 +98,7 @@ function startTrip(): void {
 }
 
 function completeTrip(): void {
-  if (!order.value || !order.value.actual_start_at || order.value.start_odometer === null)
-    return
+  if (!order.value || !order.value.actual_start_at || order.value.start_odometer === null) return
   formError.value = ''
   message.value = ''
 
@@ -232,13 +226,13 @@ function completeTrip(): void {
                 {{ schedule?.pickup_location ?? '—' }}
               </p>
             </div>
-            
+
             <div class="flex flex-col items-center text-primary">
               <div class="h-px w-8 bg-primary/30" />
               <ArrowLeftIcon class="my-1 size-5 rotate-180" />
               <div class="h-px w-8 bg-primary/30" />
             </div>
-            
+
             <div class="grid gap-1">
               <span class="text-sm font-medium text-muted-foreground">
                 Trả · {{ displayDate(schedule?.scheduled_end_at) }}
@@ -252,9 +246,13 @@ function completeTrip(): void {
             </div>
           </div>
 
-          <div class="mt-8 grid gap-4 rounded-lg border border-border bg-muted/30 p-4 sm:grid-cols-2">
+          <div
+            class="mt-8 grid gap-4 rounded-lg border border-border bg-muted/30 p-4 sm:grid-cols-2"
+          >
             <div class="flex items-start gap-3">
-              <div class="grid size-8 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+              <div
+                class="grid size-8 shrink-0 place-items-center rounded-full bg-primary/10 text-primary"
+              >
                 <BusFrontIcon class="size-4" />
               </div>
               <div>
@@ -265,7 +263,9 @@ function completeTrip(): void {
               </div>
             </div>
             <div class="flex items-start gap-3">
-              <div class="grid size-8 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+              <div
+                class="grid size-8 shrink-0 place-items-center rounded-full bg-primary/10 text-primary"
+              >
                 <MapPinIcon class="size-4" />
               </div>
               <div>
@@ -287,9 +287,15 @@ function completeTrip(): void {
         <InfoIcon class="mt-0.5 size-5 shrink-0" />
         <div class="text-sm">
           <p class="font-bold">Lệnh mới được phân công</p>
-          <p class="mt-0.5 opacity-90">Hãy chuẩn bị xe và có mặt đúng giờ. Khi bắt đầu chạy, vui lòng xác nhận bên dưới.</p>
+          <p class="mt-0.5 opacity-90">
+            Hãy chuẩn bị xe và có mặt đúng giờ. Khi bắt đầu chạy, vui lòng xác nhận bên dưới.
+          </p>
         </div>
       </div>
+
+      <p v-if="state === 'IN_PROGRESS'" class="text-sm text-muted-foreground">
+        Chỉ có thể gửi báo cáo từ một giờ trước giờ trả dự kiến.
+      </p>
 
       <!-- Action Form: Start / Complete -->
       <article
@@ -314,7 +320,9 @@ function completeTrip(): void {
           <div class="grid gap-5">
             <template v-if="state === 'ASSIGNED'">
               <div class="grid gap-1.5">
-                <Label for="start-time">Thời gian bắt đầu <span class="text-destructive">*</span></Label>
+                <Label for="start-time"
+                  >Thời gian bắt đầu <span class="text-destructive">*</span></Label
+                >
                 <Input
                   id="start-time"
                   v-model="startTime"
@@ -324,7 +332,9 @@ function completeTrip(): void {
                 />
               </div>
               <div class="grid gap-1.5">
-                <Label for="start-odo">ODO bắt đầu (km) <span class="text-destructive">*</span></Label>
+                <Label for="start-odo"
+                  >ODO bắt đầu (km) <span class="text-destructive">*</span></Label
+                >
                 <Input
                   id="start-odo"
                   v-model.number="startOdometer"
@@ -340,7 +350,9 @@ function completeTrip(): void {
             <template v-else>
               <div class="grid gap-4 sm:grid-cols-2">
                 <div class="grid gap-1.5">
-                  <Label for="end-time">Thời gian kết thúc <span class="text-destructive">*</span></Label>
+                  <Label for="end-time"
+                    >Thời gian kết thúc <span class="text-destructive">*</span></Label
+                  >
                   <Input
                     id="end-time"
                     v-model="endTime"
@@ -350,7 +362,9 @@ function completeTrip(): void {
                   />
                 </div>
                 <div class="grid gap-1.5">
-                  <Label for="end-odo">ODO kết thúc (km) <span class="text-destructive">*</span></Label>
+                  <Label for="end-odo"
+                    >ODO kết thúc (km) <span class="text-destructive">*</span></Label
+                  >
                   <Input
                     id="end-odo"
                     v-model.number="endOdometer"
@@ -362,7 +376,7 @@ function completeTrip(): void {
                   />
                 </div>
               </div>
-              
+
               <div class="grid gap-4 sm:grid-cols-2">
                 <div class="grid gap-1.5">
                   <Label for="actual-distance">Quãng đường thực tế (km)</Label>
@@ -422,7 +436,9 @@ function completeTrip(): void {
             type="submit"
             class="mt-6 w-full gap-2 py-6 text-base shadow-sm"
             :class="state === 'ASSIGNED' ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''"
-            :disabled="mutations.startMyOrder.isPending.value || mutations.reportMyCompletion.isPending.value"
+            :disabled="
+              mutations.startMyOrder.isPending.value || mutations.reportMyCompletion.isPending.value
+            "
           >
             <component :is="state === 'ASSIGNED' ? PlayIcon : CheckCircle2Icon" class="size-5" />
             {{ state === 'ASSIGNED' ? 'Bắt đầu chuyến đi' : 'Gửi báo cáo hoàn tất' }}
@@ -435,7 +451,9 @@ function completeTrip(): void {
         v-else-if="state === 'PENDING_CONFIRMATION'"
         class="flex items-start gap-4 rounded-xl border border-amber-200 bg-amber-50 p-5 text-amber-900 shadow-sm"
       >
-        <div class="grid size-10 shrink-0 place-items-center rounded-full bg-amber-100 text-amber-600">
+        <div
+          class="grid size-10 shrink-0 place-items-center rounded-full bg-amber-100 text-amber-600"
+        >
           <Clock3Icon class="size-5" />
         </div>
         <div>
@@ -476,9 +494,7 @@ function completeTrip(): void {
         </div>
         <div>
           <h2 class="text-lg font-bold">Lệnh đã bị hủy</h2>
-          <p class="mt-1 text-sm opacity-90">
-            Chuyến xe này đã bị hủy bỏ bởi điều hành viên.
-          </p>
+          <p class="mt-1 text-sm opacity-90">Chuyến xe này đã bị hủy bỏ bởi điều hành viên.</p>
         </div>
       </article>
     </template>

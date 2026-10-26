@@ -1,3 +1,4 @@
+import { partnerTypeLabel } from '@/modules/master-data/type-labels'
 import type { Partner } from '@/modules/master-data/master-data.type'
 import type { DataGridColumnDef } from '@/shared/components/data-grid'
 import { h } from 'vue'
@@ -54,9 +55,10 @@ export const partnerColumns: DataGridColumnDef<Partner>[] = [
     meta: { label: 'Tên đối tác', filterPlaceholder: 'Tên đối tác...' },
   },
   {
-    accessorKey: 'type',
+    id: 'type',
+    accessorFn: (row) => partnerTypeLabel(row.type),
     header: 'Loại đối tác',
-    cell: ({ row }) => row.original.type || '—',
+    cell: ({ getValue }) => getValue() || '—',
     width: 150,
     meta: { label: 'Loại đối tác', filterPlaceholder: 'Loại đối tác...' },
   },

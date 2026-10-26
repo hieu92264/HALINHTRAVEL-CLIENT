@@ -112,6 +112,8 @@ export interface DriverAdvance {
   advance_no: string
   driver_id: number
   driver_name?: string | null
+  driver_type: 'company' | 'partner' | null
+  driver_is_active: boolean | null
   advance_date: string
   amount: Money
   description: string | null

@@ -187,8 +187,8 @@ async function submit(): Promise<void> {
       </p>
     </div>
 
-    <!-- Remember me + Forgot password -->
-    <div class="flex items-center justify-between">
+    <!-- Remember me -->
+    <div class="flex items-center">
       <label
         class="flex cursor-pointer items-center gap-2 text-sm text-slate-600 dark:text-muted-foreground"
         for="remember_me"
@@ -201,12 +201,6 @@ async function submit(): Promise<void> {
         />
         Ghi nhớ đăng nhập
       </label>
-      <button
-        type="button"
-        class="text-sm font-medium text-blue-600 hover:text-blue-700 transition"
-      >
-        Quên mật khẩu?
-      </button>
     </div>
 
     <!-- Submit -->

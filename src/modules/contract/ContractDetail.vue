@@ -50,7 +50,7 @@
           <section class="rounded-lg border bg-card p-5">
             <h2 class="font-semibold">Hạng mục hợp đồng</h2>
             <div class="mt-4 overflow-x-auto">
-              <table class="w-full min-w-[760px] text-sm">
+              <table class="w-full min-w-190 text-sm">
                 <thead class="border-b text-left text-muted-foreground">
                   <tr>
                     <th class="pb-2">Loại xe</th>
@@ -73,18 +73,19 @@
                       }}
                     </td>
                     <td class="text-right">{{ item.quantity }}</td>
-                    <td class="text-right">{{ formatCurrency(item.unit_price) }}</td>
-                    <td class="text-right">{{ formatCurrency(item.driver_wage) }}</td>
+                    <td class="text-right">{{ formatContractCurrency(item.unit_price) }}</td>
+                    <td class="text-right">{{ formatContractCurrency(item.driver_wage) }}</td>
                   </tr>
                 </tbody>
               </table>
             </div>
             <div class="ml-auto mt-5 max-w-sm space-y-2 text-sm">
               <div class="flex justify-between">
-                <span>Tổng giá trị</span><b>{{ formatCurrency(contract.total_amount) }}</b>
+                <span>Tổng giá trị</span><b>{{ formatContractCurrency(contract.total_amount) }}</b>
               </div>
               <div class="flex justify-between border-t pt-2">
-                <span>Đặt cọc yêu cầu</span><b>{{ formatCurrency(contract.deposit_required) }}</b>
+                <span>Đặt cọc yêu cầu</span
+                ><b>{{ formatContractCurrency(contract.deposit_required) }}</b>
               </div>
             </div>
           </section>
@@ -141,9 +142,13 @@
 <script setup lang="ts">
 import { useAuthStore } from '@/modules/auth/auth.store'
 import { useContractMutations, useContractQuery } from '@/modules/contract/contract.composables'
-import { contractStatusLabel, contractTypeLabel } from '@/modules/contract/contract.format'
+import {
+  contractStatusLabel,
+  contractTypeLabel,
+  formatContractCurrency,
+} from '@/modules/contract/contract.format'
 import ScheduleRulesPanel from '@/modules/contract/components/ScheduleRulesPanel.vue'
-import { formatCurrency, formatDate, serviceTypeLabel } from '@/modules/rental/rental.format'
+import { formatDate, serviceTypeLabel } from '@/modules/rental/rental.format'
 import AccessDialog from '@/shared/components/feedback/AccessDialog.vue'
 import { Button } from '@/shared/components/ui/button'
 import { ApiError } from '@/shared/lib/api-error'
@@ -173,7 +178,7 @@ const confirmationCopy = computed(() => {
     case 'complete':
       return {
         title: 'Hoàn thành hợp đồng',
-        description: `Hợp đồng ${contractNo} sẽ được đánh dấu hoàn thành.`,
+        description: `Hợp đồng ${contractNo} chỉ được hoàn thành khi không còn lịch chuyến mở và đã đến ngày hết hiệu lực (nếu có).`,
         confirmLabel: 'Hoàn thành',
         destructive: false,
       }

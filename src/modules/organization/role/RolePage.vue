@@ -4,7 +4,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { Eye, MoreHorizontal, PencilLine, Trash2 } from '@lucide/vue'
-import { DataGrid, type DataGridColumnDef, type DataGridDataSource } from '@/shared/components/data-grid'
+import {
+  DataGrid,
+  type DataGridColumnDef,
+  type DataGridDataSource,
+} from '@/shared/components/data-grid'
 import { Button } from '@/shared/components/ui/button'
 import {
   DropdownMenu,
@@ -15,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu'
 import AccessDialog from '@/shared/components/feedback/AccessDialog.vue'
+import { roleLabel } from '@/shared/lib/access-labels'
 import { RoleService, type RoleRow } from '@/services/role.service'
 
 const router = useRouter()
@@ -39,16 +44,25 @@ const data = computed<DataGridDataSource<RoleRow>>(() => ({
 }))
 
 const columns: DataGridColumnDef<RoleRow>[] = [
-  { accessorKey: 'name', header: 'Vai trò' },
   {
-    accessorKey: 'is_system',
-    header: 'Loại',
-    cell: ({ getValue }) => (getValue() ? 'Hệ thống' : 'Tùy chỉnh'),
+    id: 'name',
+    accessorFn: (row) => roleLabel(row.name),
+    header: 'Vai trò',
+    meta: { label: 'Vai trò' },
   },
   {
-    accessorKey: 'permissions',
+    id: 'is_system',
+    accessorFn: (row) => (row.is_system ? 'Hệ thống' : 'Tùy chỉnh'),
+    header: 'Loại',
+    meta: { label: 'Loại' },
+    cell: ({ getValue }) => getValue(),
+  },
+  {
+    id: 'permissions',
+    accessorFn: (row) => row.permissions.length,
     header: 'Số quyền',
-    cell: ({ getValue }) => `${(getValue() as string[]).length} quyền`,
+    meta: { label: 'Số quyền' },
+    cell: ({ getValue }) => String(getValue()) + ' quyền',
   },
 ]
 
@@ -98,9 +112,7 @@ function submit() {
     <header class="flex items-end justify-between">
       <div>
         <h1 class="text-2xl font-semibold">Vai trò</h1>
-        <p class="mt-1 text-sm text-muted-foreground">
-          Quản lý nhóm quyền dùng trong vận hành.
-        </p>
+        <p class="mt-1 text-sm text-muted-foreground">Quản lý nhóm quyền dùng trong vận hành.</p>
       </div>
       <Button @click="open()">Thêm vai trò</Button>
     </header>
@@ -152,11 +164,7 @@ function submit() {
               <PencilLine class="size-4" />
               Sửa
             </DropdownMenuItem>
-            <DropdownMenuItem
-              variant="destructive"
-              class="min-w-40 gap-2"
-              @click="removeRow = row"
-            >
+            <DropdownMenuItem variant="destructive" class="min-w-40 gap-2" @click="removeRow = row">
               <Trash2 class="size-4" />
               Xóa
             </DropdownMenuItem>

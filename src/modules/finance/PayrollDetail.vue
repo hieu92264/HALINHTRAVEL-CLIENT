@@ -21,22 +21,40 @@
           </p>
         </div>
         <div v-if="canManage" class="flex flex-wrap gap-2">
+          <Button v-if="payroll.status === 'draft'" variant="outline" @click="editOpen = true"
+            >Sửa kỳ lương</Button
+          >
           <Button
             v-if="payroll.status === 'draft' || payroll.status === 'calculated'"
+            :disabled="Boolean(periodError)"
             @click="ask('calculate')"
             ><Calculator class="size-4" />Tính lương</Button
-          ><Button v-if="payroll.status === 'calculated'" variant="outline" @click="ask('approve')"
+          ><Button
+            v-if="payroll.status === 'calculated'"
+            variant="outline"
+            :disabled="Boolean(periodError)"
+            @click="ask('approve')"
             ><CircleCheck class="size-4" />Duyệt</Button
-          ><Button v-if="payroll.status === 'approved'" variant="outline" @click="ask('paid')"
+          ><Button
+            v-if="payroll.status === 'approved'"
+            variant="outline"
+            :disabled="Boolean(periodError)"
+            @click="ask('paid')"
             ><BanknoteCheck class="size-4" />Đánh dấu đã chi</Button
           ><Button v-if="payroll.status === 'paid'" variant="destructive" @click="ask('lock')"
             ><LockKeyhole class="size-4" />Chốt lương</Button
           >
         </div>
       </header>
+      <p
+        v-if="periodError"
+        class="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive"
+      >
+        {{ periodError }}
+      </p>
       <div class="grid gap-4 sm:grid-cols-3">
         <article class="rounded-lg border bg-card p-4">
-          <p class="text-sm text-muted-foreground">Tổng lương gross</p>
+          <p class="text-sm text-muted-foreground">Tổng lương trước khấu trừ</p>
           <p class="mt-1 text-xl font-semibold tabular-nums">
             {{ formatMoney(payroll.total_gross ?? payroll.gross_salary) }}
           </p>
@@ -56,7 +74,8 @@
         <div class="border-b px-5 py-4">
           <h2 class="font-semibold">Bảng lương theo tài xế</h2>
           <p class="mt-1 text-sm text-muted-foreground">
-            Thực lĩnh = trách nhiệm + lương CN + lương du lịch − tạm ứng − khách trả trực tiếp + lái xe tự chi.
+            Thực lĩnh = trách nhiệm + lương CN + lương du lịch − tạm ứng − khách trả trực tiếp + lái
+            xe tự chi.
           </p>
         </div>
         <div class="overflow-x-auto">
@@ -70,7 +89,7 @@
                 <th class="px-4 py-3 text-right">Tạm ứng</th>
                 <th class="px-4 py-3 text-right">Khách trả trực tiếp</th>
                 <th class="px-4 py-3 text-right">Lái xe tự chi</th>
-                <th class="px-4 py-3 text-right">Gross</th>
+                <th class="px-4 py-3 text-right">Lương trước khấu trừ</th>
                 <th class="px-4 py-3 text-right">Thực nhận</th>
               </tr>
             </thead>
@@ -78,10 +97,19 @@
               <tr v-for="item in payroll.items ?? []" :key="item.id" class="border-b last:border-0">
                 <td class="px-4 py-3 font-medium">
                   {{ item.driver_name ?? `Tài xế #${item.driver_id}` }}
-                  <div v-if="item.details?.length" class="mt-1 space-y-0.5 text-xs font-normal text-muted-foreground">
+                  <div
+                    v-if="item.details?.length"
+                    class="mt-1 space-y-0.5 text-xs font-normal text-muted-foreground"
+                  >
                     <p v-for="detail in item.details" :key="detail.id">
-                      {{ detail.dispatch_order_no ?? detail.receipt_no ?? detail.expense_no ?? 'Nguồn khác' }} ·
-                      {{ detail.calculation_type }} · {{ formatMoney(detail.amount) }}
+                      {{
+                        detail.dispatch_order_no ??
+                        detail.receipt_no ??
+                        detail.expense_no ??
+                        'Nguồn khác'
+                      }}
+                      · {{ payrollCalculationLabel(detail.calculation_type) }} ·
+                      {{ formatMoney(detail.amount) }}
                     </p>
                   </div>
                 </td>
@@ -134,6 +162,13 @@
       Không tìm thấy hoặc không thể tải kỳ lương.
     </p>
   </section>
+  <PayrollPeriodDialog
+    :open="editOpen"
+    :payroll="payroll"
+    :pending="mutations.updatePayroll.isPending.value"
+    @close="editOpen = false"
+    @save="savePeriod"
+  />
   <AccessDialog
     :open="action !== null"
     :title="actionCopy.title"
@@ -148,6 +183,10 @@
 </template>
 <script setup lang="ts">
 import { useAuthStore } from '@/modules/auth/auth.store'
+import { payrollCalculationLabel } from '@/modules/finance/payroll-labels'
+import PayrollPeriodDialog from '@/modules/finance/components/PayrollPeriodDialog.vue'
+import { payrollPeriodIssues } from '@/modules/finance/payroll-period'
+import type { PayrollPayload } from '@/modules/finance/finance.types'
 import { useDriverPayrollMutations, usePayrollQuery } from '@/modules/finance/finance.composables'
 import {
   formatDate,
@@ -167,8 +206,22 @@ const query = usePayrollQuery(() => id.value)
 const payroll = computed(() => query.data.value)
 const mutations = useDriverPayrollMutations()
 const auth = useAuthStore()
+const editOpen = ref(false)
 const action = ref<'calculate' | 'approve' | 'paid' | 'lock' | null>(null)
 const canManage = computed(() => auth.user?.permissions.includes('payrolls.manage') ?? false)
+const periodError = computed(() =>
+  payroll.value ? payrollPeriodIssues(payroll.value).join(' ') : '',
+)
+async function savePeriod(data: PayrollPayload) {
+  try {
+    await mutations.updatePayroll.mutateAsync({ id: id.value, data })
+    editOpen.value = false
+    await query.refetch()
+    toast.success('Đã cập nhật kỳ lương.')
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : 'Không thể cập nhật kỳ lương.')
+  }
+}
 const isActionPending = computed(
   () =>
     mutations.calculatePayroll.isPending.value ||

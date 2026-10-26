@@ -4,7 +4,7 @@
       ><DialogHeader
         ><DialogTitle>{{ row ? 'Cập nhật tạm ứng' : 'Tạo tạm ứng' }}</DialogTitle
         ><DialogDescription
-          >Tạm ứng chỉ chỉnh sửa được khi còn chờ xác nhận.</DialogDescription
+          >Chỉ tài xế công ty đang hoạt động được tạm ứng lương; phiếu chỉ sửa được khi chờ xác nhận.</DialogDescription
         ></DialogHeader
       >
       <form class="space-y-4" @submit.prevent="submit">
@@ -18,7 +18,9 @@
             <option v-for="driver in drivers.data.value ?? []" :key="driver.id" :value="driver.id">
               {{ driver.full_name }} · {{ driver.code }}
             </option>
-          </select></label
+          </select></label>
+        <p v-if="row && (row.driver_type !== 'company' || !row.driver_is_active)" class="text-sm text-destructive">Tài xế hiện tại không đủ điều kiện tạm ứng. Hãy chọn tài xế công ty đang hoạt động hoặc ngừng hoạt động phiếu.</p>
+        <p v-if="drivers.isError.value" class="text-sm text-destructive">Không thể tải danh sách tài xế đủ điều kiện.</p
         ><label class="grid gap-1.5 text-sm font-medium"
           >Ngày tạm ứng<Input v-model="form.advance_date" type="date" required /></label
         ><label class="grid gap-1.5 text-sm font-medium"
@@ -32,7 +34,7 @@
         ><DialogFooter
           ><Button type="button" variant="outline" :disabled="pending" @click="open = false"
             >Hủy</Button
-          ><Button type="submit" :disabled="pending">{{
+          ><Button type="submit" :disabled="pending || !eligibleSelection">{{
             pending ? 'Đang lưu...' : 'Lưu tạm ứng'
           }}</Button></DialogFooter
         >
@@ -42,7 +44,8 @@
 </template>
 <script setup lang="ts">
 import type { DriverAdvance } from '@/modules/finance/finance.types'
-import { useDriverQuery } from '@/modules/master-data/drivers/composables/useDriverQueries'
+import { DriverPayrollService } from '@/services/driver-payroll.service'
+import { useQuery } from '@tanstack/vue-query'
 import { Button } from '@/shared/components/ui/button'
 import {
   Dialog,
@@ -66,13 +69,14 @@ const emit = defineEmits<{
     },
   ]
 }>()
-const drivers = useDriverQuery()
+const drivers = useQuery({ queryKey: ['driver-payroll', 'eligible-drivers'], queryFn: DriverPayrollService.getEligibleAdvanceDrivers, enabled: () => props.open })
 const form = reactive({
   driver_id: null as number | null,
   advance_date: '',
   amount: '',
   description: '',
 })
+const eligibleSelection = computed(() => (drivers.data.value ?? []).some((driver) => driver.id === form.driver_id))
 const open = computed({
   get: () => props.open,
   set: (value: boolean) => {
@@ -94,7 +98,7 @@ watch(
   { immediate: true },
 )
 function submit() {
-  if (form.driver_id)
+  if (form.driver_id && eligibleSelection.value)
     emit('save', { ...form, driver_id: form.driver_id, description: form.description || null })
 }
 </script>

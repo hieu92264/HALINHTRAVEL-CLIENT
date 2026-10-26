@@ -240,11 +240,6 @@ async function logout(): Promise<void> {
       </template>
     </nav>
 
-    <!-- Version -->
-    <div v-if="!isCompact" class="px-4 pb-2">
-      <p class="text-xs text-sky-200/45">Phiên bản 1.0.0</p>
-    </div>
-
     <!-- Bottom actions -->
     <div class="space-y-0.5 border-t border-sidebar-border p-3">
       <!-- Collapse toggle (desktop only) -->

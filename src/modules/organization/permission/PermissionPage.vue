@@ -3,7 +3,11 @@ import { computed, ref } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { toast } from 'vue-sonner'
 import { MoreHorizontal, PencilLine, Trash2 } from '@lucide/vue'
-import { DataGrid, type DataGridColumnDef, type DataGridDataSource } from '@/shared/components/data-grid'
+import {
+  DataGrid,
+  type DataGridColumnDef,
+  type DataGridDataSource,
+} from '@/shared/components/data-grid'
 import { Button } from '@/shared/components/ui/button'
 import {
   DropdownMenu,
@@ -14,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu'
 import AccessDialog from '@/shared/components/feedback/AccessDialog.vue'
+import { permissionLabel } from '@/shared/lib/access-labels'
 import { PermissionService, type PermissionRow } from '@/services/permission.service'
 
 const queryClient = useQueryClient()
@@ -37,16 +42,25 @@ const data = computed<DataGridDataSource<PermissionRow>>(() => ({
 }))
 
 const columns: DataGridColumnDef<PermissionRow>[] = [
-  { accessorKey: 'name', header: 'Mã quyền' },
   {
-    accessorKey: 'is_system',
-    header: 'Loại',
-    cell: ({ getValue }) => (getValue() ? 'Hệ thống' : 'Tùy chỉnh'),
+    id: 'name',
+    accessorFn: (row) => permissionLabel(row.name),
+    header: 'Quyền',
+    meta: { label: 'Quyền' },
   },
   {
-    accessorKey: 'is_active',
+    id: 'is_system',
+    accessorFn: (row) => (row.is_system ? 'Hệ thống' : 'Tùy chỉnh'),
+    header: 'Loại',
+    meta: { label: 'Loại' },
+    cell: ({ getValue }) => getValue(),
+  },
+  {
+    id: 'is_active',
+    accessorFn: (row) => (row.is_active ? 'Đang dùng' : 'Ngừng dùng'),
     header: 'Trạng thái',
-    cell: ({ getValue }) => (getValue() ? 'Đang dùng' : 'Ngừng dùng'),
+    meta: { label: 'Trạng thái' },
+    cell: ({ getValue }) => getValue(),
   },
 ]
 
@@ -83,7 +97,8 @@ function open(row?: PermissionRow) {
 
 function submit() {
   if (!/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/.test(name.value)) {
-    error.value = 'Mã quyền phải gồm chữ thường, số hoặc dấu gạch ngang; các phần cách nhau đúng một dấu chấm (ví dụ: customers.view).'
+    error.value =
+      'Mã quyền phải gồm chữ thường, số hoặc dấu gạch ngang; các phần cách nhau đúng một dấu chấm (ví dụ: customers.view).'
     return
   }
   save.mutate()
@@ -95,9 +110,7 @@ function submit() {
     <header class="flex items-end justify-between">
       <div>
         <h1 class="text-2xl font-semibold">Quyền</h1>
-        <p class="mt-1 text-sm text-muted-foreground">
-          Danh mục mã quyền áp dụng toàn hệ thống.
-        </p>
+        <p class="mt-1 text-sm text-muted-foreground">Danh mục mã quyền áp dụng toàn hệ thống.</p>
       </div>
       <Button @click="open()">Thêm quyền</Button>
     </header>
@@ -116,7 +129,11 @@ function submit() {
     >
       <template #actions="{ row }">
         <!-- Quyền hệ thống: không có thao tác -->
-        <span v-if="row.is_system" class="flex h-full min-h-11.5 w-full items-center justify-center text-xs text-muted-foreground">Hệ thống</span>
+        <span
+          v-if="row.is_system"
+          class="flex h-full min-h-11.5 w-full items-center justify-center text-xs text-muted-foreground"
+          >Hệ thống</span
+        >
 
         <!-- Quyền tùy chỉnh: nhiều thao tác → dropdown 3 chấm -->
         <DropdownMenu v-else>
@@ -134,11 +151,7 @@ function submit() {
               <PencilLine class="size-4" />
               Sửa
             </DropdownMenuItem>
-            <DropdownMenuItem
-              variant="destructive"
-              class="min-w-40 gap-2"
-              @click="removing = row"
-            >
+            <DropdownMenuItem variant="destructive" class="min-w-40 gap-2" @click="removing = row">
               <Trash2 class="size-4" />
               Xóa
             </DropdownMenuItem>
@@ -160,9 +173,11 @@ function submit() {
           v-model="name"
           class="mt-1 h-9 w-full rounded-md border bg-background px-3"
           placeholder="customers.view"
-        >
+        />
       </label>
-      <p class="text-xs text-muted-foreground">Dùng chữ thường; mỗi phần cách nhau đúng một dấu chấm.</p>
+      <p class="text-xs text-muted-foreground">
+        Dùng chữ thường; mỗi phần cách nhau đúng một dấu chấm.
+      </p>
       <p v-if="error" class="mt-2 text-sm text-destructive">{{ error }}</p>
     </AccessDialog>
 
