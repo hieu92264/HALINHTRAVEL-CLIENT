@@ -50,7 +50,7 @@
           <section class="rounded-lg border bg-card p-5">
             <h2 class="font-semibold">Hạng mục hợp đồng</h2>
             <div class="mt-4 overflow-x-auto">
-              <table class="w-full min-w-[760px] text-sm">
+              <table class="w-full min-w-190 text-sm">
                 <thead class="border-b text-left text-muted-foreground">
                   <tr>
                     <th class="pb-2">Loại xe</th>
