@@ -26,11 +26,12 @@
           >
           <Button
             v-if="payroll.status === 'draft' || payroll.status === 'calculated'"
+            :disabled="Boolean(periodError)"
             @click="ask('calculate')"
             ><Calculator class="size-4" />Tính lương</Button
-          ><Button v-if="payroll.status === 'calculated'" variant="outline" @click="ask('approve')"
+          ><Button v-if="payroll.status === 'calculated'" variant="outline" :disabled="Boolean(periodError)" @click="ask('approve')"
             ><CircleCheck class="size-4" />Duyệt</Button
-          ><Button v-if="payroll.status === 'approved'" variant="outline" @click="ask('paid')"
+          ><Button v-if="payroll.status === 'approved'" variant="outline" :disabled="Boolean(periodError)" @click="ask('paid')"
             ><BanknoteCheck class="size-4" />Đánh dấu đã chi</Button
           ><Button v-if="payroll.status === 'paid'" variant="destructive" @click="ask('lock')"
             ><LockKeyhole class="size-4" />Chốt lương</Button
@@ -174,6 +175,7 @@
 <script setup lang="ts">
 import { useAuthStore } from '@/modules/auth/auth.store'
 import PayrollPeriodDialog from '@/modules/finance/components/PayrollPeriodDialog.vue'
+import { payrollPeriodIssues } from '@/modules/finance/payroll-period'
 import type { PayrollPayload } from '@/modules/finance/finance.types'
 import { useDriverPayrollMutations, usePayrollQuery } from '@/modules/finance/finance.composables'
 import {
@@ -197,27 +199,7 @@ const auth = useAuthStore()
 const editOpen = ref(false)
 const action = ref<'calculate' | 'approve' | 'paid' | 'lock' | null>(null)
 const canManage = computed(() => auth.user?.permissions.includes('payrolls.manage') ?? false)
-const periodError = computed(() => {
-  const item = payroll.value
-  if (!item) return ''
-  const prefix = `${item.year}-${String(item.month).padStart(2, '0')}`
-  const current = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Ho_Chi_Minh',
-    year: 'numeric',
-    month: '2-digit',
-  }).formatToParts(new Date())
-  const year = current.find((part) => part.type === 'year')?.value
-  const month = current.find((part) => part.type === 'month')?.value
-  if (prefix >= `${year}-${month}`)
-    return 'Kỳ lương chưa kết thúc; chưa thể tính, duyệt hoặc đánh dấu đã chi.'
-  const end = new Date(Date.UTC(item.year, item.month, 0)).getUTCDate()
-  if (
-    item.from_date !== `${prefix}-01` ||
-    item.to_date !== `${prefix}-${String(end).padStart(2, '0')}`
-  )
-    return 'Khoảng ngày không khớp tháng lương; hãy sửa kỳ nháp hoặc liên hệ quản trị viên.'
-  return ''
-})
+const periodError = computed(() => payroll.value ? payrollPeriodIssues(payroll.value).join(' ') : '')
 async function savePeriod(data: PayrollPayload) {
   try {
     await mutations.updatePayroll.mutateAsync({ id: id.value, data })

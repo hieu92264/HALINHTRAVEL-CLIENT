@@ -1,3 +1,5 @@
+import { h } from 'vue'
+import { payrollPeriodIssues } from '@/modules/finance/payroll-period'
 import type { DataGridColumnDef } from '@/shared/components/data-grid'
 import type {
   DebtRow,
@@ -263,7 +265,13 @@ export const payrollColumns: DataGridColumnDef<Payroll>[] = [
   {
     id: 'period',
     header: 'Kỳ',
-    cell: ({ row }) => `Tháng ${row.original.month}/${row.original.year}`,
+    cell: ({ row }) => {
+      const issues = payrollPeriodIssues(row.original)
+      return h('div', [
+        h('span', `Tháng ${row.original.month}/${row.original.year}`),
+        ...(issues.length ? [h('p', { class: 'text-xs text-destructive', title: issues.join(' ') }, issues.join(' '))] : []),
+      ])
+    },
     meta: { label: 'Kỳ' },
   },
   {
