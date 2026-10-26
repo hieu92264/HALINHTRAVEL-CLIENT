@@ -21,6 +21,9 @@
           </p>
         </div>
         <div v-if="canManage" class="flex flex-wrap gap-2">
+          <Button v-if="payroll.status === 'draft'" variant="outline" @click="editOpen = true"
+            >Sửa kỳ lương</Button
+          >
           <Button
             v-if="payroll.status === 'draft' || payroll.status === 'calculated'"
             @click="ask('calculate')"
@@ -34,6 +37,12 @@
           >
         </div>
       </header>
+      <p
+        v-if="periodError"
+        class="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive"
+      >
+        {{ periodError }}
+      </p>
       <div class="grid gap-4 sm:grid-cols-3">
         <article class="rounded-lg border bg-card p-4">
           <p class="text-sm text-muted-foreground">Tổng lương gross</p>
@@ -56,7 +65,8 @@
         <div class="border-b px-5 py-4">
           <h2 class="font-semibold">Bảng lương theo tài xế</h2>
           <p class="mt-1 text-sm text-muted-foreground">
-            Thực lĩnh = trách nhiệm + lương CN + lương du lịch − tạm ứng − khách trả trực tiếp + lái xe tự chi.
+            Thực lĩnh = trách nhiệm + lương CN + lương du lịch − tạm ứng − khách trả trực tiếp + lái
+            xe tự chi.
           </p>
         </div>
         <div class="overflow-x-auto">
@@ -78,10 +88,18 @@
               <tr v-for="item in payroll.items ?? []" :key="item.id" class="border-b last:border-0">
                 <td class="px-4 py-3 font-medium">
                   {{ item.driver_name ?? `Tài xế #${item.driver_id}` }}
-                  <div v-if="item.details?.length" class="mt-1 space-y-0.5 text-xs font-normal text-muted-foreground">
+                  <div
+                    v-if="item.details?.length"
+                    class="mt-1 space-y-0.5 text-xs font-normal text-muted-foreground"
+                  >
                     <p v-for="detail in item.details" :key="detail.id">
-                      {{ detail.dispatch_order_no ?? detail.receipt_no ?? detail.expense_no ?? 'Nguồn khác' }} ·
-                      {{ detail.calculation_type }} · {{ formatMoney(detail.amount) }}
+                      {{
+                        detail.dispatch_order_no ??
+                        detail.receipt_no ??
+                        detail.expense_no ??
+                        'Nguồn khác'
+                      }}
+                      · {{ detail.calculation_type }} · {{ formatMoney(detail.amount) }}
                     </p>
                   </div>
                 </td>
@@ -134,6 +152,13 @@
       Không tìm thấy hoặc không thể tải kỳ lương.
     </p>
   </section>
+  <PayrollPeriodDialog
+    :open="editOpen"
+    :payroll="payroll"
+    :pending="mutations.updatePayroll.isPending.value"
+    @close="editOpen = false"
+    @save="savePeriod"
+  />
   <AccessDialog
     :open="action !== null"
     :title="actionCopy.title"
@@ -148,6 +173,8 @@
 </template>
 <script setup lang="ts">
 import { useAuthStore } from '@/modules/auth/auth.store'
+import PayrollPeriodDialog from '@/modules/finance/components/PayrollPeriodDialog.vue'
+import type { PayrollPayload } from '@/modules/finance/finance.types'
 import { useDriverPayrollMutations, usePayrollQuery } from '@/modules/finance/finance.composables'
 import {
   formatDate,
@@ -167,8 +194,40 @@ const query = usePayrollQuery(() => id.value)
 const payroll = computed(() => query.data.value)
 const mutations = useDriverPayrollMutations()
 const auth = useAuthStore()
+const editOpen = ref(false)
 const action = ref<'calculate' | 'approve' | 'paid' | 'lock' | null>(null)
 const canManage = computed(() => auth.user?.permissions.includes('payrolls.manage') ?? false)
+const periodError = computed(() => {
+  const item = payroll.value
+  if (!item) return ''
+  const prefix = `${item.year}-${String(item.month).padStart(2, '0')}`
+  const current = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+  }).formatToParts(new Date())
+  const year = current.find((part) => part.type === 'year')?.value
+  const month = current.find((part) => part.type === 'month')?.value
+  if (prefix >= `${year}-${month}`)
+    return 'Kỳ lương chưa kết thúc; chưa thể tính, duyệt hoặc đánh dấu đã chi.'
+  const end = new Date(Date.UTC(item.year, item.month, 0)).getUTCDate()
+  if (
+    item.from_date !== `${prefix}-01` ||
+    item.to_date !== `${prefix}-${String(end).padStart(2, '0')}`
+  )
+    return 'Khoảng ngày không khớp tháng lương; hãy sửa kỳ nháp hoặc liên hệ quản trị viên.'
+  return ''
+})
+async function savePeriod(data: PayrollPayload) {
+  try {
+    await mutations.updatePayroll.mutateAsync({ id: id.value, data })
+    editOpen.value = false
+    await query.refetch()
+    toast.success('Đã cập nhật kỳ lương.')
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : 'Không thể cập nhật kỳ lương.')
+  }
+}
 const isActionPending = computed(
   () =>
     mutations.calculatePayroll.isPending.value ||
