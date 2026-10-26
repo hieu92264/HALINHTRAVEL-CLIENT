@@ -29,9 +29,17 @@
             :disabled="Boolean(periodError)"
             @click="ask('calculate')"
             ><Calculator class="size-4" />Tính lương</Button
-          ><Button v-if="payroll.status === 'calculated'" variant="outline" :disabled="Boolean(periodError)" @click="ask('approve')"
+          ><Button
+            v-if="payroll.status === 'calculated'"
+            variant="outline"
+            :disabled="Boolean(periodError)"
+            @click="ask('approve')"
             ><CircleCheck class="size-4" />Duyệt</Button
-          ><Button v-if="payroll.status === 'approved'" variant="outline" :disabled="Boolean(periodError)" @click="ask('paid')"
+          ><Button
+            v-if="payroll.status === 'approved'"
+            variant="outline"
+            :disabled="Boolean(periodError)"
+            @click="ask('paid')"
             ><BanknoteCheck class="size-4" />Đánh dấu đã chi</Button
           ><Button v-if="payroll.status === 'paid'" variant="destructive" @click="ask('lock')"
             ><LockKeyhole class="size-4" />Chốt lương</Button
@@ -46,7 +54,7 @@
       </p>
       <div class="grid gap-4 sm:grid-cols-3">
         <article class="rounded-lg border bg-card p-4">
-          <p class="text-sm text-muted-foreground">Tổng lương gross</p>
+          <p class="text-sm text-muted-foreground">Tổng lương trước khấu trừ</p>
           <p class="mt-1 text-xl font-semibold tabular-nums">
             {{ formatMoney(payroll.total_gross ?? payroll.gross_salary) }}
           </p>
@@ -81,7 +89,7 @@
                 <th class="px-4 py-3 text-right">Tạm ứng</th>
                 <th class="px-4 py-3 text-right">Khách trả trực tiếp</th>
                 <th class="px-4 py-3 text-right">Lái xe tự chi</th>
-                <th class="px-4 py-3 text-right">Gross</th>
+                <th class="px-4 py-3 text-right">Lương trước khấu trừ</th>
                 <th class="px-4 py-3 text-right">Thực nhận</th>
               </tr>
             </thead>
@@ -100,7 +108,8 @@
                         detail.expense_no ??
                         'Nguồn khác'
                       }}
-                      · {{ detail.calculation_type }} · {{ formatMoney(detail.amount) }}
+                      · {{ payrollCalculationLabel(detail.calculation_type) }} ·
+                      {{ formatMoney(detail.amount) }}
                     </p>
                   </div>
                 </td>
@@ -174,6 +183,7 @@
 </template>
 <script setup lang="ts">
 import { useAuthStore } from '@/modules/auth/auth.store'
+import { payrollCalculationLabel } from '@/modules/finance/payroll-labels'
 import PayrollPeriodDialog from '@/modules/finance/components/PayrollPeriodDialog.vue'
 import { payrollPeriodIssues } from '@/modules/finance/payroll-period'
 import type { PayrollPayload } from '@/modules/finance/finance.types'
@@ -199,7 +209,9 @@ const auth = useAuthStore()
 const editOpen = ref(false)
 const action = ref<'calculate' | 'approve' | 'paid' | 'lock' | null>(null)
 const canManage = computed(() => auth.user?.permissions.includes('payrolls.manage') ?? false)
-const periodError = computed(() => payroll.value ? payrollPeriodIssues(payroll.value).join(' ') : '')
+const periodError = computed(() =>
+  payroll.value ? payrollPeriodIssues(payroll.value).join(' ') : '',
+)
 async function savePeriod(data: PayrollPayload) {
   try {
     await mutations.updatePayroll.mutateAsync({ id: id.value, data })

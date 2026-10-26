@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { roleLabel, permissionLabel } from '@/shared/lib/access-labels'
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ArrowLeft, Mail, Clock, CalendarDays, ShieldCheck } from '@lucide/vue'
@@ -177,7 +178,7 @@ function initials(u: typeof user.value): string {
               :key="perm"
               class="rounded-md bg-muted px-2 py-0.5 font-mono text-xs text-muted-foreground"
             >
-              {{ perm }}
+              {{ permissionLabel(perm) }}
             </span>
           </div>
           <p v-else class="text-xs text-muted-foreground">Chưa có quyền hiệu lực.</p>
@@ -218,7 +219,7 @@ function initials(u: typeof user.value): string {
                   class="h-4 w-4 accent-[#1769C2]"
                   @change="toggleRole(role.id)"
                 />
-                <span class="flex-1">{{ role.name }}</span>
+                <span class="flex-1">{{ roleLabel(role.name) }}</span>
                 <span class="text-xs tabular-nums text-muted-foreground">
                   {{ role.permissions.length }} quyền
                 </span>

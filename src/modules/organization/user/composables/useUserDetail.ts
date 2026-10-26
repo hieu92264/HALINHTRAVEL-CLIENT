@@ -1,4 +1,5 @@
 import { computed, ref, watch } from 'vue'
+import { roleLabel, permissionLabel, permissionGroupLabel } from '@/shared/lib/access-labels'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { toast } from 'vue-sonner'
 import { UserService } from '@/services/user.service'
@@ -46,9 +47,7 @@ export function useUserDetail(id: string) {
     ([user, roles, permissions]) => {
       if (!user) return
       if (roles) {
-        roleIds.value = roles
-          .filter((r) => user.roles?.includes(r.name))
-          .map((r) => r.id)
+        roleIds.value = roles.filter((r) => user.roles?.includes(r.name)).map((r) => r.id)
       }
       if (permissions) {
         permissionIds.value = permissions
@@ -62,13 +61,15 @@ export function useUserDetail(id: string) {
   /* ---------- Computed ---------- */
   const user = computed(() => userQuery.data.value)
 
-  const activeRoles = computed(() =>
-    (rolesQuery.data.value ?? []).filter((r) => r.is_active),
-  )
+  const activeRoles = computed(() => (rolesQuery.data.value ?? []).filter((r) => r.is_active))
 
   const filteredRoles = computed(() => {
     const q = roleSearch.value.trim().toLowerCase()
-    return q ? activeRoles.value.filter((r) => r.name.toLowerCase().includes(q)) : activeRoles.value
+    return q
+      ? activeRoles.value.filter(
+          (r) => r.name.toLowerCase().includes(q) || roleLabel(r.name).toLowerCase().includes(q),
+        )
+      : activeRoles.value
   })
 
   const rolePermissionNames = computed(() => {
@@ -82,7 +83,16 @@ export function useUserDetail(id: string) {
       .filter((p) => p.is_active)
       .filter((p) => !rolePermissionNames.value.has(p.name))
     const q = permissionSearch.value.trim().toLowerCase()
-    const filtered = q ? all.filter((p) => p.name.toLowerCase().includes(q)) : all
+    const filtered = q
+      ? all.filter(
+          (p) =>
+            p.name.toLowerCase().includes(q) ||
+            permissionLabel(p.name).toLowerCase().includes(q) ||
+            permissionGroupLabel(p.name.split('.')[0] ?? '')
+              .toLowerCase()
+              .includes(q),
+        )
+      : all
 
     const map = new Map<string, PermissionRow[]>()
     for (const p of filtered) {

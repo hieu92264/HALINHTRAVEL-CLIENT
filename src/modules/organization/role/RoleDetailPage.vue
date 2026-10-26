@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { roleLabel, permissionLabel, permissionGroupLabel } from '@/shared/lib/access-labels'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
@@ -40,7 +41,16 @@ watch(
 const groupedPermissions = computed<PermissionGroup[]>(() => {
   const all = (permissionsQuery.data.value ?? []).filter((p) => p.is_active)
   const q = permissionSearch.value.trim().toLowerCase()
-  const filtered = q ? all.filter((p) => p.name.toLowerCase().includes(q)) : all
+  const filtered = q
+    ? all.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          permissionLabel(p.name).toLowerCase().includes(q) ||
+          permissionGroupLabel(p.name.split('.')[0] ?? '')
+            .toLowerCase()
+            .includes(q),
+      )
+    : all
 
   const map = new Map<string, typeof filtered>()
   for (const p of filtered) {
@@ -79,7 +89,7 @@ function toggle(permissionId: number) {
   <section v-if="roleQuery.data.value" class="space-y-5">
     <header>
       <h1 class="text-2xl font-semibold tracking-tight text-foreground">
-        {{ roleQuery.data.value.name }}
+        {{ roleLabel(roleQuery.data.value.name) }}
       </h1>
       <p class="mt-1 text-sm text-muted-foreground">
         {{ roleQuery.data.value.is_system ? 'Vai trò hệ thống — chỉ đọc' : 'Vai trò tùy chỉnh' }}

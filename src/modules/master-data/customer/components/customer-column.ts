@@ -1,3 +1,4 @@
+import { customerTypeLabel } from '@/modules/master-data/type-labels'
 import { h } from 'vue'
 import type { Customer } from '@/modules/master-data/master-data.type'
 import type { DataGridColumnDef } from '@/shared/components/data-grid'
@@ -54,9 +55,10 @@ export const customerColumns: DataGridColumnDef<Customer>[] = [
     meta: { label: 'Tên khách hàng', filterPlaceholder: 'Tên khách hàng...' },
   },
   {
-    accessorKey: 'type',
+    id: 'type',
+    accessorFn: (row) => customerTypeLabel(row.type),
     header: 'Loại khách hàng',
-    cell: ({ row }) => row.original.type || '—',
+    cell: ({ getValue }) => getValue() || '—',
     width: 150,
     meta: { label: 'Loại khách hàng', filterPlaceholder: 'Loại khách hàng...' },
   },

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { permissionGroupLabel, permissionLabel } from '@/shared/lib/access-labels'
 import { ChevronDown } from '@lucide/vue'
 import type { PermissionRow } from '@/services/permission.service'
 
@@ -32,11 +33,7 @@ function checkedCount(group: PermissionGroup): number {
 
 <template>
   <div class="divide-y rounded-lg border">
-    <div
-      v-for="group in groups"
-      :key="group.prefix"
-      class="overflow-hidden"
-    >
+    <div v-for="group in groups" :key="group.prefix" class="overflow-hidden">
       <!-- Group header -->
       <button
         type="button"
@@ -44,7 +41,9 @@ function checkedCount(group: PermissionGroup): number {
         :aria-expanded="!!expanded[group.prefix]"
         @click="toggleGroup(group.prefix)"
       >
-        <span class="font-medium font-mono text-foreground">{{ group.prefix }}.*</span>
+        <span class="font-medium font-mono text-foreground">{{
+          permissionGroupLabel(group.prefix)
+        }}</span>
 
         <span class="flex items-center gap-2 shrink-0">
           <!-- Badge đếm số quyền đã chọn -->
@@ -55,10 +54,7 @@ function checkedCount(group: PermissionGroup): number {
           >
             {{ checkedCount(group) }}/{{ group.permissions.length }}
           </span>
-          <span
-            v-else
-            class="rounded-full px-2 py-0.5 text-xs text-muted-foreground tabular-nums"
-          >
+          <span v-else class="rounded-full px-2 py-0.5 text-xs text-muted-foreground tabular-nums">
             0/{{ group.permissions.length }}
           </span>
 
@@ -90,7 +86,9 @@ function checkedCount(group: PermissionGroup): number {
             class="h-4 w-4 shrink-0 accent-[#1769C2] disabled:cursor-not-allowed"
             @change="emit('toggle', permission.id)"
           />
-          <span class="font-mono text-xs text-muted-foreground">{{ permission.name }}</span>
+          <span class="font-mono text-xs text-muted-foreground">{{
+            permissionLabel(permission.name)
+          }}</span>
         </label>
       </div>
     </div>
