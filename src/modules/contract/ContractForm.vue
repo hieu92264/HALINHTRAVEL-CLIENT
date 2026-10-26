@@ -74,7 +74,7 @@
           ><span>Hiệu lực đến</span><Input v-model="form.effective_to" class="h-10" type="date"
         /></label>
         <label class="space-y-1.5"
-          ><span>Đặt cọc</span
+          ><span>Đặt cọc (VNĐ)</span
           ><Input v-model="form.deposit_required" class="h-10" min="0" type="number"
         /></label>
       </section>
@@ -91,7 +91,7 @@
           >
         </div>
         <div v-if="isFromQuotation && quotation" class="overflow-x-auto">
-          <table class="w-full min-w-[680px] text-sm">
+          <table class="w-full min-w-170 text-sm">
             <thead class="border-b text-left text-muted-foreground">
               <tr>
                 <th class="pb-2">Loại xe</th>
@@ -107,7 +107,7 @@
                 <td>{{ item.route_name || '—' }}</td>
                 <td>{{ item.description || '—' }}</td>
                 <td class="text-right">{{ item.quantity }}</td>
-                <td class="text-right">{{ formatCurrency(item.unit_price) }}</td>
+                <td class="text-right">{{ formatContractCurrency(item.unit_price) }}</td>
               </tr>
             </tbody>
           </table>
@@ -119,7 +119,9 @@
             class="grid gap-3 rounded-md border p-3 lg:grid-cols-[1fr_1fr_1fr_100px_140px_140px_auto]"
           >
             <label class="space-y-1">
-              <span class="text-xs font-medium text-muted-foreground">Loại xe <span class="text-destructive">*</span></span>
+              <span class="text-xs font-medium text-muted-foreground"
+                >Loại xe <span class="text-destructive">*</span></span
+              >
               <select
                 v-model.number="item.vehicle_type_id"
                 class="h-10 w-full rounded-md border bg-background px-3"
@@ -148,7 +150,10 @@
             </label>
             <label class="space-y-1">
               <span class="text-xs font-medium text-muted-foreground">Loại dịch vụ</span>
-              <select v-model="item.service_type" class="h-10 w-full rounded-md border bg-background px-3">
+              <select
+                v-model="item.service_type"
+                class="h-10 w-full rounded-md border bg-background px-3"
+              >
                 <option value="tourism">Tour du lịch</option>
                 <option value="school">Đưa đón học sinh</option>
                 <option value="business">Đưa đón công nhân</option>
@@ -160,11 +165,11 @@
               <Input v-model.number="item.quantity" class="h-10" min="1" type="number" />
             </label>
             <label class="space-y-1">
-              <span class="text-xs font-medium text-muted-foreground">Đơn giá (đ)</span>
+              <span class="text-xs font-medium text-muted-foreground">Đơn giá (VNĐ)</span>
               <Input v-model="item.unit_price" class="h-10" min="0" type="number" />
             </label>
             <label class="space-y-1">
-              <span class="text-xs font-medium text-muted-foreground">Lương tài xế (đ)</span>
+              <span class="text-xs font-medium text-muted-foreground">Lương tài xế (VNĐ)</span>
               <Input v-model="item.driver_wage" class="h-10" min="0" type="number" />
             </label>
             <div class="flex items-end">
@@ -190,7 +195,9 @@
             </label>
             <p class="text-sm text-muted-foreground lg:col-span-7">
               Thành tiền:
-              {{ formatCurrency(Number(item.quantity || 0) * Number(item.unit_price || 0)) }}
+              {{
+                formatContractCurrency(Number(item.quantity || 0) * Number(item.unit_price || 0))
+              }}
             </p>
           </div>
         </div>
@@ -198,11 +205,11 @@
       <section class="grid gap-4 rounded-lg border bg-card p-5 md:grid-cols-3">
         <div class="rounded-md bg-muted p-3">
           <p class="text-sm text-muted-foreground">Tổng tiền dự kiến</p>
-          <p class="font-semibold">{{ formatCurrency(previewTotal) }}</p>
+          <p class="font-semibold">{{ formatContractCurrency(previewTotal) }}</p>
         </div>
         <div class="rounded-md bg-muted p-3">
           <p class="text-sm text-muted-foreground">Đặt cọc</p>
-          <p class="font-semibold">{{ formatCurrency(form.deposit_required || 0) }}</p>
+          <p class="font-semibold">{{ formatContractCurrency(form.deposit_required || 0) }}</p>
         </div>
         <label class="space-y-1.5 md:col-span-3"
           ><span>Điều khoản thanh toán</span
@@ -242,7 +249,7 @@ import type {
 import { useCustomerQuery } from '@/modules/master-data/customer/composables/useCustomerQueries'
 import { useRouteQuery } from '@/modules/master-data/route/composables/useRouteQueries'
 import { useVehicleTypeQuery } from '@/modules/master-data/vehicle-type/composables/useVehicleTypeQueries'
-import { formatCurrency } from '@/modules/rental/rental.format'
+import { formatContractCurrency } from '@/modules/contract/contract.format'
 import { useQuotationQuery, useRentalRequestQuery } from '@/modules/rental/rental.composables'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -292,7 +299,7 @@ let nextKey = 2
 const today = new Date().toISOString().slice(0, 10)
 const form = reactive({
   customer_id: 0,
-  contract_type: isFromQuotation.value ? 'trip' as ContractType : 'principle' as ContractType,
+  contract_type: isFromQuotation.value ? ('trip' as ContractType) : ('principle' as ContractType),
   signed_date: today,
   effective_from: '',
   effective_to: '',

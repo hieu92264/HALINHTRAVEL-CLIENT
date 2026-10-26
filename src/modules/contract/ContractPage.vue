@@ -161,7 +161,7 @@ const confirmationCopy = computed(() => {
     case 'complete':
       return {
         title: 'Hoàn thành hợp đồng',
-        description: `Hợp đồng ${contractNo} sẽ được đánh dấu hoàn thành.`,
+        description: `Hợp đồng ${contractNo} chỉ được hoàn thành khi không còn lịch chuyến mở và đã đến ngày hết hiệu lực (nếu có).`,
         confirmLabel: 'Hoàn thành',
         destructive: false,
       }

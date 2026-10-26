@@ -1,11 +1,5 @@
 <script setup lang="ts">
-import {
-  CheckCircle2Icon,
-  ChevronDownIcon,
-  FilterIcon,
-  Undo2Icon,
-  XCircleIcon,
-} from '@lucide/vue'
+import { CheckCircle2Icon, ChevronDownIcon, FilterIcon, Undo2Icon, XCircleIcon } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { toast } from 'vue-sonner'
 import { useAuthStore } from '@/modules/auth/auth.store'
@@ -37,9 +31,7 @@ const partnerVehicleCost = ref('0')
 const externalDriverCost = ref('0')
 const confirmFormErrors = ref<Record<string, string>>({})
 
-const canManage = computed(
-  () => auth.user?.permissions.includes('dispatch-orders.manage') === true,
-)
+const canManage = computed(() => auth.user?.permissions.includes('dispatch-orders.manage') === true)
 const orders = computed(() => ordersQuery.data.value ?? [])
 const dataSource = computed<DataGridDataSource<DispatchOrder>>(() => ({
   data: orders.value,
@@ -48,8 +40,8 @@ const dataSource = computed<DataGridDataSource<DispatchOrder>>(() => ({
   error: ordersQuery.error.value,
 }))
 
-const expandedOrder = computed(() =>
-  orders.value.find((o) => String(o.id) === expandedRowId.value) ?? null,
+const expandedOrder = computed(
+  () => orders.value.find((o) => String(o.id) === expandedRowId.value) ?? null,
 )
 const hasReport = computed(() =>
   expandedOrder.value
@@ -189,148 +181,152 @@ function confirmCompletion(): void {
         </Button>
       </template>
       <template #row-detail>
-      <article
-        v-if="expandedOrder"
-        class="bg-card"
-      >
-        <div class="border-b border-border px-5 py-4">
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <div class="flex items-center gap-2">
-                <h2 class="text-lg font-bold tabular-nums">{{ expandedOrder.order_no }}</h2>
-                <span
-                  class="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold"
-                  :class="{
-                    'bg-primary/10 text-primary': expandedOrder.status === 'ISSUED',
-                    'bg-blue-500/10 text-blue-700': expandedOrder.status === 'ASSIGNED',
-                    'bg-amber-500/10 text-amber-700': expandedOrder.status === 'IN_PROGRESS',
-                    'bg-orange-500/10 text-orange-700': expandedOrder.status === 'PENDING_CONFIRMATION',
-                    'bg-success/10 text-success': expandedOrder.status === 'COMPLETED',
-                    'bg-destructive/10 text-destructive': expandedOrder.status === 'CANCELLED',
-                  }"
-                >
-                  {{ orderStatusLabels[expandedOrder.status] }}
-                </span>
+        <article v-if="expandedOrder" class="bg-card">
+          <div class="border-b border-border px-5 py-4">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h2 class="text-lg font-bold tabular-nums">{{ expandedOrder.order_no }}</h2>
+                  <span
+                    class="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold"
+                    :class="{
+                      'bg-primary/10 text-primary': expandedOrder.status === 'ISSUED',
+                      'bg-blue-500/10 text-blue-700': expandedOrder.status === 'ASSIGNED',
+                      'bg-amber-500/10 text-amber-700': expandedOrder.status === 'IN_PROGRESS',
+                      'bg-orange-500/10 text-orange-700':
+                        expandedOrder.status === 'PENDING_CONFIRMATION',
+                      'bg-success/10 text-success': expandedOrder.status === 'COMPLETED',
+                      'bg-destructive/10 text-destructive': expandedOrder.status === 'CANCELLED',
+                    }"
+                  >
+                    {{ orderStatusLabels[expandedOrder.status] }}
+                  </span>
+                </div>
+                <p class="mt-1 text-sm text-muted-foreground">
+                  {{
+                    expandedOrder.trip_schedule?.contract?.customer?.name ??
+                    expandedOrder.trip_schedule?.contract?.contract_no ??
+                    '—'
+                  }}
+                  · {{ expandedOrder.trip_schedule?.route?.name ?? 'Chưa có tuyến' }}
+                </p>
               </div>
-              <p class="mt-1 text-sm text-muted-foreground">
-                {{ expandedOrder.trip_schedule?.contract?.customer?.name ?? expandedOrder.trip_schedule?.contract?.contract_no ?? '—' }}
-                · {{ expandedOrder.trip_schedule?.route?.name ?? 'Chưa có tuyến' }}
-              </p>
+              <Button variant="outline" size="sm" @click="expandedRowId = null">
+                <ChevronDownIcon class="size-4 rotate-180" />Thu gọn
+              </Button>
             </div>
-            <Button variant="outline" size="sm" @click="expandedRowId = null">
-              <ChevronDownIcon class="size-4 rotate-180" />Thu gọn
-            </Button>
           </div>
-        </div>
 
-        <div class="grid gap-5 p-5 lg:grid-cols-2">
-          <!-- Info Section -->
-          <div class="space-y-4">
-            <div class="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <dt class="text-xs font-medium text-muted-foreground">Xe</dt>
-                <dd class="mt-0.5 font-semibold tabular-nums">
-                  {{ expandedOrder.trip_assignment?.vehicle?.license_plate ?? '—' }}
-                </dd>
-              </div>
-              <div>
-                <dt class="text-xs font-medium text-muted-foreground">Tài xế</dt>
-                <dd class="mt-0.5">
-                  {{ expandedOrder.trip_assignment?.driver?.full_name ?? '—' }}
-                </dd>
-              </div>
-              <div>
-                <dt class="text-xs font-medium text-muted-foreground">Phát hành</dt>
-                <dd class="mt-0.5 tabular-nums">{{ formatDatetime(expandedOrder.issued_at) }}</dd>
-              </div>
-              <div>
-                <dt class="text-xs font-medium text-muted-foreground">Tuyến</dt>
-                <dd class="mt-0.5">{{ expandedOrder.trip_schedule?.route?.name ?? '—' }}</dd>
-              </div>
-            </div>
-
-            <!-- Operations Report -->
-            <section v-if="hasReport" class="rounded-lg border border-border bg-muted/30 p-4">
-              <h3 class="text-sm font-bold">Báo cáo vận hành</h3>
-              <dl class="mt-3 grid grid-cols-2 gap-3 text-sm">
+          <div class="grid gap-5 p-5 lg:grid-cols-2">
+            <!-- Info Section -->
+            <div class="space-y-4">
+              <div class="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <dt class="text-xs text-muted-foreground">Bắt đầu thực tế</dt>
-                  <dd class="tabular-nums">{{ formatDatetime(expandedOrder.actual_start_at) }}</dd>
-                </div>
-                <div>
-                  <dt class="text-xs text-muted-foreground">Kết thúc thực tế</dt>
-                  <dd class="tabular-nums">{{ formatDatetime(expandedOrder.actual_end_at) }}</dd>
-                </div>
-                <div>
-                  <dt class="text-xs text-muted-foreground">ODO</dt>
-                  <dd class="tabular-nums">
-                    {{ expandedOrder.start_odometer ?? '—' }} → {{ expandedOrder.end_odometer ?? '—' }}
+                  <dt class="text-xs font-medium text-muted-foreground">Xe</dt>
+                  <dd class="mt-0.5 font-semibold tabular-nums">
+                    {{ expandedOrder.trip_assignment?.vehicle?.license_plate ?? '—' }}
                   </dd>
                 </div>
                 <div>
-                  <dt class="text-xs text-muted-foreground">Km / giờ chờ</dt>
-                  <dd class="tabular-nums">
-                    {{ expandedOrder.actual_distance_km ?? '—' }} / {{ expandedOrder.waiting_hours ?? '—' }}
+                  <dt class="text-xs font-medium text-muted-foreground">Tài xế</dt>
+                  <dd class="mt-0.5">
+                    {{ expandedOrder.trip_assignment?.driver?.full_name ?? '—' }}
                   </dd>
                 </div>
-              </dl>
-              <p v-if="expandedOrder.note" class="mt-3 text-sm text-muted-foreground">
-                {{ expandedOrder.note }}
+                <div>
+                  <dt class="text-xs font-medium text-muted-foreground">Phát hành</dt>
+                  <dd class="mt-0.5 tabular-nums">{{ formatDatetime(expandedOrder.issued_at) }}</dd>
+                </div>
+                <div>
+                  <dt class="text-xs font-medium text-muted-foreground">Tuyến</dt>
+                  <dd class="mt-0.5">{{ expandedOrder.trip_schedule?.route?.name ?? '—' }}</dd>
+                </div>
+              </div>
+
+              <!-- Operations Report -->
+              <section v-if="hasReport" class="rounded-lg border border-border bg-muted/30 p-4">
+                <h3 class="text-sm font-bold">Báo cáo vận hành</h3>
+                <dl class="mt-3 grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <dt class="text-xs text-muted-foreground">Bắt đầu thực tế</dt>
+                    <dd class="tabular-nums">
+                      {{ formatDatetime(expandedOrder.actual_start_at) }}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt class="text-xs text-muted-foreground">Kết thúc thực tế</dt>
+                    <dd class="tabular-nums">{{ formatDatetime(expandedOrder.actual_end_at) }}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-xs text-muted-foreground">ODO</dt>
+                    <dd class="tabular-nums">
+                      {{ expandedOrder.start_odometer ?? '—' }} →
+                      {{ expandedOrder.end_odometer ?? '—' }}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt class="text-xs text-muted-foreground">Km / giờ chờ</dt>
+                    <dd class="tabular-nums">
+                      {{ expandedOrder.actual_distance_km ?? '—' }} /
+                      {{ expandedOrder.waiting_hours ?? '—' }}
+                    </dd>
+                  </div>
+                </dl>
+                <p v-if="expandedOrder.note" class="mt-3 text-sm text-muted-foreground">
+                  {{ expandedOrder.note }}
+                </p>
+              </section>
+
+              <p
+                v-if="expandedOrder.review_note"
+                class="rounded-lg border border-amber-200 bg-amber-50/70 p-3 text-sm text-amber-900 dark:border-amber-500/20 dark:bg-amber-400/10 dark:text-amber-200"
+              >
+                Lý do trả báo cáo: {{ expandedOrder.review_note }}
               </p>
-            </section>
+            </div>
 
-            <p
-              v-if="expandedOrder.review_note"
-              class="rounded-lg border border-amber-200 bg-amber-50/70 p-3 text-sm text-amber-900 dark:border-amber-500/20 dark:bg-amber-400/10 dark:text-amber-200"
-            >
-              Lý do trả báo cáo: {{ expandedOrder.review_note }}
-            </p>
-          </div>
-
-          <!-- Actions Section -->
-          <div class="space-y-3">
-            <template v-if="canManage">
-              <Button
-                v-if="expandedOrder.status === 'ISSUED'"
-                class="w-full justify-center"
-                :disabled="mutations.assignOrder.isPending.value"
-                @click="assignOrder"
-              >
-                Xác nhận phân công
-              </Button>
-
-              <Button
-                v-if="expandedOrder.status === 'ISSUED' || expandedOrder.status === 'ASSIGNED'"
-                variant="destructive"
-                class="w-full justify-center gap-2"
-                @click="cancelDialogOpen = true"
-              >
-                <XCircleIcon class="size-4" />Hủy lệnh
-              </Button>
-
-              <template v-if="expandedOrder.status === 'PENDING_CONFIRMATION'">
+            <!-- Actions Section -->
+            <div class="space-y-3">
+              <template v-if="canManage">
                 <Button
-                  variant="outline"
-                  class="w-full justify-center gap-2 border-amber-300 text-amber-900 hover:bg-amber-50 dark:text-amber-200"
-                  @click="returnDialogOpen = true"
+                  v-if="expandedOrder.status === 'ISSUED'"
+                  class="w-full justify-center"
+                  :disabled="mutations.assignOrder.isPending.value"
+                  @click="assignOrder"
                 >
-                  <Undo2Icon class="size-4" />Trả báo cáo
+                  Xác nhận phân công
                 </Button>
+
                 <Button
-                  class="w-full justify-center gap-2 bg-success text-white hover:bg-success/90"
-                  @click="confirmDialogOpen = true"
+                  v-if="expandedOrder.status === 'ISSUED' || expandedOrder.status === 'ASSIGNED'"
+                  variant="destructive"
+                  class="w-full justify-center gap-2"
+                  @click="cancelDialogOpen = true"
                 >
-                  <CheckCircle2Icon class="size-4" />Xác nhận hoàn tất
+                  <XCircleIcon class="size-4" />Hủy lệnh
                 </Button>
+
+                <template v-if="expandedOrder.status === 'PENDING_CONFIRMATION'">
+                  <Button
+                    variant="outline"
+                    class="w-full justify-center gap-2 border-amber-300 text-amber-900 hover:bg-amber-50 dark:text-amber-200"
+                    @click="returnDialogOpen = true"
+                  >
+                    <Undo2Icon class="size-4" />Trả báo cáo
+                  </Button>
+                  <Button
+                    class="w-full justify-center gap-2 bg-success text-white hover:bg-success/90"
+                    @click="confirmDialogOpen = true"
+                  >
+                    <CheckCircle2Icon class="size-4" />Xác nhận hoàn tất
+                  </Button>
+                </template>
               </template>
-            </template>
 
-            <p v-else class="text-sm text-muted-foreground">
-              Bạn chỉ có quyền xem lệnh điều xe.
-            </p>
+              <p v-else class="text-sm text-muted-foreground">Bạn chỉ có quyền xem lệnh điều xe.</p>
+            </div>
           </div>
-        </div>
-      </article>
+        </article>
       </template>
     </DataGrid>
 
@@ -375,7 +371,7 @@ function confirmCompletion(): void {
     <AccessDialog
       :open="confirmDialogOpen"
       title="Xác nhận hoàn tất"
-      description="Chốt số liệu tài chính và cập nhật ODO xe."
+      description="Chốt số liệu tài chính và cập nhật ODO xe. Có thể xác nhận từ một giờ trước giờ trả dự kiến."
       confirm-label="Xác nhận"
       cancel-label="Quay lại"
       :pending="mutations.confirmCompletion.isPending.value"
@@ -397,19 +393,11 @@ function confirmCompletion(): void {
         </div>
         <div class="grid gap-1.5">
           <Label for="confirm-partner-cost">Chi phí xe</Label>
-          <Input
-            id="confirm-partner-cost"
-            v-model="partnerVehicleCost"
-            inputmode="decimal"
-          />
+          <Input id="confirm-partner-cost" v-model="partnerVehicleCost" inputmode="decimal" />
         </div>
         <div class="grid gap-1.5">
           <Label for="confirm-driver-cost">Chi phí lái</Label>
-          <Input
-            id="confirm-driver-cost"
-            v-model="externalDriverCost"
-            inputmode="decimal"
-          />
+          <Input id="confirm-driver-cost" v-model="externalDriverCost" inputmode="decimal" />
         </div>
       </div>
     </AccessDialog>

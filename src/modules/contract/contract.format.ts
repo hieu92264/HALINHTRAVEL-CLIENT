@@ -22,3 +22,6 @@ const weekdayLabels: Record<Weekday, string> = {
 export const contractTypeLabel = (type: ContractType) => contractTypeLabels[type]
 export const contractStatusLabel = (status: ContractStatus) => contractStatusLabels[status]
 export const weekdayLabel = (weekday: Weekday) => weekdayLabels[weekday]
+
+export const formatContractCurrency = (value: string | number) =>
+  new Intl.NumberFormat('vi-VN').format(Number(value ?? 0)) + ' VNĐ'
