@@ -35,6 +35,7 @@
           @retry="advances.refetch()"
           ><template #actions="{ row }"
             ><div class="flex h-full items-center justify-center gap-1" v-if="canManage">
+              <span v-if="row.status === 'pending' && (row.driver_type !== 'company' || !row.driver_is_active)" class="text-xs text-destructive">{{ row.driver_type === 'partner' ? 'Tài xế đối tác do đối tác trả lương' : 'Tài xế không còn hoạt động' }}</span>
               <Button
                 v-if="row.status === 'pending'"
                 variant="ghost"
@@ -46,7 +47,8 @@
                 v-if="row.status === 'pending'"
                 variant="ghost"
                 size="icon-xs"
-                title="Xác nhận"
+                :disabled="row.driver_type !== 'company' || !row.driver_is_active"
+                :title="row.driver_type === 'partner' ? 'Tài xế đối tác do đối tác trả lương' : !row.driver_is_active ? 'Tài xế không còn hoạt động' : 'Xác nhận'"
                 @click="confirmation = { type: 'advance', id: row.id }"
                 ><CircleCheck class="size-4 text-success" /></Button
               ><Button

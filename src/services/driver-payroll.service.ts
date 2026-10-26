@@ -11,6 +11,9 @@ import { httpService } from '@/services/http.service'
 const payrollUrl = '/driver-payroll'
 
 export class DriverPayrollService {
+  static getEligibleAdvanceDrivers() {
+    return httpService.get<{ id: number; code: string; full_name: string }[]>(payrollUrl + '/advance-eligible-drivers')
+  }
   static getAdvances() {
     return httpService.get<DriverAdvance[]>(`${payrollUrl}/advances`)
   }
