@@ -110,6 +110,13 @@ router.beforeEach(async (to, from) => {
   }
 
   if (
+    to.meta.permissionsAll?.length &&
+    !to.meta.permissionsAll.every((permission) => authStore.user?.permissions.includes(permission))
+  ) {
+    return { name: 'forbidden' }
+  }
+
+  if (
     to.meta.roles?.length &&
     !authStore.user.roles.some((role) =>
       to.meta.roles?.some(

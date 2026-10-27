@@ -39,10 +39,16 @@ function canShowItem(item: SidebarLeaf): boolean {
   const userRoles = authStore.user?.roles.map((role) => role.toLocaleLowerCase()) ?? []
   const hasAllowedRole =
     !item.roles?.length || item.roles.some((role) => userRoles.includes(role.toLocaleLowerCase()))
+  const hasAllPermissions =
+    !item.permissionsAll?.length ||
+    item.permissionsAll.every(
+      (permission) => authStore.user?.permissions.includes(permission) === true,
+    )
 
   return (
     router.hasRoute(item.routeName) &&
     hasAllowedRole &&
+    hasAllPermissions &&
     (!item.permission || authStore.user?.permissions.includes(item.permission) === true)
   )
 }

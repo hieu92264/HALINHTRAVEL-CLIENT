@@ -29,6 +29,7 @@ export type SidebarLeaf = {
   routeName: string
   icon: Component
   permission?: string
+  permissionsAll?: string[]
   roles?: string[]
 }
 
@@ -56,12 +57,72 @@ const unorderedSidebarNavigation: SidebarNavigationNode[] = [
     label: 'Báo cáo',
     icon: BarChart3Icon,
     items: [
-      { kind: 'item', label: 'Xe chạy công nhân', to: { name: 'report-fixed-trips' }, routeName: 'report-fixed-trips', icon: RouteIcon, permission: 'dispatch-orders.view' },
-      { kind: 'item', label: 'Xe chạy du lịch', to: { name: 'report-tourism-trips' }, routeName: 'report-tourism-trips', icon: BusFrontIcon, permission: 'dispatch-orders.view' },
-      { kind: 'item', label: 'Công nợ khách hàng', to: { name: 'report-customer-debts' }, routeName: 'report-customer-debts', icon: WalletCardsIcon, permission: 'receipts.view' },
-      { kind: 'item', label: 'Công nợ chủ xe', to: { name: 'report-partner-debts' }, routeName: 'report-partner-debts', icon: WalletCardsIcon, permission: 'partner-payments.view' },
-      { kind: 'item', label: 'Bảng lương lái xe', to: { name: 'report-driver-payroll' }, routeName: 'report-driver-payroll', icon: ClipboardListIcon, permission: 'payrolls.view' },
-      { kind: 'item', label: 'Lợi nhuận xe', to: { name: 'report-vehicle-profit' }, routeName: 'report-vehicle-profit', icon: BarChart3Icon, permission: 'payrolls.view' },
+      {
+        kind: 'item',
+        label: 'Xe chạy công nhân',
+        to: { name: 'report-fixed-trips' },
+        routeName: 'report-fixed-trips',
+        icon: RouteIcon,
+        permission: 'dispatch-orders.view',
+      },
+      {
+        kind: 'item',
+        label: 'Xe chạy du lịch',
+        to: { name: 'report-tourism-trips' },
+        routeName: 'report-tourism-trips',
+        icon: BusFrontIcon,
+        permission: 'dispatch-orders.view',
+      },
+      {
+        kind: 'item',
+        label: 'Công nợ khách hàng',
+        to: { name: 'report-customer-debts' },
+        routeName: 'report-customer-debts',
+        icon: WalletCardsIcon,
+        permission: 'receipts.view',
+      },
+      {
+        kind: 'item',
+        label: 'Công nợ chủ xe',
+        to: { name: 'report-partner-debts' },
+        routeName: 'report-partner-debts',
+        icon: WalletCardsIcon,
+        permission: 'partner-payments.view',
+      },
+      {
+        kind: 'item',
+        label: 'Bảng lương lái xe',
+        to: { name: 'report-driver-payroll' },
+        routeName: 'report-driver-payroll',
+        icon: ClipboardListIcon,
+        permission: 'payrolls.view',
+      },
+      {
+        kind: 'item',
+        label: 'Lợi nhuận theo tháng',
+        to: { name: 'report-profit-loss' },
+        routeName: 'report-profit-loss',
+        icon: BarChart3Icon,
+        permissionsAll: [
+          'dispatch-orders.view',
+          'expenses.view',
+          'partner-payments.view',
+          'payrolls.view',
+        ],
+      },
+      {
+        kind: 'item',
+        label: 'Lợi nhuận xe',
+        to: { name: 'report-vehicle-profit' },
+        routeName: 'report-vehicle-profit',
+        icon: BarChart3Icon,
+        permissionsAll: [
+          'dispatch-orders.view',
+          'expenses.view',
+          'partner-payments.view',
+          'payrolls.view',
+        ],
+      },
     ],
   },
   {
@@ -289,7 +350,9 @@ const masterDataOrder = [
 ]
 
 const navigationOrder = (node: SidebarNavigationNode) =>
-  node.kind === 'item' ? sidebarGroupOrder.indexOf(node.routeName) : sidebarGroupOrder.indexOf(node.id)
+  node.kind === 'item'
+    ? sidebarGroupOrder.indexOf(node.routeName)
+    : sidebarGroupOrder.indexOf(node.id)
 
 export const sidebarNavigation: SidebarNavigationNode[] = unorderedSidebarNavigation
   .map((node) => {
@@ -298,8 +361,14 @@ export const sidebarNavigation: SidebarNavigationNode[] = unorderedSidebarNaviga
     return {
       ...node,
       items: node.items
-        .filter((item, index, items) => item.routeName !== 'routes' || items.findIndex(({ routeName }) => routeName === item.routeName) === index)
-        .sort((a, b) => masterDataOrder.indexOf(a.routeName) - masterDataOrder.indexOf(b.routeName)),
+        .filter(
+          (item, index, items) =>
+            item.routeName !== 'routes' ||
+            items.findIndex(({ routeName }) => routeName === item.routeName) === index,
+        )
+        .sort(
+          (a, b) => masterDataOrder.indexOf(a.routeName) - masterDataOrder.indexOf(b.routeName),
+        ),
     }
   })
   .sort((a, b) => navigationOrder(a) - navigationOrder(b))

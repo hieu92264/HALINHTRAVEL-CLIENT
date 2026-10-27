@@ -11,6 +11,8 @@ describe('điều hướng báo cáo', () => {
     expect(routeNames).toContain('report-customer-debts')
     expect(routeNames).toContain('report-partner-debts')
     expect(routeNames).toContain('report-driver-payroll')
+    expect(routeNames).toContain('report-profit-loss')
+    expect(routeNames).toContain('report-vehicle-profit')
     expect(routeNames).not.toContain('report-customer-debt-details')
     expect(routeNames).not.toContain('report-partner-debt-details')
     expect(routeNames).not.toContain('report-driver-payroll-details')
