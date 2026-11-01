@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu'
 import AccessDialog from '@/shared/components/feedback/AccessDialog.vue'
-import { permissionLabel } from '@/shared/lib/access-labels'
+import { permissionDisplayLabel } from '@/shared/lib/access-labels'
 import { PermissionService, type PermissionRow } from '@/services/permission.service'
 
 const queryClient = useQueryClient()
@@ -44,7 +44,7 @@ const data = computed<DataGridDataSource<PermissionRow>>(() => ({
 const columns: DataGridColumnDef<PermissionRow>[] = [
   {
     id: 'name',
-    accessorFn: (row) => permissionLabel(row.name),
+    accessorFn: (row) => permissionDisplayLabel(row.name),
     header: 'Quyền',
     meta: { label: 'Quyền' },
   },

@@ -42,3 +42,10 @@ export function permissionLabel(name: string): string {
     return name
   return `${action === 'view' ? 'Xem' : 'Quản lý'} ${groups[group]!.toLocaleLowerCase('vi-VN')}`
 }
+
+/** Display a user-friendly permission label while retaining its technical code for reference. */
+export function permissionDisplayLabel(name: string): string {
+  const label = permissionLabel(name)
+
+  return label === name ? name : `${label} (${name})`
+}
