@@ -45,9 +45,7 @@
             class="h-10 w-full rounded-md border bg-background px-3"
           >
             <option value="tourism">Tour du lịch</option>
-            <option value="school">Đưa đón học sinh</option>
             <option value="business">Đưa đón công nhân</option>
-            <option value="fixed">Tuyến cố định</option>
           </select><span v-if="fieldErrors.route_id" class="text-xs text-destructive">{{ fieldErrors.route_id }}</span></label
         >
         <label class="space-y-1.5"

@@ -4,7 +4,7 @@
       <div>
         <h1 class="text-2xl font-semibold tracking-tight text-foreground">Tài xế</h1>
         <p class="mt-1 text-sm text-muted-foreground">
-          Quản lý hồ sơ, bằng lái, lương và loại sở hữu của tài xế.
+          Quản lý hồ sơ, bằng lái, phụ cấp và loại sở hữu của tài xế.
         </p>
       </div>
     </header>

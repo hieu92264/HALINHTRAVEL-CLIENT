@@ -75,12 +75,6 @@
           ><template #actions="{ row }"
             ><div class="flex h-full items-center justify-center gap-1">
               <Button
-                variant="ghost"
-                size="icon-xs"
-                title="Xem công thức"
-                @click="selectedAttendance = row"
-                ><Eye class="size-4" /></Button
-              ><Button
                 v-if="canManage && row.status === 'pending'"
                 variant="ghost"
                 size="icon-xs"
@@ -122,30 +116,6 @@
     @close="payrollDialog = false"
     @save="savePayroll"
   />
-  <Dialog v-model:open="attendanceOpen"
-    ><DialogContent class="sm:max-w-lg"
-      ><DialogHeader
-        ><DialogTitle>Công thức tiền công</DialogTitle
-        ><DialogDescription
-          >Đây là dữ liệu do máy chủ tính từ lệnh điều xe và loại công.</DialogDescription
-        ></DialogHeader
-      >
-      <dl v-if="selectedAttendance" class="grid grid-cols-2 gap-3 rounded-md bg-muted p-4 text-sm">
-        <dt>Loại công</dt>
-        <dd>{{ workTypeLabel(selectedAttendance.work_type) }}</dd>
-        <dt>Đơn vị công</dt>
-        <dd class="tabular-nums">{{ selectedAttendance.work_units }}</dd>
-        <dt>Cơ sở tính</dt>
-        <dd class="tabular-nums">{{ formatMoney(selectedAttendance.base_amount) }}</dd>
-        <dt>Tỷ lệ</dt>
-        <dd class="tabular-nums">{{ selectedAttendance.rate }}</dd>
-        <dt class="font-semibold">Tiền công</dt>
-        <dd class="font-semibold tabular-nums">
-          {{ formatMoney(selectedAttendance.calculated_wage) }}
-        </dd>
-      </dl></DialogContent
-    ></Dialog
-  >
   <AccessDialog
     :open="confirmation !== null"
     title="Xác nhận dữ liệu nguồn"
@@ -175,19 +145,12 @@ import {
   useDriverPayrollMutations,
   usePayrollsQuery,
 } from '@/modules/finance/finance.composables'
-import { formatMoney, workTypeLabel } from '@/modules/finance/finance.format'
-import type { DriverAdvance, DriverAttendance } from '@/modules/finance/finance.types'
+import { formatMoney } from '@/modules/finance/finance.format'
+import type { DriverAdvance } from '@/modules/finance/finance.types'
 import { useAuthStore } from '@/modules/auth/auth.store'
 import { DataGrid, type DataGridDataSource } from '@/shared/components/data-grid'
 import AccessDialog from '@/shared/components/feedback/AccessDialog.vue'
 import { Button } from '@/shared/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/shared/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { CircleCheck, Eye, PencilLine, Plus, Trash2 } from '@lucide/vue'
 import { computed, ref } from 'vue'
@@ -203,7 +166,6 @@ const activeTab = ref('advances')
 const advanceDialog = ref(false)
 const payrollDialog = ref(false)
 const selectedAdvance = ref<DriverAdvance | null>(null)
-const selectedAttendance = ref<DriverAttendance | null>(null)
 const confirmation = ref<{ type: 'advance' | 'attendance'; id: number } | null>(null)
 const canManage = computed(
   () =>
@@ -232,12 +194,6 @@ const payrollSource = source(payrolls)
 const advancePending = computed(
   () => mutations.createAdvance.isPending.value || mutations.updateAdvance.isPending.value,
 )
-const attendanceOpen = computed({
-  get: () => selectedAttendance.value !== null,
-  set: (value: boolean) => {
-    if (!value) selectedAttendance.value = null
-  },
-})
 const isConfirming = computed(
   () => mutations.confirmAdvance.isPending.value || mutations.confirmAttendance.isPending.value,
 )

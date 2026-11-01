@@ -73,10 +73,6 @@
       <section class="overflow-hidden rounded-lg border bg-card">
         <div class="border-b px-5 py-4">
           <h2 class="font-semibold">Bảng lương theo tài xế</h2>
-          <p class="mt-1 text-sm text-muted-foreground">
-            Thực lĩnh = trách nhiệm + lương CN + lương du lịch − tạm ứng − khách trả trực tiếp + lái
-            xe tự chi.
-          </p>
         </div>
         <div class="overflow-x-auto">
           <table class="w-full min-w-[1180px] text-sm">

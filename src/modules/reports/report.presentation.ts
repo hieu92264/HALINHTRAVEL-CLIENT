@@ -150,7 +150,6 @@ const reportFields: Record<string, ReportField> = {
   direct_customer_collection: { label: 'Khách trả qua lái xe', format: 'currency' },
   advance_amount: { label: 'Tạm ứng', format: 'currency' },
   deduction_amount: { label: 'Khấu trừ', format: 'currency' },
-  base_salary: { label: 'Lương cơ bản', format: 'currency' },
   responsibility_allowance: { label: 'Phụ cấp trách nhiệm', format: 'currency' },
   meal_allowance: { label: 'Phụ cấp ăn ca', format: 'currency' },
   fixed_trip_wage: { label: 'Lương chuyến công nhân', format: 'currency' },

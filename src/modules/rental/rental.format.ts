@@ -7,7 +7,7 @@ const quotationStatusLabels: Record<QuotationStatus, string> = {
   draft: 'Dự thảo', sent: 'Đã gửi', approved: 'Đã duyệt', rejected: 'Từ chối', expired: 'Hết hạn', superseded: 'Đã thay thế',
 }
 const serviceLabels: Record<RentalServiceType, string> = {
-  fixed: 'Tuyến cố định', tourism: 'Tour du lịch', school: 'Đưa đón học sinh', business: 'Đưa đón công nhân',
+  tourism: 'Tour du lịch', business: 'Đưa đón công nhân',
 }
 
 export const requestStatusLabel = (status: RentalRequestStatus) => requestStatusLabels[status]

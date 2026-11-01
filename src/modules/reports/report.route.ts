@@ -4,10 +4,10 @@ const page = () => import('./ReportsPage.vue')
 
 export const ReportRoute: RouteRecordRaw[] = [
   {
-    path: 'reports/fixed-trips',
-    name: 'report-fixed-trips',
+    path: 'reports/business-trips',
+    name: 'report-business-trips',
     component: page,
-    props: { kind: 'fixed-trips' },
+    props: { kind: 'business-trips' },
     meta: { permission: 'dispatch-orders.view', title: 'Báo cáo xe chạy công nhân' },
   },
   {

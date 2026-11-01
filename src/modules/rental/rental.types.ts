@@ -1,6 +1,6 @@
 export type RentalRequestStatus = 'new' | 'quoted' | 'accepted' | 'rejected' | 'converted'
 export type QuotationStatus = 'draft' | 'sent' | 'approved' | 'rejected' | 'expired' | 'superseded'
-export type RentalServiceType = 'fixed' | 'tourism' | 'school' | 'business'
+export type RentalServiceType = 'tourism' | 'business'
 
 export interface RentalItem {
   id?: number

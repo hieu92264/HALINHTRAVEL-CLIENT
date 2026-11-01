@@ -60,8 +60,8 @@ const unorderedSidebarNavigation: SidebarNavigationNode[] = [
       {
         kind: 'item',
         label: 'Xe chạy công nhân',
-        to: { name: 'report-fixed-trips' },
-        routeName: 'report-fixed-trips',
+        to: { name: 'report-business-trips' },
+        routeName: 'report-business-trips',
         icon: RouteIcon,
         permission: 'dispatch-orders.view',
       },

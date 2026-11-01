@@ -1,5 +1,5 @@
 export type ReportKind =
-  | 'fixed-trips'
+  | 'business-trips'
   | 'tourism-trips'
   | 'finance'
   | 'customer-debts'

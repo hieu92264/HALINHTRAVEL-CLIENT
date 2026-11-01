@@ -4,7 +4,7 @@
       <DialogHeader>
         <DialogTitle>{{ isEdit ? 'Cập nhật tài xế' : 'Thêm tài xế' }}</DialogTitle>
         <DialogDescription>
-          {{ isEdit ? 'Cập nhật hồ sơ, bằng lái và thông tin lương.' : 'Nhập thông tin tài xế mới.' }}
+          {{ isEdit ? 'Cập nhật hồ sơ, bằng lái và phụ cấp.' : 'Nhập thông tin tài xế mới.' }}
         </DialogDescription>
       </DialogHeader>
 
@@ -143,16 +143,6 @@
             <FormLabel>Ngày hết hạn bằng lái</FormLabel>
             <FormControl>
               <Input type="date" v-bind="componentField" />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        </FormField>
-
-        <FormField v-slot="{ componentField }" name="base_salary">
-          <FormItem>
-            <FormLabel>Lương cơ bản</FormLabel>
-            <FormControl>
-              <Input type="number" min="0" step="0.01" placeholder="0" v-bind="componentField" />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -305,7 +295,6 @@ const driverFieldKeys = [
   'license_class',
   'license_issued_at',
   'license_expired_at',
-  'base_salary',
   'responsibility_allowance',
   'joined_at',
   'left_at',
@@ -323,7 +312,6 @@ function getFormValues(driver?: Driver | null) {
     license_class: driver?.license_class ?? '',
     license_issued_at: driver?.license_issued_at ?? null,
     license_expired_at: driver?.license_expired_at ?? null,
-    base_salary: driver?.base_salary ?? 0,
     responsibility_allowance: driver?.responsibility_allowance ?? 0,
     joined_at: driver?.joined_at ?? null,
     left_at: driver?.left_at ?? null,

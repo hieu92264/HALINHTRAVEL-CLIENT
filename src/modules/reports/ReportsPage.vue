@@ -28,7 +28,7 @@ const expandedRowId = ref<string | null>(null)
 const detailConfig = computed(() => getReportDetailConfig(props.kind))
 const exportFormat = computed<ReportExportFormat>(() =>
   [
-    'fixed-trips',
+    'business-trips',
     'tourism-trips',
     'customer-debts',
     'customer-debt-details',
@@ -45,7 +45,7 @@ const exportLabel = computed(() => (exportFormat.value === 'docx' ? 'Xuất Word
 const title = computed(
   () =>
     ({
-      'fixed-trips': 'Báo cáo xe chạy công nhân',
+      'business-trips': 'Báo cáo xe chạy công nhân',
       'tourism-trips': 'Báo cáo xe chạy du lịch',
       finance: 'Thu chi, chi phí và công nợ',
       'customer-debts': 'Công nợ khách hàng',
