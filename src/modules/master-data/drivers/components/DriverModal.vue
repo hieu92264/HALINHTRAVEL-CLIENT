@@ -4,7 +4,7 @@
       <DialogHeader>
         <DialogTitle>{{ isEdit ? 'Cập nhật tài xế' : 'Thêm tài xế' }}</DialogTitle>
         <DialogDescription>
-          {{ isEdit ? 'Cập nhật hồ sơ, bằng lái và thông tin lương.' : 'Nhập thông tin tài xế mới.' }}
+          {{ isEdit ? 'Cập nhật hồ sơ, bằng lái và phụ cấp.' : 'Nhập thông tin tài xế mới.' }}
         </DialogDescription>
       </DialogHeader>
 
@@ -148,9 +148,9 @@
           </FormItem>
         </FormField>
 
-        <FormField v-slot="{ componentField }" name="base_salary">
+        <FormField v-slot="{ componentField }" name="responsibility_allowance">
           <FormItem>
-            <FormLabel>Lương cơ bản</FormLabel>
+            <FormLabel>Phụ cấp trách nhiệm</FormLabel>
             <FormControl>
               <Input type="number" min="0" step="0.01" placeholder="0" v-bind="componentField" />
             </FormControl>
@@ -158,11 +158,11 @@
           </FormItem>
         </FormField>
 
-        <FormField v-slot="{ componentField }" name="responsibility_allowance">
+        <FormField v-slot="{ componentField }" name="tourism_commission_rate">
           <FormItem>
-            <FormLabel>Phụ cấp trách nhiệm</FormLabel>
+            <FormLabel>Tỷ lệ lương du lịch (%)</FormLabel>
             <FormControl>
-              <Input type="number" min="0" step="0.01" placeholder="0" v-bind="componentField" />
+              <Input type="number" min="0" max="100" step="0.01" placeholder="10" v-bind="componentField" />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -305,8 +305,8 @@ const driverFieldKeys = [
   'license_class',
   'license_issued_at',
   'license_expired_at',
-  'base_salary',
   'responsibility_allowance',
+  'tourism_commission_rate',
   'joined_at',
   'left_at',
 ] as const
@@ -323,8 +323,8 @@ function getFormValues(driver?: Driver | null) {
     license_class: driver?.license_class ?? '',
     license_issued_at: driver?.license_issued_at ?? null,
     license_expired_at: driver?.license_expired_at ?? null,
-    base_salary: driver?.base_salary ?? 0,
     responsibility_allowance: driver?.responsibility_allowance ?? 0,
+    tourism_commission_rate: Number(driver?.tourism_commission_rate ?? 0) * 100,
     joined_at: driver?.joined_at ?? null,
     left_at: driver?.left_at ?? null,
     is_active: false,
@@ -370,12 +370,17 @@ const onSubmit = form.handleSubmit(async (values) => {
     const driverValues = createDriverSchema.parse(values)
 
     if (isEdit.value) {
-      const currentValues = createDriverSchema.parse(props.row)
+      const currentValues = createDriverSchema.parse({
+        ...props.row,
+        tourism_commission_rate: Number(props.row?.tourism_commission_rate ?? 0) * 100,
+      })
       const payload: Record<string, unknown> = {}
 
       for (const key of driverFieldKeys) {
         if (!Object.is(driverValues[key], currentValues[key])) {
-          payload[key] = driverValues[key]
+        payload[key] = key === 'tourism_commission_rate'
+          ? Number(driverValues[key]) / 100
+          : driverValues[key]
         }
       }
 
@@ -394,7 +399,10 @@ const onSubmit = form.handleSubmit(async (values) => {
       })
       toast.success('Đã cập nhật tài xế')
     } else {
-      await createMutation.mutateAsync(driverValues)
+      await createMutation.mutateAsync({
+        ...driverValues,
+        tourism_commission_rate: Number(driverValues.tourism_commission_rate) / 100,
+      })
       toast.success('Đã thêm tài xế')
     }
 

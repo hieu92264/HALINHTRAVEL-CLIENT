@@ -8,11 +8,9 @@ import { SESSION_EXPIRED_EVENT } from '@/shared/lib/auth-events'
 import { AuthRoute } from '@/modules/auth/auth.route'
 import { OrganizationRoute } from '@/modules/organization/org.route'
 import { MasterDataRoute } from '@/modules/master-data/master-data.route'
-import { DispatchRoute } from '@/modules/dispatch/dispatch.route'
-import { PublicQuotationRoute, RentalRoute } from '@/modules/rental/rental.route'
-import { ContractRoute } from '@/modules/contract/contract.route'
+import { VehicleOperationsRoute } from '@/modules/vehicle-operations/vehicle-operations.route'
 import { FinanceRoute } from '@/modules/finance/finance.route'
-import { ReportRoute } from '@/modules/reports/report.route'
+import { ReportsRoute } from '@/modules/reports/reports.route'
 
 NProgress.configure({
   showSpinner: false,
@@ -24,7 +22,6 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     ...AuthRoute,
-    PublicQuotationRoute,
     {
       path: '/',
       component: () => import('@/shared/layouts/BaseLayout.vue'),
@@ -38,11 +35,9 @@ const router = createRouter({
         },
         ...OrganizationRoute,
         ...MasterDataRoute,
-        ...DispatchRoute,
-        ...RentalRoute,
-        ...ContractRoute,
+        ...VehicleOperationsRoute,
         ...FinanceRoute,
-        ...ReportRoute,
+        ...ReportsRoute,
       ],
     },
     {
@@ -106,6 +101,13 @@ router.beforeEach(async (to, from) => {
   }
 
   if (to.meta.permission && !authStore.user.permissions.includes(to.meta.permission)) {
+    return { name: 'forbidden' }
+  }
+
+  if (
+    to.meta.permissionsAll?.length &&
+    !to.meta.permissionsAll.every((permission) => authStore.user?.permissions.includes(permission))
+  ) {
     return { name: 'forbidden' }
   }
 

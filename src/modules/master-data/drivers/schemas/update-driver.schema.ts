@@ -5,17 +5,6 @@ import z from 'zod'
 export const updateDriverSchema = driverFieldsSchema
   .partial()
   .extend({
-    base_salary: z.preprocess(
-      (value) => (typeof value === 'string' && value.trim() ? Number(value) : value),
-      z
-        .number()
-        .finite({ message: 'Lương cơ bản phải là số hợp lệ' })
-        .min(0, { message: 'Lương cơ bản không được nhỏ hơn 0' })
-        .refine((value) => Number.isInteger(value * 100), {
-          message: 'Lương cơ bản chỉ được có tối đa 2 chữ số thập phân',
-        })
-        .optional(),
-    ),
     responsibility_allowance: z.preprocess(
       (value) => (typeof value === 'string' && value.trim() ? Number(value) : value),
       z

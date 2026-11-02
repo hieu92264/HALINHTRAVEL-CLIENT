@@ -76,8 +76,11 @@ export const driverFieldsSchema = z.object({
     .max(20, { message: 'Hạng bằng lái không được vượt quá 20 ký tự' }),
   license_issued_at: nullableDate('Ngày cấp bằng lái'),
   license_expired_at: nullableDate('Ngày hết hạn bằng lái'),
-  base_salary: salarySchema('Lương cơ bản').default(0),
   responsibility_allowance: salarySchema('Phụ cấp trách nhiệm').default(0),
+  tourism_commission_rate: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() ? Number(value) : value),
+    z.number().finite({ message: 'Tỷ lệ lương du lịch phải là số hợp lệ' }).min(0).max(100),
+  ).default(0),
   joined_at: nullableDate('Ngày vào làm'),
   left_at: nullableDate('Ngày nghỉ việc'),
 })

@@ -1,6 +1,6 @@
 <template>
   <Dialog v-model:open="open">
-    <DialogContent class="sm:max-w-lg">
+    <DialogContent class="max-h-[calc(100svh-2rem)] overflow-y-auto sm:max-w-lg">
       <DialogHeader>
         <DialogTitle>{{ payroll ? 'Sửa kỳ lương nháp' : 'Tạo kỳ lương' }}</DialogTitle>
         <DialogDescription
@@ -18,11 +18,16 @@
         <label class="grid gap-1.5 text-sm font-medium"
           >Đến ngày<Input :model-value="dates.to_date" type="date" readonly
         /></label>
-        <DialogFooter class="sm:col-span-2">
-          <Button type="button" variant="outline" :disabled="pending" @click="open = false"
+        <DialogFooter class="flex-col-reverse gap-2 sm:col-span-2 sm:flex-row">
+          <Button
+            type="button"
+            class="w-full sm:w-auto"
+            variant="outline"
+            :disabled="pending"
+            @click="open = false"
             >Hủy</Button
           >
-          <Button type="submit" :disabled="pending || !valid">{{
+          <Button type="submit" class="w-full sm:w-auto" :disabled="pending || !valid">{{
             pending ? 'Đang lưu...' : payroll ? 'Lưu thay đổi' : 'Tạo kỳ lương'
           }}</Button>
         </DialogFooter>

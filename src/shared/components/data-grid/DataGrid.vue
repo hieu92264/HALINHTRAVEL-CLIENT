@@ -96,6 +96,8 @@ interface Props {
   loadingMode?: 'skeleton' | 'overlay'
   emptyTitle?: string
   emptyDescription?: string
+  /** Chuyển bảng nhiều cột thành thẻ đọc nhanh dưới breakpoint sm. */
+  mobileMode?: 'table' | 'cards'
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -112,6 +114,7 @@ const props = withDefaults(defineProps<Props>(), {
   loadingMode: 'skeleton',
   emptyTitle: 'Chưa có dữ liệu',
   emptyDescription: 'Dữ liệu sẽ xuất hiện ở đây khi có bản ghi phù hợp.',
+  mobileMode: 'table',
 })
 
 const emit = defineEmits<{
@@ -167,7 +170,9 @@ function getInitialPersistedState(): PersistedState {
   const saved: PersistedState = {}
 
   if (props.persist.localStorage !== false) {
-    const localState = parseJson<PersistedState>(window.localStorage.getItem(`data-grid:${props.persist.key}`))
+    const localState = parseJson<PersistedState>(
+      window.localStorage.getItem(`data-grid:${props.persist.key}`),
+    )
     Object.assign(saved, localState)
   }
 
@@ -183,7 +188,8 @@ function getInitialPersistedState(): PersistedState {
     if (Number.isInteger(page) && page > 0) {
       saved.pagination = {
         pageIndex: page - 1,
-        pageSize: Number.isInteger(pageSize) && pageSize > 0 ? pageSize : saved.pagination?.pageSize || 25,
+        pageSize:
+          Number.isInteger(pageSize) && pageSize > 0 ? pageSize : saved.pagination?.pageSize || 25,
       }
     }
     if (sorting) saved.sorting = sorting
@@ -518,10 +524,16 @@ const visibleFrom = computed(() => {
     ? pagination.value.pageIndex * pagination.value.pageSize + 1
     : pagination.value.pageIndex * pagination.value.pageSize + 1
 })
-const visibleTo = computed(() => Math.min(visibleFrom.value + rows.value.length - 1, totalRows.value))
-const isInitialLoading = computed(() => Boolean(props.dataSource.isLoading) && !props.dataSource.data.length)
+const visibleTo = computed(() =>
+  Math.min(visibleFrom.value + rows.value.length - 1, totalRows.value),
+)
+const isInitialLoading = computed(
+  () => Boolean(props.dataSource.isLoading) && !props.dataSource.data.length,
+)
 const showLoadingOverlay = computed(
-  () => Boolean(props.dataSource.isFetching || props.dataSource.isLoading) && props.loadingMode === 'overlay',
+  () =>
+    Boolean(props.dataSource.isFetching || props.dataSource.isLoading) &&
+    props.loadingMode === 'overlay',
 )
 const errorMessage = computed(() => {
   const error = props.dataSource.error
@@ -540,7 +552,9 @@ const virtualizer = useVirtualizer<HTMLDivElement, HTMLTableRowElement>(
     getItemKey: (index) => rows.value[index]?.id || index,
   })),
 )
-const virtualRows = computed(() => (virtualOptions.value ? virtualizer.value.getVirtualItems() : []))
+const virtualRows = computed(() =>
+  virtualOptions.value ? virtualizer.value.getVirtualItems() : [],
+)
 const topPadding = computed(() => virtualRows.value[0]?.start || 0)
 const bottomPadding = computed(() => {
   const last = virtualRows.value[virtualRows.value.length - 1]
@@ -552,7 +566,8 @@ function getRowAt(virtualRow: VirtualItem): Row<TData> | undefined {
 }
 
 function measureRow(element: Element | null): void {
-  if (element && virtualOptions.value) virtualizer.value.measureElement(element as HTMLTableRowElement)
+  if (element && virtualOptions.value)
+    virtualizer.value.measureElement(element as HTMLTableRowElement)
 }
 
 const TABLE_TOTAL_SIZE_VARIABLE = '--data-grid-total-size'
@@ -586,8 +601,10 @@ function getTableSizingStyle(): Record<string, string | number> {
   })
 
   table.getVisibleLeafColumns().forEach((column) => {
-    if (column.getIsPinned() === 'left') style[getColumnStartVariable(column)] = column.getStart('left')
-    if (column.getIsPinned() === 'right') style[getColumnEndVariable(column)] = column.getAfter('right')
+    if (column.getIsPinned() === 'left')
+      style[getColumnStartVariable(column)] = column.getStart('left')
+    if (column.getIsPinned() === 'right')
+      style[getColumnEndVariable(column)] = column.getAfter('right')
   })
 
   return style
@@ -628,7 +645,9 @@ function flushColumnSizingDomUpdate(): void {
   syncColumnSizingCssVariables()
 }
 
-function getColumnMeta(column: Column<TData, unknown>): DataGridColumnMeta<TData, unknown> | undefined {
+function getColumnMeta(
+  column: Column<TData, unknown>,
+): DataGridColumnMeta<TData, unknown> | undefined {
   return column.columnDef.meta as DataGridColumnMeta<TData, unknown> | undefined
 }
 
@@ -650,7 +669,10 @@ function getColumnStyle(column: Column<TData, unknown>): Record<string, string |
   return style
 }
 
-function getColumnClasses(column: Column<TData, unknown>, surface: 'head' | 'body' | 'filter'): string {
+function getColumnClasses(
+  column: Column<TData, unknown>,
+  surface: 'head' | 'body' | 'filter',
+): string {
   const pinned = column.getIsPinned()
   const base = [
     surface === 'head' || surface === 'filter' ? 'bg-muted' : 'bg-card',
@@ -691,7 +713,10 @@ function isActiveResizingColumn(column: Column<TData, unknown>): boolean {
   return !SYSTEM_COLUMN_IDS.includes(column.id) && isResizingColumn.value === column.id
 }
 
-function getResizingColumnClasses(column: Column<TData, unknown>, surface: 'head' | 'body' | 'filter'): string {
+function getResizingColumnClasses(
+  column: Column<TData, unknown>,
+  surface: 'head' | 'body' | 'filter',
+): string {
   if (!isActiveResizingColumn(column)) return ''
 
   return surface === 'body' ? 'bg-primary/[0.03]' : 'ring-1 ring-inset ring-primary/40'
@@ -705,7 +730,11 @@ function getCellContentClasses(column: Column<TData, unknown>): string {
   const alignment = getColumnAlign(column)
   return [
     'flex min-w-0 items-center truncate',
-    alignment === 'center' ? 'justify-center text-center' : alignment === 'right' ? 'justify-end text-right' : 'justify-start text-left',
+    alignment === 'center'
+      ? 'justify-center text-center'
+      : alignment === 'right'
+        ? 'justify-end text-right'
+        : 'justify-start text-left',
   ].join(' ')
 }
 
@@ -718,6 +747,24 @@ function getCellTooltip(cell: Cell<TData, unknown>): string | undefined {
   const value = cell.getValue()
   if (value === undefined || value === null) return undefined
   return String(value)
+}
+
+function getMobileCells(row: Row<TData>): Cell<TData, unknown>[] {
+  const rank = (cell: Cell<TData, unknown>): number => {
+    const mode = getColumnMeta(cell.column)?.mobile
+
+    return mode === 'primary' ? 0 : mode === 'secondary' || mode === undefined ? 1 : 2
+  }
+
+  return row
+    .getVisibleCells()
+    .filter(
+      (cell) =>
+        !SYSTEM_COLUMN_IDS.includes(cell.column.id) &&
+        getColumnMeta(cell.column)?.mobile !== 'hidden',
+    )
+    .sort((left, right) => rank(left) - rank(right))
+    .slice(0, 5)
 }
 
 function getHeaderLabel(header: Header<TData, unknown>): string {
@@ -773,7 +820,8 @@ function startEditing(cell: Cell<TData, unknown>): void {
 
   editingCell.value = { rowId: cell.row.id, columnId: cell.column.id }
   const currentValue = cell.getValue()
-  editingValue.value = currentValue === undefined || currentValue === null ? '' : String(currentValue)
+  editingValue.value =
+    currentValue === undefined || currentValue === null ? '' : String(currentValue)
 }
 
 function getEditInputType(cell: Cell<TData, unknown>): 'text' | 'number' | 'date' {
@@ -932,449 +980,645 @@ function focusEditInput(): void {
 </script>
 
 <template>
-  <section ref="gridRoot" class="min-w-0 overflow-hidden rounded-xl border border-border bg-card" aria-label="Bảng dữ liệu">
+  <section
+    ref="gridRoot"
+    class="min-w-0 overflow-hidden rounded-xl border border-border bg-card"
+    aria-label="Bảng dữ liệu"
+  >
     <div class="flex min-h-0 min-w-0 flex-col" :style="gridSizeStyle">
-    <DataGridToolbar
-      :table="table"
-      :global-filter="Boolean(globalFilter)"
-      :enable-grouping="enableGrouping"
-      :grouping="grouping"
-      :has-toolbar-start="Boolean($slots['toolbar-start'])"
-      :has-toolbar-end="Boolean($slots['toolbar-end'])"
-      :get-column-label="(column) => getColumnMeta(column)?.label || column.id"
-      :set-global-filter="setGlobalFilter"
-    >
-      <template #toolbar-start="slotProps">
-        <slot name="toolbar-start" v-bind="slotProps" />
-      </template>
-      <template #toolbar-end="slotProps">
-        <slot name="toolbar-end" v-bind="slotProps" />
-      </template>
-    </DataGridToolbar>
-
-    <div
-      ref="scrollContainer"
-      class="operations-scrollbar relative min-h-0 flex-1 overflow-auto"
-      :style="scrollContainerStyle"
-    >
-      <table
-        ref="tableElement"
-        class="w-full table-fixed border-separate border-spacing-0 text-left text-[13px]"
-        :style="getTableSizingStyle()"
+      <DataGridToolbar
+        :table="table"
+        :global-filter="Boolean(globalFilter)"
+        :enable-grouping="enableGrouping"
+        :grouping="grouping"
+        :has-toolbar-start="Boolean($slots['toolbar-start'])"
+        :has-toolbar-end="Boolean($slots['toolbar-end'])"
+        :get-column-label="(column) => getColumnMeta(column)?.label || column.id"
+        :set-global-filter="setGlobalFilter"
       >
-        <thead class="sticky top-0 z-20 text-xs text-muted-foreground">
-          <tr v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
-            <th
-              v-for="header in headerGroup.headers"
-              :key="header.id"
-              :colspan="header.colSpan"
-              class="relative h-10 border-b border-border px-3 text-left font-semibold"
-              :class="[getColumnClasses(header.column, 'head'), getResizingColumnClasses(header.column, 'head')]"
-              :style="getColumnStyle(header.column)"
+        <template #toolbar-start="slotProps">
+          <slot name="toolbar-start" v-bind="slotProps" />
+        </template>
+        <template #toolbar-end="slotProps">
+          <slot name="toolbar-end" v-bind="slotProps" />
+        </template>
+      </DataGridToolbar>
+
+      <div
+        ref="scrollContainer"
+        class="operations-scrollbar relative min-h-0 flex-1 overflow-auto"
+        :style="scrollContainerStyle"
+      >
+        <div v-if="mobileMode === 'cards'" class="space-y-3 p-3 sm:hidden">
+          <div
+            v-if="errorMessage"
+            class="flex items-start gap-3 rounded-lg border border-destructive/25 bg-destructive/5 p-4 text-sm"
+          >
+            <CircleAlertIcon class="mt-0.5 size-5 shrink-0 text-destructive" />
+            <div class="min-w-0 flex-1">
+              <p class="font-semibold text-foreground">Không thể tải dữ liệu</p>
+              <p class="mt-0.5 text-muted-foreground">{{ errorMessage }}</p>
+            </div>
+            <Button size="sm" variant="outline" @click="emit('retry')">Thử lại</Button>
+          </div>
+          <template v-else-if="isInitialLoading && loadingMode === 'skeleton'">
+            <div
+              v-for="index in 3"
+              :key="index"
+              class="space-y-3 rounded-xl border border-border p-4"
             >
-              <template v-if="!header.isPlaceholder">
-                <div
-                  class="flex min-w-0 items-center gap-1"
-                  :class="canReorder(header.column) ? 'cursor-grab active:cursor-grabbing' : ''"
-                  :draggable="canReorder(header.column)"
-                  @dragstart="draggedColumnId = header.column.id"
-                  @dragover.prevent="canReorder(header.column)"
-                  @drop.prevent="toggleColumnOrder(header.column.id)"
-                  @dragend="draggedColumnId = null"
-                >
-                  <GripVerticalIcon v-if="canReorder(header.column)" class="size-3 shrink-0 text-muted-foreground/55" />
-
-                  <template v-if="header.column.id === SELECT_COLUMN_ID">
-                    <input
-                      :checked="table.getIsAllPageRowsSelected()"
-                      :indeterminate="table.getIsSomePageRowsSelected()"
-                      class="size-3.5 rounded border-input text-primary focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                      :disabled="!hasSelectableRows"
-                      type="checkbox"
-                      aria-label="Chọn tất cả dòng trong trang"
-                      @click.stop
-                      @change="table.toggleAllPageRowsSelected(($event.target as HTMLInputElement).checked)"
-                    />
-                  </template>
-                  <template v-else-if="header.column.id === EXPAND_COLUMN_ID">
-                    <span class="sr-only">Mở rộng dòng</span>
-                  </template>
-                  <template v-else-if="header.column.id === ACTION_COLUMN_ID">
-                    <span>Thao tác</span>
-                  </template>
-                  <button
-                    v-else-if="header.column.getCanSort()"
-                    class="-mx-1 flex min-w-0 items-center gap-1 rounded px-1 py-0.5 text-left hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    type="button"
-                    :title="`Sắp xếp theo ${getHeaderLabel(header)}`"
-                    @click="header.column.toggleSorting(header.column.getIsSorted() === 'asc')"
-                  >
-                    <FlexRender :render="header.column.columnDef.header" :props="header.getContext()" />
-                    <span class="shrink-0 text-primary" aria-hidden="true">
-                      {{ header.column.getIsSorted() === 'asc' ? '↑' : header.column.getIsSorted() === 'desc' ? '↓' : '' }}
-                    </span>
-                  </button>
-                  <FlexRender v-else :render="header.column.columnDef.header" :props="header.getContext()" />
-                </div>
-
-                <button
-                  v-if="header.column.getCanResize()"
-                  class="data-grid-resizer"
-                  :class="isActiveResizingColumn(header.column) ? 'is-resizing' : ''"
-                  type="button"
-                  tabindex="-1"
-                  :aria-label="`Đổi độ rộng cột ${getHeaderLabel(header)}`"
-                  @dblclick.stop="header.column.resetSize()"
-                  @mousedown.stop="onResizeStart(header.column.id); header.getResizeHandler()?.($event)"
-                  @touchstart.stop="onResizeStart(header.column.id); header.getResizeHandler()?.($event)"
-                />
-              </template>
-            </th>
-          </tr>
-
-          <tr v-if="filterRow">
-            <th
-              v-for="header in filterHeaders"
-              :key="`${header.id}-filter`"
-              class="h-10 border-b border-border px-2 py-1.5"
-              :class="[getColumnClasses(header.column, 'filter'), getResizingColumnClasses(header.column, 'filter')]"
-              :style="getColumnStyle(header.column)"
-            >
-              <input
-                v-if="header.column.getCanFilter() && !SYSTEM_COLUMN_IDS.includes(header.column.id)"
-                :value="String(header.column.getFilterValue() || '')"
-                class="h-7 w-full rounded-md border border-input bg-background px-2 text-xs text-foreground outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20"
-                :placeholder="getColumnMeta(header.column)?.filterPlaceholder || `Lọc ${getHeaderLabel(header).toLocaleLowerCase('vi-VN')}`"
-                type="search"
-                @input="setColumnFilter(header.column, $event)"
-              />
-            </th>
-          </tr>
-        </thead>
-
-        <tbody v-if="errorMessage">
-          <tr>
-            <td :colspan="leafColumns.length" class="p-0">
-              <div class="m-4 flex items-start gap-3 rounded-lg border border-destructive/25 bg-destructive/5 p-4 text-sm">
-                <CircleAlertIcon class="mt-0.5 size-5 shrink-0 text-destructive" />
-                <div class="min-w-0 flex-1">
-                  <p class="font-semibold text-foreground">Không thể tải dữ liệu</p>
-                  <p class="mt-0.5 text-muted-foreground">{{ errorMessage }}</p>
-                </div>
-                <Button size="sm" variant="outline" @click="emit('retry')">Thử lại</Button>
+              <div class="h-4 w-2/5 animate-pulse rounded bg-muted" />
+              <div class="grid grid-cols-2 gap-3">
+                <div v-for="cell in 4" :key="cell" class="h-8 animate-pulse rounded bg-muted" />
               </div>
-            </td>
-          </tr>
-        </tbody>
-
-        <tbody v-else-if="isInitialLoading && loadingMode === 'skeleton'" aria-busy="true">
-          <tr v-for="index in 6" :key="index">
-            <td
-              v-for="column in leafColumns"
-              :key="`${index}-${column.id}`"
-              class="h-[46px] border-b border-border px-3"
-              :class="getColumnClasses(column, 'body')"
-              :style="getColumnStyle(column)"
-            >
-              <div class="h-3 animate-pulse rounded bg-muted" :class="column.id === SELECT_COLUMN_ID ? 'w-4' : 'w-3/4'" />
-            </td>
-          </tr>
-        </tbody>
-
-        <tbody v-else-if="!rows.length">
-          <tr>
-            <td :colspan="leafColumns.length" class="p-0">
-              <slot name="empty">
-                <div class="flex min-h-56 flex-col items-center justify-center px-6 py-10 text-center">
-                  <span class="grid size-10 place-items-center rounded-xl bg-muted text-muted-foreground">
-                    <InboxIcon class="size-5" />
-                  </span>
-                  <p class="mt-3 text-sm font-semibold text-foreground">{{ emptyTitle }}</p>
-                  <p class="mt-1 max-w-sm text-sm leading-5 text-muted-foreground">{{ emptyDescription }}</p>
-                  <slot name="empty-action" />
-                </div>
-              </slot>
-            </td>
-          </tr>
-        </tbody>
-
-        <tbody v-else>
-          <tr v-if="virtualOptions && topPadding" aria-hidden="true">
-            <td :colspan="leafColumns.length" :style="{ height: `${topPadding}px` }" />
-          </tr>
-
-          <template v-if="virtualOptions">
-            <tr
-              v-for="virtualRow in virtualRows"
-              :key="String(virtualRow.key)"
-              ref="measureRow"
-              :data-index="virtualRow.index"
-              class="group transition-colors hover:bg-muted/55 focus-within:bg-muted/55"
-              :class="getRowAt(virtualRow)?.getIsSelected() ? 'bg-primary/[0.045]' : ''"
-              tabindex="0"
-              :aria-selected="getRowAt(virtualRow)?.getIsSelected()"
-              @click="getRowAt(virtualRow) && emit('row-click', getRowAt(virtualRow)!.original, $event)"
-              @dblclick="getRowAt(virtualRow) && emit('row-double-click', getRowAt(virtualRow)!.original, $event)"
-              @keydown.enter.prevent="getRowAt(virtualRow) && emit('row-click', getRowAt(virtualRow)!.original, $event)"
-              @contextmenu.prevent="getRowAt(virtualRow) && openContextMenu($event, getRowAt(virtualRow)!)"
-            >
-              <td
-                v-for="cell in getRowAt(virtualRow)?.getVisibleCells() || []"
-                :key="cell.id"
-                class="h-[46px] border-b border-border align-middle text-foreground"
-                :class="[
-                  getColumnClasses(cell.column, 'body'),
-                  getBodyCellClasses(cell.column),
-                  getBodyCellStateClasses(cell.column),
-                  getResizingColumnClasses(cell.column, 'body'),
-                ]"
-                :style="getColumnStyle(cell.column)"
-                @dblclick.stop="startEditing(cell); focusEditInput()"
-              >
-                <template v-if="cell.column.id === SELECT_COLUMN_ID">
-                  <input
-                    :checked="cell.row.getIsSelected()"
-                    :disabled="!cell.row.getCanSelect()"
-                    class="size-3.5 rounded border-input text-primary focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                    type="checkbox"
-                    :aria-label="`Chọn dòng ${cell.row.id}`"
-                    @click.stop
-                    @change="cell.row.toggleSelected(($event.target as HTMLInputElement).checked)"
-                  />
-                </template>
-                <template v-else-if="cell.column.id === EXPAND_COLUMN_ID">
-                  <button
-                    v-if="hasSubRows ? cell.row.getCanExpand() : hasRowDetail"
-                    class="grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    type="button"
-                    :aria-expanded="hasSubRows ? cell.row.getIsExpanded() : isRowDetailExpanded(cell.row)"
-                    :aria-label="(hasSubRows ? cell.row.getIsExpanded() : isRowDetailExpanded(cell.row)) ? 'Thu gọn dòng' : 'Mở rộng dòng'"
-                    @click.stop="hasSubRows ? cell.row.toggleExpanded() : toggleRowDetail(cell.row)"
-                  >
-                    <ChevronRightIcon
-                      class="size-4 transition-transform"
-                      :class="(hasSubRows ? cell.row.getIsExpanded() : isRowDetailExpanded(cell.row)) ? 'rotate-90' : ''"
-                    />
-                  </button>
-                </template>
-                <template v-else-if="cell.column.id === ACTION_COLUMN_ID">
-                  <slot name="actions" :row="cell.row.original" :row-id="cell.row.id" :table="table" />
-                </template>
-                <template v-else-if="isEditing(cell)">
-                  <slot
-                    v-if="$slots['edit-cell']"
-                    name="edit-cell"
-                    :cell="cell"
-                    :value="editingValue"
-                    :update-value="(value: string) => (editingValue = value)"
-                    :save="() => saveEditing(cell)"
-                    :cancel="cancelEditing"
-                  />
-                  <input
-                    v-else
-                    v-model="editingValue"
-                    data-data-grid-editor="true"
-                    class="h-7 w-full rounded-md border border-ring bg-background px-2 text-sm outline-none ring-2 ring-ring/20"
-                    :type="getEditInputType(cell)"
-                    @blur="saveEditing(cell)"
-                    @keydown.enter.prevent="saveEditing(cell)"
-                    @keydown.esc.prevent="cancelEditing"
-                  />
-                </template>
-                <template v-else-if="cell.getIsGrouped()">
-                  <button
-                    class="flex min-w-0 items-center gap-1.5 font-semibold text-foreground"
-                    type="button"
-                    @click.stop="cell.row.toggleExpanded()"
-                  >
-                    <ChevronRightIcon class="size-3.5 shrink-0 transition-transform" :class="cell.row.getIsExpanded() ? 'rotate-90' : ''" />
-                    <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
-                    <span class="text-xs font-medium text-muted-foreground">({{ cell.row.subRows.length }})</span>
-                  </button>
-                </template>
-                <div
-                  v-else-if="cell.getIsAggregated()"
-                  data-data-grid-cell-content
-                  :class="getCellContentClasses(cell.column)"
-                  :style="getCellContentStyle(cell.column)"
-                  :title="getCellTooltip(cell)"
-                >
-                  <FlexRender
-                    :render="cell.column.columnDef.aggregatedCell || cell.column.columnDef.cell"
-                    :props="cell.getContext()"
-                  />
-                </div>
-                <div
-                  v-else-if="!cell.getIsPlaceholder()"
-                  data-data-grid-cell-content
-                  :class="getCellContentClasses(cell.column)"
-                  :style="getCellContentStyle(cell.column)"
-                  :title="getCellTooltip(cell)"
-                >
-                  <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
-                </div>
-              </td>
-            </tr>
+            </div>
           </template>
-
+          <div
+            v-else-if="!rows.length"
+            class="flex min-h-56 flex-col items-center justify-center px-6 py-10 text-center"
+          >
+            <span class="grid size-10 place-items-center rounded-xl bg-muted text-muted-foreground"
+              ><InboxIcon class="size-5"
+            /></span>
+            <p class="mt-3 text-sm font-semibold text-foreground">{{ emptyTitle }}</p>
+            <p class="mt-1 max-w-sm text-sm leading-5 text-muted-foreground">
+              {{ emptyDescription }}
+            </p>
+            <slot name="empty-action" />
+          </div>
           <template v-else>
-            <template v-for="row in rows" :key="row.id">
-              <tr
-              class="group transition-colors hover:bg-muted/55 focus-within:bg-muted/55"
-              :class="row.getIsSelected() ? 'bg-primary/[0.045]' : ''"
+            <article
+              v-for="row in rows"
+              :key="row.id"
+              class="rounded-xl border border-border bg-card p-4 shadow-sm transition-colors active:bg-muted/50"
+              :class="row.getIsSelected() ? 'border-primary/40 bg-primary/[0.045]' : ''"
               tabindex="0"
               :aria-selected="row.getIsSelected()"
               @click="emit('row-click', row.original, $event)"
-              @dblclick="emit('row-double-click', row.original, $event)"
               @keydown.enter.prevent="emit('row-click', row.original, $event)"
               @contextmenu.prevent="openContextMenu($event, row)"
-              >
-              <td
-                v-for="cell in row.getVisibleCells()"
-                :key="cell.id"
-                class="h-[46px] border-b border-border align-middle text-foreground"
-                :class="[
-                  getColumnClasses(cell.column, 'body'),
-                  getBodyCellClasses(cell.column),
-                  getBodyCellStateClasses(cell.column),
-                  getResizingColumnClasses(cell.column, 'body'),
-                ]"
-                :style="getColumnStyle(cell.column)"
-                @dblclick.stop="startEditing(cell); focusEditInput()"
-              >
-                <template v-if="cell.column.id === SELECT_COLUMN_ID">
-                  <input
-                    :checked="cell.row.getIsSelected()"
-                    :disabled="!cell.row.getCanSelect()"
-                    class="size-3.5 rounded border-input text-primary focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                    type="checkbox"
-                    :aria-label="`Chọn dòng ${cell.row.id}`"
-                    @click.stop
-                    @change="cell.row.toggleSelected(($event.target as HTMLInputElement).checked)"
-                  />
-                </template>
-                <template v-else-if="cell.column.id === EXPAND_COLUMN_ID">
-                  <button
-                    v-if="hasSubRows ? cell.row.getCanExpand() : hasRowDetail"
-                    class="grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    type="button"
-                    :aria-expanded="hasSubRows ? cell.row.getIsExpanded() : isRowDetailExpanded(cell.row)"
-                    :aria-label="(hasSubRows ? cell.row.getIsExpanded() : isRowDetailExpanded(cell.row)) ? 'Thu gọn dòng' : 'Mở rộng dòng'"
-                    @click.stop="hasSubRows ? cell.row.toggleExpanded() : toggleRowDetail(cell.row)"
+            >
+              <div class="grid grid-cols-2 gap-x-4 gap-y-3">
+                <div v-for="cell in getMobileCells(row)" :key="cell.id" class="min-w-0">
+                  <p class="text-xs font-medium text-muted-foreground">
+                    {{ getColumnMeta(cell.column)?.label || cell.column.id }}
+                  </p>
+                  <div
+                    class="mt-1 min-w-0 text-sm font-medium text-foreground"
+                    :class="
+                      getColumnAlign(cell.column) === 'right' ? 'text-right tabular-nums' : ''
+                    "
                   >
-                    <ChevronRightIcon
-                      class="size-4 transition-transform"
-                      :class="(hasSubRows ? cell.row.getIsExpanded() : isRowDetailExpanded(cell.row)) ? 'rotate-90' : ''"
-                    />
-                  </button>
-                </template>
-                <template v-else-if="cell.column.id === ACTION_COLUMN_ID">
-                  <slot name="actions" :row="cell.row.original" :row-id="cell.row.id" :table="table" />
-                </template>
-                <template v-else-if="isEditing(cell)">
-                  <slot
-                    v-if="$slots['edit-cell']"
-                    name="edit-cell"
-                    :cell="cell"
-                    :value="editingValue"
-                    :update-value="(value: string) => (editingValue = value)"
-                    :save="() => saveEditing(cell)"
-                    :cancel="cancelEditing"
-                  />
-                  <input
-                    v-else
-                    v-model="editingValue"
-                    data-data-grid-editor="true"
-                    class="h-7 w-full rounded-md border border-ring bg-background px-2 text-sm outline-none ring-2 ring-ring/20"
-                    :type="getEditInputType(cell)"
-                    @blur="saveEditing(cell)"
-                    @keydown.enter.prevent="saveEditing(cell)"
-                    @keydown.esc.prevent="cancelEditing"
-                  />
-                </template>
-                <template v-else-if="cell.getIsGrouped()">
-                  <button
-                    class="flex min-w-0 items-center gap-1.5 font-semibold text-foreground"
-                    type="button"
-                    @click.stop="cell.row.toggleExpanded()"
-                  >
-                    <ChevronRightIcon class="size-3.5 shrink-0 transition-transform" :class="cell.row.getIsExpanded() ? 'rotate-90' : ''" />
                     <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
-                    <span class="text-xs font-medium text-muted-foreground">({{ cell.row.subRows.length }})</span>
-                  </button>
-                </template>
-                <div
-                  v-else-if="cell.getIsAggregated()"
-                  data-data-grid-cell-content
-                  :class="getCellContentClasses(cell.column)"
-                  :style="getCellContentStyle(cell.column)"
-                  :title="getCellTooltip(cell)"
-                >
-                  <FlexRender
-                    :render="cell.column.columnDef.aggregatedCell || cell.column.columnDef.cell"
-                    :props="cell.getContext()"
-                  />
+                  </div>
                 </div>
+              </div>
+              <div
+                v-if="showActions && $slots.actions"
+                class="mt-3 flex justify-end border-t border-border pt-2"
+                @click.stop
+              >
+                <slot name="actions" :row="row.original" :row-id="row.id" :table="table" />
+              </div>
+            </article>
+          </template>
+        </div>
+        <table
+          ref="tableElement"
+          class="w-full table-fixed border-separate border-spacing-0 text-left text-[13px]"
+          :class="mobileMode === 'cards' ? 'hidden sm:table' : ''"
+          :style="getTableSizingStyle()"
+        >
+          <thead class="sticky top-0 z-20 text-xs text-muted-foreground">
+            <tr v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
+              <th
+                v-for="header in headerGroup.headers"
+                :key="header.id"
+                :colspan="header.colSpan"
+                class="relative h-10 border-b border-border px-3 text-left font-semibold"
+                :class="[
+                  getColumnClasses(header.column, 'head'),
+                  getResizingColumnClasses(header.column, 'head'),
+                ]"
+                :style="getColumnStyle(header.column)"
+              >
+                <template v-if="!header.isPlaceholder">
+                  <div
+                    class="flex min-w-0 items-center gap-1"
+                    :class="canReorder(header.column) ? 'cursor-grab active:cursor-grabbing' : ''"
+                    :draggable="canReorder(header.column)"
+                    @dragstart="draggedColumnId = header.column.id"
+                    @dragover.prevent="canReorder(header.column)"
+                    @drop.prevent="toggleColumnOrder(header.column.id)"
+                    @dragend="draggedColumnId = null"
+                  >
+                    <GripVerticalIcon
+                      v-if="canReorder(header.column)"
+                      class="size-3 shrink-0 text-muted-foreground/55"
+                    />
+
+                    <template v-if="header.column.id === SELECT_COLUMN_ID">
+                      <input
+                        :checked="table.getIsAllPageRowsSelected()"
+                        :indeterminate="table.getIsSomePageRowsSelected()"
+                        class="size-3.5 rounded border-input text-primary focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        :disabled="!hasSelectableRows"
+                        type="checkbox"
+                        aria-label="Chọn tất cả dòng trong trang"
+                        @click.stop
+                        @change="
+                          table.toggleAllPageRowsSelected(
+                            ($event.target as HTMLInputElement).checked,
+                          )
+                        "
+                      />
+                    </template>
+                    <template v-else-if="header.column.id === EXPAND_COLUMN_ID">
+                      <span class="sr-only">Mở rộng dòng</span>
+                    </template>
+                    <template v-else-if="header.column.id === ACTION_COLUMN_ID">
+                      <span>Thao tác</span>
+                    </template>
+                    <button
+                      v-else-if="header.column.getCanSort()"
+                      class="-mx-1 flex min-w-0 items-center gap-1 rounded px-1 py-0.5 text-left hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      type="button"
+                      :title="`Sắp xếp theo ${getHeaderLabel(header)}`"
+                      @click="header.column.toggleSorting(header.column.getIsSorted() === 'asc')"
+                    >
+                      <FlexRender
+                        :render="header.column.columnDef.header"
+                        :props="header.getContext()"
+                      />
+                      <span class="shrink-0 text-primary" aria-hidden="true">
+                        {{
+                          header.column.getIsSorted() === 'asc'
+                            ? '↑'
+                            : header.column.getIsSorted() === 'desc'
+                              ? '↓'
+                              : ''
+                        }}
+                      </span>
+                    </button>
+                    <FlexRender
+                      v-else
+                      :render="header.column.columnDef.header"
+                      :props="header.getContext()"
+                    />
+                  </div>
+
+                  <button
+                    v-if="header.column.getCanResize()"
+                    class="data-grid-resizer"
+                    :class="isActiveResizingColumn(header.column) ? 'is-resizing' : ''"
+                    type="button"
+                    tabindex="-1"
+                    :aria-label="`Đổi độ rộng cột ${getHeaderLabel(header)}`"
+                    @dblclick.stop="header.column.resetSize()"
+                    @mousedown.stop="
+                      onResizeStart(header.column.id);
+                      header.getResizeHandler()?.($event)
+                    "
+                    @touchstart.stop="
+                      onResizeStart(header.column.id);
+                      header.getResizeHandler()?.($event)
+                    "
+                  />
+                </template>
+              </th>
+            </tr>
+
+            <tr v-if="filterRow">
+              <th
+                v-for="header in filterHeaders"
+                :key="`${header.id}-filter`"
+                class="h-10 border-b border-border px-2 py-1.5"
+                :class="[
+                  getColumnClasses(header.column, 'filter'),
+                  getResizingColumnClasses(header.column, 'filter'),
+                ]"
+                :style="getColumnStyle(header.column)"
+              >
+                <input
+                  v-if="
+                    header.column.getCanFilter() && !SYSTEM_COLUMN_IDS.includes(header.column.id)
+                  "
+                  :value="String(header.column.getFilterValue() || '')"
+                  class="h-7 w-full rounded-md border border-input bg-background px-2 text-xs text-foreground outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20"
+                  :placeholder="
+                    getColumnMeta(header.column)?.filterPlaceholder ||
+                    `Lọc ${getHeaderLabel(header).toLocaleLowerCase('vi-VN')}`
+                  "
+                  type="search"
+                  @input="setColumnFilter(header.column, $event)"
+                />
+              </th>
+            </tr>
+          </thead>
+
+          <tbody v-if="errorMessage">
+            <tr>
+              <td :colspan="leafColumns.length" class="p-0">
                 <div
-                  v-else-if="!cell.getIsPlaceholder()"
-                  data-data-grid-cell-content
-                  :class="getCellContentClasses(cell.column)"
-                  :style="getCellContentStyle(cell.column)"
-                  :title="getCellTooltip(cell)"
+                  class="m-4 flex items-start gap-3 rounded-lg border border-destructive/25 bg-destructive/5 p-4 text-sm"
                 >
-                  <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+                  <CircleAlertIcon class="mt-0.5 size-5 shrink-0 text-destructive" />
+                  <div class="min-w-0 flex-1">
+                    <p class="font-semibold text-foreground">Không thể tải dữ liệu</p>
+                    <p class="mt-0.5 text-muted-foreground">{{ errorMessage }}</p>
+                  </div>
+                  <Button size="sm" variant="outline" @click="emit('retry')">Thử lại</Button>
                 </div>
               </td>
-              </tr>
-              <tr v-if="isRowDetailExpanded(row)" data-data-grid-row-detail>
-                <td :colspan="leafColumns.length" class="border-b border-border bg-muted/35 px-3 py-3 align-top sm:px-5">
-                  <div class="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-                    <slot name="row-detail" :row="row.original" :row-id="row.id" />
+            </tr>
+          </tbody>
+
+          <tbody v-else-if="isInitialLoading && loadingMode === 'skeleton'" aria-busy="true">
+            <tr v-for="index in 6" :key="index">
+              <td
+                v-for="column in leafColumns"
+                :key="`${index}-${column.id}`"
+                class="h-[46px] border-b border-border px-3"
+                :class="getColumnClasses(column, 'body')"
+                :style="getColumnStyle(column)"
+              >
+                <div
+                  class="h-3 animate-pulse rounded bg-muted"
+                  :class="column.id === SELECT_COLUMN_ID ? 'w-4' : 'w-3/4'"
+                />
+              </td>
+            </tr>
+          </tbody>
+
+          <tbody v-else-if="!rows.length">
+            <tr>
+              <td :colspan="leafColumns.length" class="p-0">
+                <slot name="empty">
+                  <div
+                    class="flex min-h-56 flex-col items-center justify-center px-6 py-10 text-center"
+                  >
+                    <span
+                      class="grid size-10 place-items-center rounded-xl bg-muted text-muted-foreground"
+                    >
+                      <InboxIcon class="size-5" />
+                    </span>
+                    <p class="mt-3 text-sm font-semibold text-foreground">{{ emptyTitle }}</p>
+                    <p class="mt-1 max-w-sm text-sm leading-5 text-muted-foreground">
+                      {{ emptyDescription }}
+                    </p>
+                    <slot name="empty-action" />
+                  </div>
+                </slot>
+              </td>
+            </tr>
+          </tbody>
+
+          <tbody v-else>
+            <tr v-if="virtualOptions && topPadding" aria-hidden="true">
+              <td :colspan="leafColumns.length" :style="{ height: `${topPadding}px` }" />
+            </tr>
+
+            <template v-if="virtualOptions">
+              <tr
+                v-for="virtualRow in virtualRows"
+                :key="String(virtualRow.key)"
+                ref="measureRow"
+                :data-index="virtualRow.index"
+                class="group transition-colors hover:bg-muted/55 focus-within:bg-muted/55"
+                :class="getRowAt(virtualRow)?.getIsSelected() ? 'bg-primary/[0.045]' : ''"
+                tabindex="0"
+                :aria-selected="getRowAt(virtualRow)?.getIsSelected()"
+                @click="
+                  getRowAt(virtualRow) && emit('row-click', getRowAt(virtualRow)!.original, $event)
+                "
+                @dblclick="
+                  getRowAt(virtualRow) &&
+                  emit('row-double-click', getRowAt(virtualRow)!.original, $event)
+                "
+                @keydown.enter.prevent="
+                  getRowAt(virtualRow) && emit('row-click', getRowAt(virtualRow)!.original, $event)
+                "
+                @contextmenu.prevent="
+                  getRowAt(virtualRow) && openContextMenu($event, getRowAt(virtualRow)!)
+                "
+              >
+                <td
+                  v-for="cell in getRowAt(virtualRow)?.getVisibleCells() || []"
+                  :key="cell.id"
+                  class="h-[46px] border-b border-border align-middle text-foreground"
+                  :class="[
+                    getColumnClasses(cell.column, 'body'),
+                    getBodyCellClasses(cell.column),
+                    getBodyCellStateClasses(cell.column),
+                    getResizingColumnClasses(cell.column, 'body'),
+                  ]"
+                  :style="getColumnStyle(cell.column)"
+                  @dblclick.stop="
+                    startEditing(cell);
+                    focusEditInput()
+                  "
+                >
+                  <template v-if="cell.column.id === SELECT_COLUMN_ID">
+                    <input
+                      :checked="cell.row.getIsSelected()"
+                      :disabled="!cell.row.getCanSelect()"
+                      class="size-3.5 rounded border-input text-primary focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                      type="checkbox"
+                      :aria-label="`Chọn dòng ${cell.row.id}`"
+                      @click.stop
+                      @change="cell.row.toggleSelected(($event.target as HTMLInputElement).checked)"
+                    />
+                  </template>
+                  <template v-else-if="cell.column.id === EXPAND_COLUMN_ID">
+                    <button
+                      v-if="hasSubRows ? cell.row.getCanExpand() : hasRowDetail"
+                      class="grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      type="button"
+                      :aria-expanded="
+                        hasSubRows ? cell.row.getIsExpanded() : isRowDetailExpanded(cell.row)
+                      "
+                      :aria-label="
+                        (hasSubRows ? cell.row.getIsExpanded() : isRowDetailExpanded(cell.row))
+                          ? 'Thu gọn dòng'
+                          : 'Mở rộng dòng'
+                      "
+                      @click.stop="
+                        hasSubRows ? cell.row.toggleExpanded() : toggleRowDetail(cell.row)
+                      "
+                    >
+                      <ChevronRightIcon
+                        class="size-4 transition-transform"
+                        :class="
+                          (hasSubRows ? cell.row.getIsExpanded() : isRowDetailExpanded(cell.row))
+                            ? 'rotate-90'
+                            : ''
+                        "
+                      />
+                    </button>
+                  </template>
+                  <template v-else-if="cell.column.id === ACTION_COLUMN_ID">
+                    <slot
+                      name="actions"
+                      :row="cell.row.original"
+                      :row-id="cell.row.id"
+                      :table="table"
+                    />
+                  </template>
+                  <template v-else-if="isEditing(cell)">
+                    <slot
+                      v-if="$slots['edit-cell']"
+                      name="edit-cell"
+                      :cell="cell"
+                      :value="editingValue"
+                      :update-value="(value: string) => (editingValue = value)"
+                      :save="() => saveEditing(cell)"
+                      :cancel="cancelEditing"
+                    />
+                    <input
+                      v-else
+                      v-model="editingValue"
+                      data-data-grid-editor="true"
+                      class="h-7 w-full rounded-md border border-ring bg-background px-2 text-sm outline-none ring-2 ring-ring/20"
+                      :type="getEditInputType(cell)"
+                      @blur="saveEditing(cell)"
+                      @keydown.enter.prevent="saveEditing(cell)"
+                      @keydown.esc.prevent="cancelEditing"
+                    />
+                  </template>
+                  <template v-else-if="cell.getIsGrouped()">
+                    <button
+                      class="flex min-w-0 items-center gap-1.5 font-semibold text-foreground"
+                      type="button"
+                      @click.stop="cell.row.toggleExpanded()"
+                    >
+                      <ChevronRightIcon
+                        class="size-3.5 shrink-0 transition-transform"
+                        :class="cell.row.getIsExpanded() ? 'rotate-90' : ''"
+                      />
+                      <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+                      <span class="text-xs font-medium text-muted-foreground"
+                        >({{ cell.row.subRows.length }})</span
+                      >
+                    </button>
+                  </template>
+                  <div
+                    v-else-if="cell.getIsAggregated()"
+                    data-data-grid-cell-content
+                    :class="getCellContentClasses(cell.column)"
+                    :style="getCellContentStyle(cell.column)"
+                    :title="getCellTooltip(cell)"
+                  >
+                    <FlexRender
+                      :render="cell.column.columnDef.aggregatedCell || cell.column.columnDef.cell"
+                      :props="cell.getContext()"
+                    />
+                  </div>
+                  <div
+                    v-else-if="!cell.getIsPlaceholder()"
+                    data-data-grid-cell-content
+                    :class="getCellContentClasses(cell.column)"
+                    :style="getCellContentStyle(cell.column)"
+                    :title="getCellTooltip(cell)"
+                  >
+                    <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
                   </div>
                 </td>
               </tr>
             </template>
-          </template>
 
-          <tr v-if="virtualOptions && bottomPadding" aria-hidden="true">
-            <td :colspan="leafColumns.length" :style="{ height: `${bottomPadding}px` }" />
-          </tr>
-        </tbody>
-      </table>
+            <template v-else>
+              <template v-for="row in rows" :key="row.id">
+                <tr
+                  class="group transition-colors hover:bg-muted/55 focus-within:bg-muted/55"
+                  :class="row.getIsSelected() ? 'bg-primary/[0.045]' : ''"
+                  tabindex="0"
+                  :aria-selected="row.getIsSelected()"
+                  @click="emit('row-click', row.original, $event)"
+                  @dblclick="emit('row-double-click', row.original, $event)"
+                  @keydown.enter.prevent="emit('row-click', row.original, $event)"
+                  @contextmenu.prevent="openContextMenu($event, row)"
+                >
+                  <td
+                    v-for="cell in row.getVisibleCells()"
+                    :key="cell.id"
+                    class="h-[46px] border-b border-border align-middle text-foreground"
+                    :class="[
+                      getColumnClasses(cell.column, 'body'),
+                      getBodyCellClasses(cell.column),
+                      getBodyCellStateClasses(cell.column),
+                      getResizingColumnClasses(cell.column, 'body'),
+                    ]"
+                    :style="getColumnStyle(cell.column)"
+                    @dblclick.stop="
+                      startEditing(cell);
+                      focusEditInput()
+                    "
+                  >
+                    <template v-if="cell.column.id === SELECT_COLUMN_ID">
+                      <input
+                        :checked="cell.row.getIsSelected()"
+                        :disabled="!cell.row.getCanSelect()"
+                        class="size-3.5 rounded border-input text-primary focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        type="checkbox"
+                        :aria-label="`Chọn dòng ${cell.row.id}`"
+                        @click.stop
+                        @change="
+                          cell.row.toggleSelected(($event.target as HTMLInputElement).checked)
+                        "
+                      />
+                    </template>
+                    <template v-else-if="cell.column.id === EXPAND_COLUMN_ID">
+                      <button
+                        v-if="hasSubRows ? cell.row.getCanExpand() : hasRowDetail"
+                        class="grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        type="button"
+                        :aria-expanded="
+                          hasSubRows ? cell.row.getIsExpanded() : isRowDetailExpanded(cell.row)
+                        "
+                        :aria-label="
+                          (hasSubRows ? cell.row.getIsExpanded() : isRowDetailExpanded(cell.row))
+                            ? 'Thu gọn dòng'
+                            : 'Mở rộng dòng'
+                        "
+                        @click.stop="
+                          hasSubRows ? cell.row.toggleExpanded() : toggleRowDetail(cell.row)
+                        "
+                      >
+                        <ChevronRightIcon
+                          class="size-4 transition-transform"
+                          :class="
+                            (hasSubRows ? cell.row.getIsExpanded() : isRowDetailExpanded(cell.row))
+                              ? 'rotate-90'
+                              : ''
+                          "
+                        />
+                      </button>
+                    </template>
+                    <template v-else-if="cell.column.id === ACTION_COLUMN_ID">
+                      <slot
+                        name="actions"
+                        :row="cell.row.original"
+                        :row-id="cell.row.id"
+                        :table="table"
+                      />
+                    </template>
+                    <template v-else-if="isEditing(cell)">
+                      <slot
+                        v-if="$slots['edit-cell']"
+                        name="edit-cell"
+                        :cell="cell"
+                        :value="editingValue"
+                        :update-value="(value: string) => (editingValue = value)"
+                        :save="() => saveEditing(cell)"
+                        :cancel="cancelEditing"
+                      />
+                      <input
+                        v-else
+                        v-model="editingValue"
+                        data-data-grid-editor="true"
+                        class="h-7 w-full rounded-md border border-ring bg-background px-2 text-sm outline-none ring-2 ring-ring/20"
+                        :type="getEditInputType(cell)"
+                        @blur="saveEditing(cell)"
+                        @keydown.enter.prevent="saveEditing(cell)"
+                        @keydown.esc.prevent="cancelEditing"
+                      />
+                    </template>
+                    <template v-else-if="cell.getIsGrouped()">
+                      <button
+                        class="flex min-w-0 items-center gap-1.5 font-semibold text-foreground"
+                        type="button"
+                        @click.stop="cell.row.toggleExpanded()"
+                      >
+                        <ChevronRightIcon
+                          class="size-3.5 shrink-0 transition-transform"
+                          :class="cell.row.getIsExpanded() ? 'rotate-90' : ''"
+                        />
+                        <FlexRender
+                          :render="cell.column.columnDef.cell"
+                          :props="cell.getContext()"
+                        />
+                        <span class="text-xs font-medium text-muted-foreground"
+                          >({{ cell.row.subRows.length }})</span
+                        >
+                      </button>
+                    </template>
+                    <div
+                      v-else-if="cell.getIsAggregated()"
+                      data-data-grid-cell-content
+                      :class="getCellContentClasses(cell.column)"
+                      :style="getCellContentStyle(cell.column)"
+                      :title="getCellTooltip(cell)"
+                    >
+                      <FlexRender
+                        :render="cell.column.columnDef.aggregatedCell || cell.column.columnDef.cell"
+                        :props="cell.getContext()"
+                      />
+                    </div>
+                    <div
+                      v-else-if="!cell.getIsPlaceholder()"
+                      data-data-grid-cell-content
+                      :class="getCellContentClasses(cell.column)"
+                      :style="getCellContentStyle(cell.column)"
+                      :title="getCellTooltip(cell)"
+                    >
+                      <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+                    </div>
+                  </td>
+                </tr>
+                <tr v-if="isRowDetailExpanded(row)" data-data-grid-row-detail>
+                  <td
+                    :colspan="leafColumns.length"
+                    class="border-b border-border bg-muted/35 px-3 py-3 align-top sm:px-5"
+                  >
+                    <div class="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+                      <slot name="row-detail" :row="row.original" :row-id="row.id" />
+                    </div>
+                  </td>
+                </tr>
+              </template>
+            </template>
 
-      <div
-        v-if="showLoadingOverlay"
-        class="absolute inset-0 z-40 grid place-items-center bg-card/70 backdrop-blur-[1px]"
-        aria-live="polite"
-        aria-label="Đang tải dữ liệu"
-      >
-        <span class="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground shadow-sm">
-          <LoaderCircleIcon class="size-4 animate-spin text-primary" />
-          Đang tải dữ liệu
-        </span>
+            <tr v-if="virtualOptions && bottomPadding" aria-hidden="true">
+              <td :colspan="leafColumns.length" :style="{ height: `${bottomPadding}px` }" />
+            </tr>
+          </tbody>
+        </table>
+
+        <div
+          v-if="showLoadingOverlay"
+          class="absolute inset-0 z-40 grid place-items-center bg-card/70 backdrop-blur-[1px]"
+          aria-live="polite"
+          aria-label="Đang tải dữ liệu"
+        >
+          <span
+            class="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground shadow-sm"
+          >
+            <LoaderCircleIcon class="size-4 animate-spin text-primary" />
+            Đang tải dữ liệu
+          </span>
+        </div>
       </div>
-    </div>
 
-    <DataGridPagination
-      v-if="paginationOptions"
-      :table="table"
-      :pagination="pagination"
-      :page-size-options="paginationOptions.pageSizeOptions"
-      :page-count="pageCount"
-      :visible-from="visibleFrom"
-      :visible-to="visibleTo"
-      :total-rows="totalRows"
-    />
+      <DataGridPagination
+        v-if="paginationOptions"
+        :table="table"
+        :pagination="pagination"
+        :page-size-options="paginationOptions.pageSizeOptions"
+        :page-count="pageCount"
+        :visible-from="visibleFrom"
+        :visible-to="visibleTo"
+        :total-rows="totalRows"
+      />
 
-    <DataGridContextMenuPartial
-      :context-menu="contextMenu"
-      :has-content="Boolean($slots['context-menu'])"
-      :close="closeContextMenu"
-    >
-      <template #default="slotProps">
-        <slot name="context-menu" v-bind="slotProps" />
-      </template>
-    </DataGridContextMenuPartial>
+      <DataGridContextMenuPartial
+        :context-menu="contextMenu"
+        :has-content="Boolean($slots['context-menu'])"
+        :close="closeContextMenu"
+      >
+        <template #default="slotProps">
+          <slot name="context-menu" v-bind="slotProps" />
+        </template>
+      </DataGridContextMenuPartial>
     </div>
   </section>
 </template>
@@ -1409,7 +1653,9 @@ function focusEditInput(): void {
 .data-grid-resizer::before {
   background: var(--primary);
   border-radius: 999px;
-  box-shadow: 0 -4px 0 var(--primary), 0 4px 0 var(--primary);
+  box-shadow:
+    0 -4px 0 var(--primary),
+    0 4px 0 var(--primary);
   content: '';
   height: 2px;
   opacity: 0;

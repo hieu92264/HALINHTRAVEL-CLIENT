@@ -1,23 +1,18 @@
 import {
-  BusFrontIcon,
-  CarIcon,
+  BarChart3Icon,
   Building2Icon,
+  BusFrontIcon,
+  CalendarClockIcon,
+  ClipboardListIcon,
+  CircleUserRoundIcon,
+  HandCoinsIcon,
   HandshakeIcon,
   KeyRoundIcon,
   LayoutDashboardIcon,
   ListTreeIcon,
   MapPinnedIcon,
   ShieldCheckIcon,
-  TagIcon,
   UsersIcon,
-  BadgeDollarSignIcon,
-  RouteIcon,
-  CalendarClockIcon,
-  ClipboardListIcon,
-  FileTextIcon,
-  HandCoinsIcon,
-  WalletCardsIcon,
-  BarChart3Icon,
 } from '@lucide/vue'
 import type { Component } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
@@ -29,9 +24,9 @@ export type SidebarLeaf = {
   routeName: string
   icon: Component
   permission?: string
+  permissionsAll?: string[]
   roles?: string[]
 }
-
 export type SidebarGroup = {
   kind: 'group'
   id: string
@@ -39,69 +34,31 @@ export type SidebarGroup = {
   icon: Component
   items: SidebarLeaf[]
 }
-
 export type SidebarNavigationNode = SidebarLeaf | SidebarGroup
 
-const unorderedSidebarNavigation: SidebarNavigationNode[] = [
-  {
-    kind: 'item',
-    label: 'Tổng quan',
-    to: '/',
-    routeName: 'dashboard',
-    icon: LayoutDashboardIcon,
-  },
+export const sidebarNavigation: SidebarNavigationNode[] = [
+  { kind: 'item', label: 'Tổng quan', to: '/', routeName: 'dashboard', icon: LayoutDashboardIcon },
   {
     kind: 'group',
-    id: 'reports',
-    label: 'Báo cáo',
-    icon: BarChart3Icon,
-    items: [
-      { kind: 'item', label: 'Xe chạy công nhân', to: { name: 'report-fixed-trips' }, routeName: 'report-fixed-trips', icon: RouteIcon, permission: 'dispatch-orders.view' },
-      { kind: 'item', label: 'Xe chạy du lịch', to: { name: 'report-tourism-trips' }, routeName: 'report-tourism-trips', icon: BusFrontIcon, permission: 'dispatch-orders.view' },
-      { kind: 'item', label: 'Công nợ khách hàng', to: { name: 'report-customer-debts' }, routeName: 'report-customer-debts', icon: WalletCardsIcon, permission: 'receipts.view' },
-      { kind: 'item', label: 'Công nợ chủ xe', to: { name: 'report-partner-debts' }, routeName: 'report-partner-debts', icon: WalletCardsIcon, permission: 'partner-payments.view' },
-      { kind: 'item', label: 'Bảng lương lái xe', to: { name: 'report-driver-payroll' }, routeName: 'report-driver-payroll', icon: ClipboardListIcon, permission: 'payrolls.view' },
-      { kind: 'item', label: 'Lợi nhuận xe', to: { name: 'report-vehicle-profit' }, routeName: 'report-vehicle-profit', icon: BarChart3Icon, permission: 'payrolls.view' },
-    ],
-  },
-  {
-    kind: 'group',
-    id: 'dispatch',
-    label: 'Điều hành',
+    id: 'operations',
+    label: 'Quản lý chạy xe',
     icon: CalendarClockIcon,
     items: [
       {
         kind: 'item',
-        label: 'Lịch chuyến',
-        to: '/trip-schedules',
-        routeName: 'trip-schedules',
-        icon: CalendarClockIcon,
-        permission: 'trip-schedules.view',
+        label: 'Xe chạy công nhân',
+        to: { name: 'worker-vehicles' },
+        routeName: 'worker-vehicles',
+        icon: BusFrontIcon,
+        permission: 'worker-vehicles.view',
       },
       {
         kind: 'item',
-        label: 'Lệnh điều xe',
-        to: '/dispatch-orders',
-        routeName: 'dispatch-orders',
-        icon: FileTextIcon,
-        permission: 'dispatch-orders.view',
-      },
-    ],
-  },
-  {
-    kind: 'group',
-    id: 'driver-workspace',
-    label: 'Không gian tài xế',
-    icon: BusFrontIcon,
-    items: [
-      {
-        kind: 'item',
-        label: 'Lệnh của tôi',
-        to: '/my-dispatch-orders',
-        routeName: 'my-dispatch-orders',
-        icon: FileTextIcon,
-        permission: 'my-dispatch-orders.view',
-        roles: ['driver'],
+        label: 'Xe chạy du lịch',
+        to: { name: 'tourist-vehicles' },
+        routeName: 'tourist-vehicles',
+        icon: BusFrontIcon,
+        permission: 'tourist-vehicles.view',
       },
     ],
   },
@@ -129,22 +86,6 @@ const unorderedSidebarNavigation: SidebarNavigationNode[] = [
       },
       {
         kind: 'item',
-        label: 'Phân loại xe',
-        to: '/vehicle-types',
-        routeName: 'vehicle-types',
-        icon: TagIcon,
-        permission: 'vehicle-types.view',
-      },
-      {
-        kind: 'item',
-        label: 'Danh sách xe',
-        to: '/vehicles',
-        routeName: 'vehicles',
-        icon: CarIcon,
-        permission: 'vehicles.view',
-      },
-      {
-        kind: 'item',
         label: 'Tài xế',
         to: '/drivers',
         routeName: 'drivers',
@@ -164,80 +105,8 @@ const unorderedSidebarNavigation: SidebarNavigationNode[] = [
         label: 'Loại chi phí',
         to: '/expense-types',
         routeName: 'expense-types',
-        icon: BadgeDollarSignIcon,
+        icon: ListTreeIcon,
         permission: 'expense-types.view',
-      },
-      {
-        kind: 'item',
-        label: 'Tuyến đường',
-        to: '/routes',
-        routeName: 'routes',
-        icon: RouteIcon,
-        permission: 'routes.view',
-      },
-    ],
-  },
-  {
-    kind: 'group',
-    id: 'organization',
-    label: 'Quản lý hệ thống',
-    icon: Building2Icon,
-    items: [
-      {
-        kind: 'item',
-        label: 'Tài khoản',
-        to: '/users',
-        routeName: 'users',
-        icon: UsersIcon,
-        permission: 'users.view',
-      },
-      {
-        kind: 'item',
-        label: 'Vai trò',
-        to: '/roles',
-        routeName: 'roles',
-        icon: ShieldCheckIcon,
-        permission: 'roles.manage',
-      },
-      {
-        kind: 'item',
-        label: 'Quyền',
-        to: '/permissions',
-        routeName: 'permissions',
-        icon: KeyRoundIcon,
-        permission: 'permissions.view',
-      },
-    ],
-  },
-  {
-    kind: 'group',
-    id: 'rental',
-    label: 'Thuê xe',
-    icon: CarIcon,
-    items: [
-      {
-        kind: 'item',
-        label: 'Yêu cầu thuê xe',
-        to: { name: 'rental-requests' },
-        routeName: 'rental-requests',
-        icon: ClipboardListIcon,
-        permission: 'rental-requests.view',
-      },
-      {
-        kind: 'item',
-        label: 'Báo giá',
-        to: '/quotations',
-        routeName: 'quotations',
-        icon: FileTextIcon,
-        permission: 'quotations.view',
-      },
-      {
-        kind: 'item',
-        label: 'Hợp đồng',
-        to: { name: 'contracts' },
-        routeName: 'contracts',
-        icon: FileTextIcon,
-        permission: 'contracts.view',
       },
     ],
   },
@@ -252,7 +121,7 @@ const unorderedSidebarNavigation: SidebarNavigationNode[] = [
         label: 'Thu chi và công nợ',
         to: { name: 'finance' },
         routeName: 'finance',
-        icon: WalletCardsIcon,
+        icon: HandCoinsIcon,
         permission: 'receipts.view',
       },
       {
@@ -260,46 +129,62 @@ const unorderedSidebarNavigation: SidebarNavigationNode[] = [
         label: 'Chấm công và lương',
         to: { name: 'driver-payroll' },
         routeName: 'driver-payroll',
-        icon: ClipboardListIcon,
-        permission: 'driver-advances.view',
+        icon: CalendarClockIcon,
+        permission: 'driver-attendances.view',
+      },
+    ],
+  },
+  {
+    kind: 'group',
+    id: 'reports',
+    label: 'Báo cáo',
+    icon: BarChart3Icon,
+    items: [
+      { kind: 'item', label: 'Xe chạy công nhân', to: { name: 'report-business-trips' }, routeName: 'report-business-trips', icon: MapPinnedIcon, permission: 'worker-vehicles.view' },
+      { kind: 'item', label: 'Xe chạy du lịch', to: { name: 'report-tourism-trips' }, routeName: 'report-tourism-trips', icon: BusFrontIcon, permission: 'tourist-vehicles.view' },
+      { kind: 'item', label: 'Công nợ khách hàng', to: { name: 'report-customer-debts' }, routeName: 'report-customer-debts', icon: HandCoinsIcon, permission: 'receipts.view' },
+      { kind: 'item', label: 'Công nợ chủ xe', to: { name: 'report-partner-debts' }, routeName: 'report-partner-debts', icon: HandCoinsIcon, permission: 'partner-payments.view' },
+      { kind: 'item', label: 'Bảng lương lái xe', to: { name: 'report-driver-payroll' }, routeName: 'report-driver-payroll', icon: ClipboardListIcon, permission: 'payrolls.view' },
+      { kind: 'item', label: 'Lợi nhuận xe', to: { name: 'report-vehicle-profit' }, routeName: 'report-vehicle-profit', icon: BarChart3Icon, permissionsAll: ['worker-vehicles.view', 'tourist-vehicles.view', 'expenses.view', 'partner-payments.view', 'payrolls.view'] },
+    ],
+  },
+  {
+    kind: 'group',
+    id: 'organization',
+    label: 'Quản lý hệ thống',
+    icon: Building2Icon,
+    items: [
+      {
+        kind: 'item',
+        label: 'Quản lý người dùng',
+        to: '/users',
+        routeName: 'users',
+        icon: UsersIcon,
+        permission: 'users.view',
+      },
+      {
+        kind: 'item',
+        label: 'Quản lý vai trò',
+        to: '/roles',
+        routeName: 'roles',
+        icon: ShieldCheckIcon,
+        permission: 'roles.manage',
+      },
+      {
+        kind: 'item',
+        label: 'Quản lý phân quyền',
+        to: '/permissions',
+        routeName: 'permissions',
+        icon: KeyRoundIcon,
+        permission: 'permissions.view',
+      },
+      {
+        kind: 'item',
+        label: 'Đổi mật khẩu',
+        to: { name: 'change-password' },
+        routeName: 'change-password',
+        icon: CircleUserRoundIcon,
       },
     ],
   },
 ]
-
-const sidebarGroupOrder = [
-  'organization',
-  'dashboard',
-  'rental',
-  'dispatch',
-  'driver-workspace',
-  'finance',
-  'master-data',
-  'reports',
-]
-
-const masterDataOrder = [
-  'customers',
-  'partners',
-  'vehicle-types',
-  'vehicles',
-  'drivers',
-  'routes',
-  'expense-types',
-]
-
-const navigationOrder = (node: SidebarNavigationNode) =>
-  node.kind === 'item' ? sidebarGroupOrder.indexOf(node.routeName) : sidebarGroupOrder.indexOf(node.id)
-
-export const sidebarNavigation: SidebarNavigationNode[] = unorderedSidebarNavigation
-  .map((node) => {
-    if (node.kind !== 'group' || node.id !== 'master-data') return node
-
-    return {
-      ...node,
-      items: node.items
-        .filter((item, index, items) => item.routeName !== 'routes' || items.findIndex(({ routeName }) => routeName === item.routeName) === index)
-        .sort((a, b) => masterDataOrder.indexOf(a.routeName) - masterDataOrder.indexOf(b.routeName)),
-    }
-  })
-  .sort((a, b) => navigationOrder(a) - navigationOrder(b))

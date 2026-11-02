@@ -1,5 +1,7 @@
 import type { UserRow } from '@/services/user.service'
 import type { DataGridColumnDef } from '@/shared/components/data-grid'
+import { formatVietnameseDateTime } from '@/shared/helpers/date.helper'
+import { roleLabel } from '@/shared/lib/access-labels'
 
 export const userColumns: DataGridColumnDef<UserRow>[] = [
   {
@@ -30,7 +32,7 @@ export const userColumns: DataGridColumnDef<UserRow>[] = [
       const roles = getValue() as UserRow['roles']
       return (
         roles
-          ?.map((role) => (typeof role === 'string' ? role : role.name || ''))
+          ?.map((role) => roleLabel(typeof role === 'string' ? role : role.name || ''))
           .filter(Boolean)
           .join(', ') || '—'
       )
@@ -49,7 +51,7 @@ export const userColumns: DataGridColumnDef<UserRow>[] = [
   {
     accessorKey: 'created_at',
     header: 'Ngày tạo',
-    cell: ({ getValue }) => (getValue() as string | null) || '—',
+    cell: ({ getValue }) => formatVietnameseDateTime(getValue() as string | null),
     meta: { label: 'Ngày tạo' },
   },
 ]

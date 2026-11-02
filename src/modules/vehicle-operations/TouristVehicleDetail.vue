@@ -1,0 +1,173 @@
+<template>
+  <section v-if="run" class="mx-auto max-w-5xl space-y-6">
+    <header class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2">
+          <p class="text-sm font-medium text-primary">Xe chạy du lịch</p>
+          <span class="rounded-full px-2 py-1 text-xs font-medium" :class="statusClass">{{
+            statusLabel
+          }}</span>
+        </div>
+        <h1 class="mt-1 text-2xl font-semibold tracking-tight">{{ run.run_no }}</h1>
+        <p class="mt-1 text-sm text-muted-foreground">
+          {{ run.journey }} · {{ formatVietnameseDate(run.run_date) }} · {{ run.license_plate }}
+        </p>
+      </div>
+      <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+        <Button
+          class="w-full sm:w-auto"
+          variant="outline"
+          @click="router.push({ name: 'tourist-vehicles-edit', params: { id: run.id } })"
+          >Cập nhật</Button
+        ><Button
+          v-if="run.status === 'planned'"
+          class="w-full sm:w-auto"
+          :disabled="isSaving"
+          @click="start"
+          >Bắt đầu</Button
+        ><Button
+          v-if="run.status === 'in_progress'"
+          class="w-full sm:w-auto"
+          :disabled="isSaving"
+          @click="complete"
+          >Hoàn thành</Button
+        >
+      </div>
+    </header>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <Info label="Khách hàng" :value="run.customer_name ?? undefined" /><Info
+        label="Xe / lái xe"
+        :value="`${run.license_plate} · ${run.driver_name ?? run.hired_driver_name ?? 'Chưa phân công'}`"
+      /><Info
+        label="Kế hoạch"
+        :value="`${formatVietnameseDate(run.run_date)} ${run.pickup_time}${run.return_time ? ` — ${run.return_time}` : ''}`"
+      /><Info label="Bắt đầu thực tế" :value="formatDateTime(run.actual_started_at)" /><Info
+        label="Hoàn thành thực tế"
+        :value="formatDateTime(run.actual_completed_at)"
+      /><Info label="Đối tác xe" :value="run.partner_name ?? 'Xe công ty'" />
+    </div>
+    <div class="grid gap-5 rounded-xl border border-border bg-card p-5 shadow-sm sm:grid-cols-2">
+      <div>
+        <h2 class="text-base font-semibold">Snapshot tài chính</h2>
+        <dl class="mt-4 grid grid-cols-1 gap-4 text-sm min-[420px]:grid-cols-2">
+          <Money label="Cước xe" :value="run.freight_amount" /><Money
+            label="Tỷ lệ lương"
+            :value="`${Number(run.driver_wage_rate ?? 0) * 100}%`"
+          /><Money label="Lương lái" :value="money(run.driver_wage)" /><Money
+            label="Thuê xe đối tác"
+            :value="money(run.partner_vehicle_cost)"
+          />
+        </dl>
+      </div>
+      <div>
+        <h2 class="text-base font-semibold">Đối soát tại chuyến</h2>
+        <dl class="mt-4 grid grid-cols-1 gap-4 text-sm min-[420px]:grid-cols-2">
+          <Money label="Lái xe thu" :value="money(run.driver_collected_amount)" /><Money
+            label="Công ty thu"
+            :value="money(run.company_collected_amount)"
+          /><Money label="Lái xe nộp" :value="money(run.driver_remitted_amount)" /><Money
+            label="Lái xe chi"
+            :value="money(run.driver_expense_amount)"
+          />
+        </dl>
+      </div>
+    </div>
+    <div class="rounded-xl border border-border bg-card p-5 shadow-sm">
+      <h2 class="text-base font-semibold">Chấm công</h2>
+      <p v-if="run.attendance" class="mt-2 text-sm">
+        Đã tạo chấm công <span class="font-medium">{{ run.attendance.status }}</span> với lương
+        {{ money(run.attendance.calculated_wage) }}.
+      </p>
+      <p v-else class="mt-2 text-sm text-muted-foreground">
+        Chuyến chỉ tạo chấm công khi là xe công ty có lái xe nội bộ.
+      </p>
+    </div>
+  </section>
+  <section v-else class="grid min-h-64 place-items-center text-sm text-muted-foreground">
+    Đang tải chuyến chạy…
+  </section>
+</template>
+
+<script setup lang="ts">
+import { VehicleOperationsService, type VehicleRun } from '@/services/vehicle-operations.service'
+import { formatVietnameseDate, formatVietnameseDateTime } from '@/shared/helpers/date.helper'
+import { Button } from '@/shared/components/ui/button'
+import { computed, defineComponent, h, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
+
+const Info = defineComponent({
+  props: { label: { type: String, required: true }, value: { type: String, default: '' } },
+  setup(props) {
+    return () =>
+      h('article', { class: 'rounded-xl border border-border bg-card p-4 shadow-sm' }, [
+        h('p', { class: 'text-sm text-muted-foreground' }, props.label),
+        h('p', { class: 'mt-1 font-medium' }, props.value || '—'),
+      ])
+  },
+})
+const Money = defineComponent({
+  props: { label: { type: String, required: true }, value: { type: String, required: true } },
+  setup(props) {
+    return () =>
+      h('div', [
+        h('dt', { class: 'text-muted-foreground' }, props.label),
+        h('dd', { class: 'mt-1 font-semibold tabular-nums' }, props.value),
+      ])
+  },
+})
+const route = useRoute()
+const router = useRouter()
+const run = ref<VehicleRun | null>(null)
+const isSaving = ref(false)
+const statusLabel = computed(
+  () =>
+    ({ planned: 'Kế hoạch', in_progress: 'Đang chạy', completed: 'Hoàn tất', cancelled: 'Đã hủy' })[
+      run.value?.status ?? ''
+    ] ?? '—',
+)
+const statusClass = computed(
+  () =>
+    ({
+      planned: 'bg-muted text-muted-foreground',
+      in_progress: 'bg-warning/10 text-warning',
+      completed: 'bg-success/10 text-success',
+      cancelled: 'bg-destructive/10 text-destructive',
+    })[run.value?.status ?? ''] ?? 'bg-muted',
+)
+const money = (value?: string) =>
+  new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0))
+const formatDateTime = formatVietnameseDateTime
+async function load() {
+  run.value = await VehicleOperationsService.touristRun(Number(route.params.id))
+}
+async function start() {
+  isSaving.value = true
+  try {
+    await VehicleOperationsService.startTouristRun(run.value!.id)
+    toast.success('Đã bắt đầu chuyến')
+    await load()
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : 'Không thể bắt đầu chuyến')
+  } finally {
+    isSaving.value = false
+  }
+}
+async function complete() {
+  isSaving.value = true
+  try {
+    await VehicleOperationsService.completeTouristRun(run.value!.id)
+    toast.success('Đã hoàn thành chuyến')
+    await load()
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : 'Không thể hoàn thành chuyến')
+  } finally {
+    isSaving.value = false
+  }
+}
+onMounted(load)
+</script>

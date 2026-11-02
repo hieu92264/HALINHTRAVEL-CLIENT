@@ -119,13 +119,6 @@ export const driverColumns: DataGridColumnDef<Driver>[] = [
     meta: { label: 'Ngày hết hạn GPLX', filterPlaceholder: 'Ngày hết hạn GPLX...' },
   },
   {
-    accessorKey: 'base_salary',
-    header: 'Lương cơ bản',
-    cell: ({ row }) => row.original.base_salary || '—',
-    width: 112,
-    meta: { label: 'Lương cơ bản', filterPlaceholder: 'Lương cơ bản...' },
-  },
-  {
     accessorKey: 'responsibility_allowance',
     header: 'Phụ cấp trách nhiệm',
     cell: ({ row }) => row.original.responsibility_allowance || '—',

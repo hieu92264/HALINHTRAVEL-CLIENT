@@ -1,307 +1,261 @@
-<script setup lang="ts">
-import type { ReportExportFormat, ReportFilters, ReportKind } from './report.types'
-import { getDetailFilters, getReportDetailConfig, type ReportRow } from './report-detail.config'
-import { ReportService } from '@/services/report.service'
-import { useAuthStore } from '@/modules/auth/auth.store'
-import { DataGrid, type DataGridColumnDef, type DataGridDataSource } from '@/shared/components/data-grid'
-import { Button } from '@/shared/components/ui/button'
-import { Input } from '@/shared/components/ui/input'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
-import { computed, ref, watch } from 'vue'
-import { useQuery } from '@tanstack/vue-query'
-import { CircleAlert, Download, LoaderCircle, RefreshCw } from '@lucide/vue'
-import { useRoute } from 'vue-router'
-import { toast } from 'vue-sonner'
-import { formatDate, formatMoney } from '@/modules/finance/finance.format'
-import { createReportColumn, createReportTotals, formatReportValue } from './report.presentation'
-
-const props = defineProps<{ kind: ReportKind }>()
-const auth = useAuthStore()
-const route = useRoute()
-const now = new Date()
-const first = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10)
-const last = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10)
-const filters = ref<ReportFilters>({ from_date: first, to_date: last, basis: 'accrual' })
-const financeTab = ref('cashflow')
-const expandedRowId = ref<string | null>(null)
-
-const detailConfig = computed(() => getReportDetailConfig(props.kind))
-const exportFormat = computed<ReportExportFormat>(() =>
-  [
-    'fixed-trips',
-    'tourism-trips',
-    'customer-debts',
-    'customer-debt-details',
-    'partner-debts',
-    'partner-debt-details',
-    'driver-payroll',
-    'driver-payroll-details',
-    'vehicle-profit',
-  ].includes(props.kind)
-    ? 'docx'
-    : 'xlsx',
-)
-const exportLabel = computed(() => (exportFormat.value === 'docx' ? 'Xuất Word' : 'Xuất Excel'))
-const title = computed(
-  () =>
-    ({
-      'fixed-trips': 'Báo cáo xe chạy công nhân',
-      'tourism-trips': 'Báo cáo xe chạy du lịch',
-      finance: 'Thu chi, chi phí và công nợ',
-      'customer-debts': 'Công nợ khách hàng',
-      'customer-debt-details': 'Chi tiết công nợ khách hàng',
-      'partner-debts': 'Công nợ chủ xe',
-      'partner-debt-details': 'Chi tiết công nợ chủ xe',
-      'driver-payroll': 'Bảng lương lái xe',
-      'driver-payroll-details': 'Chi tiết lương lái xe',
-      'vehicle-profit': 'Báo cáo lợi nhuận xe',
-      'profit-loss': 'Báo cáo lợi nhuận',
-    })[props.kind],
-)
-const slug = computed(() => (props.kind === 'finance' ? financeTab.value : props.kind))
-const query = useQuery({
-  queryKey: computed(() => ['reports', slug.value, filters.value]),
-  queryFn: () => ReportService.get(slug.value, filters.value),
-})
-const summaryRows = computed<ReportRow[]>(() => query.data.value?.rows ?? [])
-
-function getSummaryRowId(row: ReportRow, index: number): string {
-  const config = detailConfig.value
-  return String(row.id ?? (config ? row[config.filterKey] : undefined) ?? index)
-}
-
-const selectedSummaryRow = computed(() => {
-  if (!expandedRowId.value) return undefined
-  return summaryRows.value.find((row, index) => getSummaryRowId(row, index) === expandedRowId.value)
-})
-const detailRequest = computed(() => {
-  const config = detailConfig.value
-  const row = selectedSummaryRow.value
-  if (!config || !row) return undefined
-
-  const detailFilters = getDetailFilters(filters.value, config, row)
-  return detailFilters ? { config, filters: detailFilters } : undefined
-})
-const detailQuery = useQuery({
-  queryKey: computed(() => {
-    const request = detailRequest.value
-    return request
-      ? ['report-row-detail', request.config.detailKind, request.filters]
-      : ['report-row-detail', 'idle']
-  }),
-  queryFn: () => {
-    const request = detailRequest.value
-    if (!request) throw new Error('Không xác định được dòng cần xem chi tiết.')
-    return ReportService.get(request.config.detailKind, request.filters)
-  },
-  enabled: computed(() => Boolean(detailRequest.value)),
-})
-
-const customerDebtDetailColumns: DataGridColumnDef<ReportRow>[] = [
-  { accessorKey: 'stt', header: 'STT', meta: { label: 'STT' } },
-  { accessorKey: 'date', header: 'Ngày', meta: { label: 'Ngày' }, cell: ({ getValue }) => formatDate(String(getValue() ?? '')) },
-  {
-    id: 'description',
-    header: 'Diễn giải/Hành trình',
-    meta: { label: 'Diễn giải/Hành trình' },
-    cell: ({ row }) =>
-      [formatReportValue('type', row.original.type), row.original.journey]
-        .filter((value) => value !== '—')
-        .join(' ') || '—',
-  },
-  { accessorKey: 'vehicle_plate', header: 'Biển số', meta: { label: 'Biển số' } },
-  { accessorKey: 'pickup_time', header: 'Giờ đón', meta: { label: 'Giờ đón' } },
-  { accessorKey: 'return_time', header: 'Giờ về', meta: { label: 'Giờ về' } },
-  { accessorKey: 'note', header: 'Ghi chú', meta: { label: 'Ghi chú' } },
-  { accessorKey: 'debit', header: 'Nợ phát sinh', meta: { label: 'Nợ phát sinh' }, cell: ({ getValue }) => formatMoney(Number(getValue() ?? 0)) },
-  { accessorKey: 'credit', header: 'Có phát sinh', meta: { label: 'Có phát sinh' }, cell: ({ getValue }) => formatMoney(Number(getValue() ?? 0)) },
-  { accessorKey: 'balance', header: 'Nợ cuối kỳ', meta: { label: 'Nợ cuối kỳ' }, cell: ({ getValue }) => formatMoney(Number(getValue() ?? 0)) },
-]
-
-function createDynamicColumns(rows: ReportRow[]): DataGridColumnDef<ReportRow>[] {
-  return Object.keys(rows[0] ?? {})
-    .filter((key) => !['id', 'schedule_id', 'details', 'expense_breakdown'].includes(key))
-    .map(createReportColumn)
-}
-
-const columns = computed(() => createDynamicColumns(summaryRows.value))
-const detailColumns = computed<DataGridColumnDef<ReportRow>[]>(() => {
-  if (detailRequest.value?.config.detailKind === 'customer-debt-details') return customerDebtDetailColumns
-  return createDynamicColumns(detailQuery.data.value?.rows ?? [])
-})
-const source = computed<DataGridDataSource<ReportRow>>(() => ({
-  data: summaryRows.value,
-  isLoading: query.isLoading.value,
-  isFetching: query.isFetching.value,
-  error: query.error.value,
-}))
-const detailSource = computed<DataGridDataSource<ReportRow>>(() => ({
-  data: detailQuery.data.value?.rows ?? [],
-  isLoading: detailQuery.isLoading.value,
-  isFetching: detailQuery.isFetching.value,
-  error: detailQuery.error.value,
-}))
-const totals = computed(() => createReportTotals(query.data.value?.totals ?? {}))
-const detailTotals = computed(() => createReportTotals(detailQuery.data.value?.totals ?? {}))
-
-const can = (permission: string) => auth.user?.permissions.includes(permission) ?? false
-type FinanceTab = [string, string]
-const financeTabs = computed<FinanceTab[]>(() => {
-  const tabs: Array<FinanceTab | null> = [
-    can('receipts.view') && can('expenses.view') && can('partner-payments.view') && can('driver-advances.view')
-      ? ['cashflow', 'Thu chi']
-      : null,
-    can('expenses.view') ? ['expenses', 'Chi phí'] : null,
-    can('receipts.view') ? ['customer-debts', 'Công nợ khách'] : null,
-    can('partner-payments.view') ? ['partner-debts', 'Công nợ đối tác'] : null,
-  ]
-  return tabs.filter((tab): tab is FinanceTab => tab !== null)
-})
-watch(
-  financeTabs,
-  (tabs) => {
-    const firstTab = tabs[0]
-    if (props.kind === 'finance' && firstTab && !tabs.some(([value]) => value === financeTab.value))
-      financeTab.value = firstTab[0]
-  },
-  { immediate: true },
-)
-watch(filters, () => (expandedRowId.value = null), { deep: true })
-watch(
-  [summaryRows, detailConfig, () => route.query],
-  () => {
-    const config = detailConfig.value
-    const requestedId = config && route.query[config.filterKey]
-    if (!config || expandedRowId.value || typeof requestedId !== 'string') return
-    const index = summaryRows.value.findIndex((row) => String(row[config.filterKey]) === requestedId)
-    const row = index >= 0 ? summaryRows.value[index] : undefined
-    if (row) expandedRowId.value = getSummaryRowId(row, index)
-  },
-  { immediate: true },
-)
-
-function reset() {
-  filters.value = { from_date: first, to_date: last, basis: 'accrual' }
-}
-
-async function downloadReport(
-  reportSlug: string,
-  reportFilters: ReportFilters,
-  format: ReportExportFormat,
-  errorMessage: string,
-) {
-  try {
-    const file = await ReportService.download(reportSlug, reportFilters, format)
-    const url = URL.createObjectURL(file.blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = file.filename
-    link.click()
-    URL.revokeObjectURL(url)
-  } catch (error) {
-    toast.error(error instanceof Error ? error.message : errorMessage)
-  }
-}
-
-function download() {
-  return downloadReport(slug.value, filters.value, exportFormat.value, `Không thể xuất ${exportLabel.value}.`)
-}
-
-function downloadDetail() {
-  const request = detailRequest.value
-  if (!request) return
-  return downloadReport(
-    request.config.detailKind,
-    request.filters,
-    'docx',
-    `Không thể ${request.config.exportLabel.toLocaleLowerCase('vi-VN')}.`,
-  )
-}
-</script>
-
 <template>
   <section class="space-y-5">
-    <header class="flex flex-wrap items-end justify-between gap-3">
+    <header class="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-5">
       <div>
-        <h1 class="text-2xl font-semibold">{{ title }}</h1>
-        <p class="mt-1 text-sm text-muted-foreground">Đối soát dữ liệu vận hành và tài chính theo kỳ.</p>
+        <p class="text-sm font-medium text-primary">Báo cáo</p>
+        <h1 class="mt-1 text-2xl font-semibold tracking-tight">{{ definition.title }}</h1>
+        <p class="mt-1 text-sm text-muted-foreground">{{ definition.description }}</p>
       </div>
-      <Button :disabled="query.isFetching.value" @click="download"><Download class="size-4" />{{ exportLabel }}</Button>
+      <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end">
+        <label class="grid gap-1 text-xs font-medium text-muted-foreground">Từ ngày<Input v-model="filters.from_date" type="date" class="h-9 min-w-40" /></label>
+        <label class="grid gap-1 text-xs font-medium text-muted-foreground">Đến ngày<Input v-model="filters.to_date" type="date" class="h-9 min-w-40" /></label>
+        <Button variant="outline" :disabled="query.isFetching.value" @click="query.refetch()"><RefreshCw class="size-4" />Cập nhật</Button>
+        <Button :disabled="query.isFetching.value" @click="download(definition.slug)"><Download class="size-4" />Xuất Word</Button>
+      </div>
     </header>
 
-    <Tabs v-if="kind === 'finance'" v-model="financeTab">
-      <TabsList><TabsTrigger v-for="tab in financeTabs" :key="tab[0]" :value="tab[0]">{{ tab[1] }}</TabsTrigger></TabsList>
-      <TabsContent :value="financeTab" />
-    </Tabs>
-
-    <div class="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-4">
-      <label class="grid gap-1 text-sm">Từ ngày<Input v-model="filters.from_date" type="date" /></label>
-      <label class="grid gap-1 text-sm">Đến ngày<Input v-model="filters.to_date" type="date" /></label>
-      <label v-if="kind === 'profit-loss'" class="grid gap-1 text-sm">Cơ sở<select v-model="filters.basis" class="h-9 rounded-md border bg-background px-3"><option value="accrual">Dồn tích</option><option value="cash">Tiền mặt</option></select></label>
-      <Button variant="outline" @click="reset">Đặt lại</Button>
-      <Button variant="outline" @click="query.refetch()"><RefreshCw class="size-4" />Cập nhật</Button>
-    </div>
-
-    <div v-if="totals.length" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <article v-for="total in totals" :key="total.key" class="rounded-lg border bg-card p-4">
-        <p class="text-xs text-muted-foreground">{{ total.label }}</p>
-        <p class="mt-1 text-lg font-semibold tabular-nums">{{ total.value }}</p>
+    <div v-if="query.data.value" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <article v-for="item in totals" :key="item.key" class="rounded-xl border bg-card p-4">
+        <p class="text-xs font-medium text-muted-foreground">{{ item.label }}</p>
+        <p class="mt-1 text-xl font-semibold tabular-nums">{{ money(item.value) }}</p>
       </article>
     </div>
 
     <DataGrid
-      v-model:expanded-row-id="expandedRowId"
+      v-if="hasInlineDetails"
+      v-model:expanded-row-id="expandedDebtRowId"
       :data-source="source"
       :columns="columns"
-      :pagination="{ mode: 'client', pageSize: 25, pageSizeOptions: [25, 50, 100] }"
+      :pagination="pagination"
       filter-row
       global-filter
-      :get-row-id="getSummaryRowId"
-      :persist="{ key: `report-${slug}`, url: true, queryPrefix: 'report' }"
-      empty-title="Không có dữ liệu trong kỳ"
-      empty-description="Thử điều chỉnh khoảng thời gian hoặc bộ lọc."
+      mobile-mode="cards"
+      :get-row-id="rowId"
+      :persist="{ key: `report-${kind}`, url: true }"
+      empty-title="Không có dữ liệu báo cáo"
+      empty-description="Thử thay đổi khoảng thời gian hoặc kiểm tra dữ liệu vận hành đã hoàn tất."
+      @update:expanded-row-id="selectExpandedDebtRow"
+      @filters-change="clearDetail"
+      @global-filter-change="clearDetail"
       @retry="query.refetch()"
     >
-      <template v-if="detailConfig" #row-detail>
-        <section class="space-y-4 p-4 sm:p-5" aria-live="polite">
-          <header class="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+      <template #row-detail="{ row }">
+        <section class="overflow-hidden rounded-lg border border-border bg-card">
+          <header class="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/35 px-4 py-3">
             <div>
-              <h2 class="text-base font-semibold text-foreground">{{ detailConfig.label }}</h2>
-              <p class="mt-0.5 text-sm text-muted-foreground">Đối chiếu các khoản phát sinh của dòng đang chọn.</p>
+              <h2 class="text-sm font-semibold text-foreground">{{ definition.detail?.label }}</h2>
+              <p class="mt-0.5 text-sm text-muted-foreground">
+                {{ detailSubjectLabel(row) }} trong khoảng thời gian đã chọn.
+              </p>
             </div>
-            <Button size="sm" variant="outline" :disabled="!detailRequest || detailQuery.isFetching.value" @click="downloadDetail"><Download class="size-4" />{{ detailConfig.exportLabel }}</Button>
+            <Button
+              size="sm"
+              :disabled="detailQuery.isFetching.value || !selected"
+              @click="download(definition.detail!.slug, true)"
+            >
+              <Download class="size-4" />Xuất Word chi tiết
+            </Button>
           </header>
-
-          <div v-if="!detailRequest" class="flex items-start gap-3 rounded-md border border-destructive/25 bg-destructive/5 p-3 text-sm">
-            <CircleAlert class="mt-0.5 size-4 shrink-0 text-destructive" />
-            <p>Không tìm thấy mã định danh để tải chi tiết cho dòng này.</p>
-          </div>
-          <template v-else>
-            <div v-if="detailQuery.isLoading.value" class="flex items-center gap-2 py-2 text-sm text-muted-foreground"><LoaderCircle class="size-4 animate-spin text-primary" />Đang tải chi tiết…</div>
-            <div v-else-if="detailQuery.error.value" class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-destructive/25 bg-destructive/5 p-3 text-sm">
-              <span class="flex items-center gap-2"><CircleAlert class="size-4 text-destructive" />Không thể tải chi tiết.</span>
-              <Button size="sm" variant="outline" @click="detailQuery.refetch()">Thử lại</Button>
-            </div>
-            <template v-else>
-              <div v-if="detailTotals.length" class="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                <div v-for="total in detailTotals" :key="total.key" class="rounded-md border border-border bg-muted/35 px-3 py-2">
-                  <p class="text-xs text-muted-foreground">{{ total.label }}</p>
-                  <p class="mt-0.5 text-sm font-semibold tabular-nums">{{ total.value }}</p>
-                </div>
-              </div>
-              <DataGrid
-                :data-source="detailSource"
-                :columns="detailColumns"
-                :pagination="{ mode: 'client', pageSize: 10, pageSizeOptions: [10, 25, 50] }"
-                :get-row-id="(row, index) => String(row.id ?? index)"
-                empty-title="Không có chi tiết trong kỳ"
-                empty-description="Dòng tổng hợp này chưa có khoản phát sinh phù hợp."
-                @retry="detailQuery.refetch()"
-              />
-            </template>
-          </template>
+          <DataGrid
+            class="rounded-none border-x-0 border-b-0"
+            :data-source="detailSource"
+            :columns="detailColumns"
+            :pagination="pagination"
+            filter-row
+            global-filter
+            mobile-mode="cards"
+            :get-row-id="detailRowId"
+            empty-title="Chưa có phát sinh công nợ"
+            empty-description="Không có chứng từ phù hợp với đối tượng và khoảng thời gian này."
+            @retry="detailQuery.refetch()"
+          />
         </section>
       </template>
     </DataGrid>
+
+    <DataGrid
+      v-else
+      :data-source="source"
+      :columns="columns"
+      :pagination="pagination"
+      filter-row
+      global-filter
+      mobile-mode="cards"
+      :get-row-id="rowId"
+      :persist="{ key: `report-${kind}`, url: true }"
+      empty-title="Không có dữ liệu báo cáo"
+      empty-description="Thử thay đổi khoảng thời gian hoặc kiểm tra dữ liệu vận hành đã hoàn tất."
+      @filters-change="clearDetail"
+      @global-filter-change="clearDetail"
+      @retry="query.refetch()"
+    />
+
+    <section v-if="definition.detail && !hasInlineDetails" class="rounded-xl border bg-card">
+      <header class="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
+        <div><h2 class="font-semibold">{{ definition.detail.label }}</h2><p class="text-sm text-muted-foreground">Chọn một dòng ở bảng tổng hợp để xem phát sinh và xuất Word chi tiết.</p></div>
+        <Button v-if="selected" size="sm" :disabled="detailQuery.isFetching.value" @click="download(definition.detail.slug, true)"><Download class="size-4" />Xuất Word chi tiết</Button>
+      </header>
+      <DataGrid :data-source="detailSource" :columns="detailColumns" :pagination="pagination" filter-row global-filter mobile-mode="cards" :get-row-id="(row) => String(row.stt ?? row.document_no ?? row.worker_run_no ?? row.tourist_run_no ?? JSON.stringify(row))" empty-title="Chưa chọn dòng báo cáo" empty-description="Chọn “Xem chi tiết” ở bảng phía trên." @retry="detailQuery.refetch()" />
+    </section>
   </section>
 </template>
+
+<script setup lang="ts">
+import { computed, h, reactive, ref, watch } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
+import { Download, Eye, RefreshCw } from '@lucide/vue'
+import { toast } from 'vue-sonner'
+import { Button } from '@/shared/components/ui/button'
+import { Input } from '@/shared/components/ui/input'
+import { DataGrid, type DataGridColumnDef, type DataGridDataSource } from '@/shared/components/data-grid'
+import { ReportService } from '@/services/report.service'
+import { formatDate, formatMoney } from '@/modules/finance/finance.format'
+import type { ReportFilters, ReportKind, ReportResponse, ReportRow } from './reports.types'
+
+const props = defineProps<{ kind: ReportKind }>()
+const today = new Date()
+const filters = reactive<ReportFilters>({ from_date: `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`, to_date: today.toISOString().slice(0, 10) })
+const selected = ref<ReportRow | null>(null)
+const expandedDebtRowId = ref<string | null>(null)
+const definitions: Record<ReportKind, { title: string; description: string; slug: string; detail?: { slug: string; key: 'customer_id' | 'partner_id' | 'payroll_id'; label: string } }> = {
+  'business-trips': { title: 'Báo cáo xe chạy công nhân', description: 'Các chuyến công nhân hoàn tất theo kỳ.', slug: 'business-trips' },
+  'tourism-trips': { title: 'Báo cáo xe chạy du lịch', description: 'Các chuyến du lịch hoàn tất và đối soát thu tiền.', slug: 'tourism-trips' },
+  'customer-debts': { title: 'Công nợ khách hàng', description: 'Doanh thu chuyến hoàn tất trừ phiếu thu khách hàng.', slug: 'customer-debt-summary', detail: { slug: 'customer-debt-details', key: 'customer_id', label: 'Chi tiết công nợ khách hàng' } },
+  'partner-debts': { title: 'Công nợ chủ xe', description: 'Chi phí thuê xe đối tác trừ chứng từ đã chi trả.', slug: 'partner-debt-summary', detail: { slug: 'partner-debt-details', key: 'partner_id', label: 'Chi tiết công nợ chủ xe' } },
+  'driver-payroll': { title: 'Bảng lương lái xe', description: 'Kỳ lương từ chấm công xe công nhân và xe du lịch.', slug: 'driver-payroll', detail: { slug: 'driver-payroll-details', key: 'payroll_id', label: 'Chi tiết lương lái xe' } },
+  'vehicle-profit': { title: 'Lợi nhuận xe', description: 'Doanh thu và chi phí theo biển số xe trong kỳ.', slug: 'vehicle-profit' },
+}
+const definition = computed(() => definitions[props.kind])
+const hasInlineDetails = computed(
+  () =>
+    props.kind === 'customer-debts' ||
+    props.kind === 'partner-debts' ||
+    props.kind === 'driver-payroll',
+)
+const query = useQuery({ queryKey: computed(() => ['restored-report', definition.value.slug, { ...filters }]), queryFn: () => ReportService.get(definition.value.slug, filters) })
+const detailParameters = computed<ReportFilters | null>(() => {
+  const detail = definition.value.detail
+  if (!detail || !selected.value?.[detail.key]) return null
+  return { ...filters, [detail.key]: String(selected.value[detail.key]) }
+})
+const detailQuery = useQuery({ queryKey: computed(() => ['restored-report-detail', definition.value.detail?.slug, detailParameters.value]), queryFn: () => ReportService.get(definition.value.detail!.slug, detailParameters.value!), enabled: computed(() => detailParameters.value !== null) })
+const money = (value: unknown) => formatMoney(Number(value ?? 0))
+const isMoney = (key: string) => /amount|wage|revenue|cost|profit|balance|received|paid|debit|credit|salary|commission|allowance|advance|remitted|collected|receivable/i.test(key)
+const reportFieldLabels: Record<string, string> = {
+  account_code: 'Mã tài khoản',
+  advance_amount: 'Tạm ứng',
+  base_amount: 'Mức lương cơ bản',
+  closing_balance: 'Dư cuối kỳ',
+  code: 'Mã',
+  commission: 'Hoa hồng',
+  completed_at: 'Hoàn thành lúc',
+  customer_code: 'Mã khách hàng',
+  customer_name: 'Khách hàng',
+  date: 'Ngày',
+  description: 'Diễn giải',
+  document_date: 'Ngày chứng từ',
+  document_no: 'Số chứng từ',
+  driver_name: 'Tài xế',
+  driver_wage: 'Lương lái xe',
+  expense_date: 'Ngày chi',
+  expense_no: 'Số phiếu chi',
+  expense_type_name: 'Loại chi phí',
+  fixed_trip_amount: 'Cước xe công nhân',
+  freight_amount: 'Cước xe',
+  gross_salary: 'Tổng lương',
+  incurred_amount: 'Phát sinh',
+  is_active: 'Trạng thái',
+  journey: 'Hành trình',
+  license_plate: 'Biển số',
+  name: 'Tên',
+  net_salary: 'Thực lĩnh',
+  opening_balance: 'Dư đầu kỳ',
+  paid_amount: 'Đã chi',
+  paid_at: 'Ngày thanh toán',
+  partner_code: 'Mã chủ xe',
+  partner_name: 'Chủ xe',
+  payment_method: 'Phương thức thanh toán',
+  payment_no: 'Số phiếu thanh toán',
+  payroll_code: 'Mã bảng lương',
+  profit: 'Lợi nhuận',
+  rate: 'Tỷ lệ',
+  received_amount: 'Đã thu',
+  received_at: 'Ngày thu',
+  receipt_no: 'Số phiếu thu',
+  return_date: 'Ngày về',
+  return_time: 'Giờ trả',
+  revenue: 'Doanh thu',
+  route_code: 'Mã tuyến đường',
+  route_name: 'Tuyến đường',
+  run_date: 'Ngày chạy',
+  run_no: 'Mã chuyến',
+  shift_name: 'Ca làm việc',
+  source_type: 'Nguồn công',
+  status: 'Trạng thái',
+  tourism_trip_amount: 'Cước xe du lịch',
+  vehicle_type_name: 'Loại xe',
+  work_date: 'Ngày công',
+  work_units: 'Số công',
+  year: 'Năm',
+  month: 'Tháng',
+}
+const label = (key: string) => {
+  if (key === 'code') {
+    if (props.kind === 'customer-debts') return 'Mã khách hàng'
+    if (props.kind === 'partner-debts') return 'Mã chủ xe'
+  }
+  if (key === 'name') {
+    if (props.kind === 'customer-debts') return 'Tên khách hàng'
+    if (props.kind === 'partner-debts') return 'Tên chủ xe'
+  }
+
+  return reportFieldLabels[key] ?? `Dữ liệu (${key})`
+}
+function formatReportCell(key: string, value: unknown): string {
+  if (key === 'is_active' && typeof value === 'boolean')
+    return value ? 'Đang hoạt động' : 'Ngừng hoạt động'
+  if (key === 'date' || /(_date|_at)$/.test(key)) return formatDate(String(value ?? ''))
+  if (isMoney(key)) return money(value)
+  return String(value ?? '—')
+}
+const createColumns = (rows: ReportRow[]): DataGridColumnDef<ReportRow>[] =>
+  Object.keys(rows[0] ?? {})
+    .filter((key) => !/^(id|.*_id|stt)$/.test(key))
+    .slice(0, 12)
+    .map((key) => ({
+      accessorKey: key,
+      header: label(key),
+      width: isMoney(key) ? 145 : 165,
+      cell: ({ getValue }: { getValue: () => unknown }) => formatReportCell(key, getValue()),
+      meta: { label: label(key) },
+    }))
+const columns = computed<DataGridColumnDef<ReportRow>[]>(() => [
+  ...createColumns(query.data.value?.rows ?? []),
+  ...(definition.value.detail && !hasInlineDetails.value ? [{ id: 'detail', header: 'Thao tác', fixed: 'right' as const, enableColumnFilter: false, cell: ({ row }: { row: { original: ReportRow } }) => h(Button, { size: 'sm', variant: 'outline', onClick: () => { selected.value = row.original } }, () => [h(Eye, { class: 'mr-1 size-4' }), 'Xem chi tiết']), meta: { label: 'Thao tác' } }] : []),
+])
+const detailColumns = computed(() => createColumns(detailQuery.data.value?.rows ?? []))
+const source = computed<DataGridDataSource<ReportRow>>(() => ({ data: query.data.value?.rows ?? [], isLoading: query.isLoading.value, isFetching: query.isFetching.value, error: query.error.value }))
+const detailSource = computed<DataGridDataSource<ReportRow>>(() => ({ data: detailQuery.data.value?.rows ?? [], isLoading: detailQuery.isLoading.value, isFetching: detailQuery.isFetching.value, error: detailQuery.error.value }))
+const totals = computed(() => Object.entries(query.data.value?.totals ?? {}).slice(0, 4).map(([key, value]) => ({ key, label: label(key), value })))
+const pagination = { mode: 'client' as const, pageSize: 20, pageSizeOptions: [20, 50, 100] }
+const rowId = (row: ReportRow) => String(row.run_no ?? row.payroll_id ?? row.customer_id ?? row.partner_id ?? row.vehicle_plate ?? JSON.stringify(row))
+const detailRowId = (row: ReportRow) =>
+  String(row.stt ?? row.document_no ?? row.worker_run_no ?? row.tourist_run_no ?? JSON.stringify(row))
+function clearDetail() {
+  expandedDebtRowId.value = null
+  selected.value = null
+}
+function selectExpandedDebtRow(rowId: string | null) {
+  expandedDebtRowId.value = rowId
+  selected.value =
+    rowId === null ? null : (query.data.value?.rows.find((row) => rowId === rowIdForReport(row)) ?? null)
+}
+function rowIdForReport(row: ReportRow) {
+  return rowId(row)
+}
+function detailSubjectLabel(row: ReportRow): string {
+  return String(row.customer_name ?? row.partner_name ?? row.name ?? 'Đối tượng đã chọn')
+}
+watch(() => [filters.from_date, filters.to_date, props.kind], clearDetail)
+async function download(slug: string, detail = false) { try { const parameters = detail ? detailParameters.value : { ...filters }; if (!parameters) return; const file = await ReportService.download(slug, parameters); const url = URL.createObjectURL(file.blob); const link = document.createElement('a'); link.href = url; link.download = file.filename; link.click(); URL.revokeObjectURL(url) } catch { toast.error('Không thể xuất Word báo cáo.') } }
+</script>

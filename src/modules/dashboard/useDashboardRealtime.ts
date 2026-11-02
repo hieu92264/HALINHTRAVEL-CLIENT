@@ -26,10 +26,8 @@ export function useDashboardRealtime(onUpdated: (event: DashboardUpdatedEvent) =
   const connect = () => {
     const authStore = useAuthStore()
     const canSubscribe = authStore.user?.permissions.some((permission) => [
-      'trip-schedules.view',
-      'trip-assignments.view',
-      'dispatch-orders.view',
-      'vehicles.view',
+      'worker-vehicles.view',
+      'tourist-vehicles.view',
       'drivers.view',
       'receipts.view',
       'expenses.view',

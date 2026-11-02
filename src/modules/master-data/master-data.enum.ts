@@ -16,14 +16,6 @@ export enum OwnershipTypeEnum {
   INDIVIDUAL = 'partner', // đối tác
 }
 
-export enum VehicleStatusEnum {
-  AVAILABLE = 'available',
-  ASSIGNED = 'assigned',
-  MAINTENANCE = 'maintenance',
-  INACTIVE = 'inactive',
-  OTHER = 'other',
-}
-
 export enum ExpenseTypeEnum {
   VEHICLE = 'vehicle',
   TRIP = 'trip',
