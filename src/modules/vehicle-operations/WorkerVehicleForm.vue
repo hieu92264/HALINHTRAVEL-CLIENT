@@ -132,6 +132,7 @@ import { DriverService } from '@/services/driver.service'
 import { RouteService } from '@/services/route.service'
 import { VehicleService } from '@/services/vehicle.service'
 import { VehicleOperationsService } from '@/services/vehicle-operations.service'
+import { toDateInputValue, toTimeInputValue } from '@/shared/helpers/date.helper'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
@@ -215,15 +216,24 @@ onMounted(async () => {
   routes.value = routeList
   drivers.value = driverList
   vehicles.value = vehicleList
-  if (isEdit.value)
-    Object.assign(form, await VehicleOperationsService.workerRun(Number(route.params.id)))
+  if (isEdit.value) {
+    const saved = await VehicleOperationsService.workerRun(Number(route.params.id))
+    Object.assign(form, {
+      ...saved,
+      run_date: toDateInputValue(saved.run_date),
+      pickup_time: toTimeInputValue(saved.pickup_time),
+      return_time: toTimeInputValue(saved.return_time),
+    })
+    // Bản ghi lịch sử chưa có vehicle_id vẫn chọn được xe trùng biển số nếu danh mục đã có.
+    if (!form.vehicle_id)
+      form.vehicle_id = vehicles.value.find((vehicle) => vehicle.license_plate === saved.license_plate)?.id ?? null
+  }
 })
 async function save() {
   isSaving.value = true
   try {
     const payload = {
       ...form,
-      schedule_rule_id: null,
       return_time: form.return_time || null,
       driver_id: form.is_hired_driver ? null : form.driver_id,
       partner_id: form.is_company_vehicle ? null : form.partner_id,

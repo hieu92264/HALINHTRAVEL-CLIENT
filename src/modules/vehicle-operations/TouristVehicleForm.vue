@@ -172,6 +172,7 @@ import { CustomerService } from '@/services/customer.service'
 import { DriverService } from '@/services/driver.service'
 import { VehicleService } from '@/services/vehicle.service'
 import { VehicleOperationsService } from '@/services/vehicle-operations.service'
+import { toDateInputValue, toTimeInputValue } from '@/shared/helpers/date.helper'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
@@ -270,8 +271,18 @@ onMounted(async () => {
   customers.value = customerList
   drivers.value = driverList
   vehicles.value = vehicleList
-  if (isEdit.value)
-    Object.assign(form, await VehicleOperationsService.touristRun(Number(route.params.id)))
+  if (isEdit.value) {
+    const saved = await VehicleOperationsService.touristRun(Number(route.params.id))
+    Object.assign(form, {
+      ...saved,
+      run_date: toDateInputValue(saved.run_date),
+      return_date: toDateInputValue(saved.return_date),
+      pickup_time: toTimeInputValue(saved.pickup_time),
+      return_time: toTimeInputValue(saved.return_time),
+    })
+    if (!form.vehicle_id)
+      form.vehicle_id = vehicles.value.find((vehicle) => vehicle.license_plate === saved.license_plate)?.id ?? null
+  }
   recalculateWage()
 })
 async function save() {

@@ -142,6 +142,13 @@
         /></label>
       </div>
 
+      <div class="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <h2 class="text-base font-semibold">Ghi chú điều hành</h2>
+        <label class="field mt-4"
+          >Ghi chú<textarea v-model.trim="form.note" class="control min-h-24 py-2" />
+        </label>
+      </div>
+
       <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Button type="button" variant="outline" class="w-full sm:w-auto" @click="router.back()"
           >Hủy</Button
@@ -169,6 +176,7 @@ import { DriverService } from '@/services/driver.service'
 import { RouteService } from '@/services/route.service'
 import { VehicleService } from '@/services/vehicle.service'
 import { VehicleOperationsService } from '@/services/vehicle-operations.service'
+import { toDateInputValue, toTimeInputValue } from '@/shared/helpers/date.helper'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
@@ -285,8 +293,8 @@ onMounted(async () => {
       driver_id: saved.driver_id ?? null,
       partner_id: saved.partner_id ?? null,
       shift_name: saved.shift_name,
-      effective_from: saved.effective_from,
-      effective_to: saved.effective_to ?? '',
+      effective_from: toDateInputValue(saved.effective_from),
+      effective_to: toDateInputValue(saved.effective_to),
       pickup_location: saved.pickup_location,
       dropoff_location: saved.dropoff_location,
       is_company_vehicle: saved.is_company_vehicle,
@@ -296,11 +304,13 @@ onMounted(async () => {
       hired_driver_cost: saved.hired_driver_cost ?? '',
       note: saved.note ?? '',
     })
+    if (!form.vehicle_id)
+      form.vehicle_id = vehicles.value.find((vehicle) => vehicle.license_plate === saved.license_plate)?.id ?? null
     for (const day of saved.days)
       Object.assign(dayState(day.weekday), {
         enabled: true,
-        pickup_time: day.pickup_time,
-        return_time: day.return_time ?? '',
+        pickup_time: toTimeInputValue(day.pickup_time),
+        return_time: toTimeInputValue(day.return_time),
       })
   }
 })
@@ -314,7 +324,7 @@ async function save() {
       partner_id: form.is_company_vehicle ? null : form.partner_id,
       hired_driver_name: form.is_hired_driver ? form.hired_driver_name : null,
       hired_driver_cost:
-        form.is_hired_driver && form.hired_driver_cost ? Number(form.hired_driver_cost) : null,
+        form.is_hired_driver && form.hired_driver_cost ? Number(form.hired_driver_cost) : 0,
       days: selectedDays.value.map((day) => ({
         weekday: day.value,
         pickup_time: dayState(day.value).pickup_time,

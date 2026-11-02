@@ -109,6 +109,7 @@
 <script setup lang="ts">
 import type { Route, Vehicle } from '@/modules/master-data/master-data.type'
 import { ApiError } from '@/shared/lib/api-error'
+import { toDateInputValue } from '@/shared/helpers/date.helper'
 import { Button } from '@/shared/components/ui/button'
 import {
   Dialog,
@@ -154,8 +155,8 @@ watch(
       license_plate: props.rate?.license_plate ?? '',
       freight_amount: props.rate?.freight_amount ?? '',
       driver_wage: props.rate?.driver_wage ?? '',
-      effective_from: props.rate?.effective_from ?? '',
-      effective_to: props.rate?.effective_to ?? '',
+      effective_from: toDateInputValue(props.rate?.effective_from),
+      effective_to: toDateInputValue(props.rate?.effective_to),
     })
   },
   { immediate: true },

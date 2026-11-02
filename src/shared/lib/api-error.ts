@@ -11,13 +11,17 @@ function toVietnameseMessage(message: unknown, fallback = fallbackMessage): stri
 }
 
 function normalizeFieldErrors(
-  errors: Record<string, string[]> | undefined,
+  errors: unknown,
 ): Record<string, string[]> {
+  if (!errors || typeof errors !== 'object' || Array.isArray(errors)) return {}
+
   return Object.fromEntries(
-    Object.entries(errors ?? {}).map(([field, messages]) => [
-      field,
-      messages.map((message) => toVietnameseMessage(message, fallbackFieldMessage)),
-    ]),
+    Object.entries(errors).flatMap(([field, messages]) => {
+      const values = Array.isArray(messages) ? messages : typeof messages === 'string' ? [messages] : []
+      if (!values.length) return []
+
+      return [[field, values.map((message) => toVietnameseMessage(message, fallbackFieldMessage))]]
+    }),
   )
 }
 
@@ -38,8 +42,8 @@ export function toApiError(error: unknown): ApiError {
   if (error instanceof AxiosError) {
     const response = error.response?.data as
       | (Partial<ResponseBody<unknown>> & {
-          errors?: Record<string, string[]>
-          metadata?: Record<string, string[]>
+          errors?: unknown
+          metadata?: unknown
         })
       | undefined
     return new ApiError(
