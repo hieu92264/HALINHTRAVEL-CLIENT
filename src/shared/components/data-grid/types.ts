@@ -21,9 +21,14 @@ export interface DataGridColumnMeta<TData extends RowData, TValue> {
   inputType?: 'text' | 'number' | 'date'
   /** Placeholder cho bộ lọc của cột. */
   filterPlaceholder?: string
+  /** Cách hiển thị cột khi DataGrid chuyển sang thẻ trên màn hình nhỏ. */
+  mobile?: 'primary' | 'secondary' | 'hidden'
 }
 
-export type DataGridColumnDef<TData extends RowData, TValue = unknown> = ColumnDef<TData, TValue> & {
+export type DataGridColumnDef<TData extends RowData, TValue = unknown> = ColumnDef<
+  TData,
+  TValue
+> & {
   /** Chiều rộng ban đầu của cột (px). Ưu tiên hơn `size` của TanStack và vẫn có thể resize. */
   width?: number
   /** Chiều rộng tối thiểu khi resize (px). Ưu tiên hơn `minSize` của TanStack. */

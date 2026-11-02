@@ -1,10 +1,11 @@
 <template>
   <Dialog v-model:open="open"
-    ><DialogContent class="sm:max-w-lg"
+    ><DialogContent class="max-h-[calc(100svh-2rem)] overflow-y-auto sm:max-w-lg"
       ><DialogHeader
         ><DialogTitle>{{ row ? 'Cập nhật tạm ứng' : 'Tạo tạm ứng' }}</DialogTitle
         ><DialogDescription
-          >Chỉ tài xế công ty đang hoạt động được tạm ứng lương; phiếu chỉ sửa được khi chờ xác nhận.</DialogDescription
+          >Chỉ tài xế công ty đang hoạt động được tạm ứng lương; phiếu chỉ sửa được khi chờ xác
+          nhận.</DialogDescription
         ></DialogHeader
       >
       <form class="space-y-4" @submit.prevent="submit">
@@ -18,10 +19,19 @@
             <option v-for="driver in drivers.data.value ?? []" :key="driver.id" :value="driver.id">
               {{ driver.full_name }} · {{ driver.code }}
             </option>
-          </select></label>
-        <p v-if="row && (row.driver_type !== 'company' || !row.driver_is_active)" class="text-sm text-destructive">Tài xế hiện tại không đủ điều kiện tạm ứng. Hãy chọn tài xế công ty đang hoạt động hoặc ngừng hoạt động phiếu.</p>
-        <p v-if="drivers.isError.value" class="text-sm text-destructive">Không thể tải danh sách tài xế đủ điều kiện.</p
-        ><label class="grid gap-1.5 text-sm font-medium"
+          </select></label
+        >
+        <p
+          v-if="row && (row.driver_type !== 'company' || !row.driver_is_active)"
+          class="text-sm text-destructive"
+        >
+          Tài xế hiện tại không đủ điều kiện tạm ứng. Hãy chọn tài xế công ty đang hoạt động hoặc
+          ngừng hoạt động phiếu.
+        </p>
+        <p v-if="drivers.isError.value" class="text-sm text-destructive">
+          Không thể tải danh sách tài xế đủ điều kiện.
+        </p>
+        <label class="grid gap-1.5 text-sm font-medium"
           >Ngày tạm ứng<Input v-model="form.advance_date" type="date" required /></label
         ><label class="grid gap-1.5 text-sm font-medium"
           >Số tiền<Input v-model="form.amount" type="number" min="0" step="1" required /></label
@@ -31,12 +41,20 @@
             rows="3"
             class="rounded-md border bg-background px-3 py-2 text-sm font-normal"
           /></label
-        ><DialogFooter
-          ><Button type="button" variant="outline" :disabled="pending" @click="open = false"
+        ><DialogFooter class="flex-col-reverse gap-2 sm:flex-row"
+          ><Button
+            type="button"
+            class="w-full sm:w-auto"
+            variant="outline"
+            :disabled="pending"
+            @click="open = false"
             >Hủy</Button
-          ><Button type="submit" :disabled="pending || !eligibleSelection">{{
-            pending ? 'Đang lưu...' : 'Lưu tạm ứng'
-          }}</Button></DialogFooter
+          ><Button
+            type="submit"
+            class="w-full sm:w-auto"
+            :disabled="pending || !eligibleSelection"
+            >{{ pending ? 'Đang lưu...' : 'Lưu tạm ứng' }}</Button
+          ></DialogFooter
         >
       </form></DialogContent
     ></Dialog
@@ -69,14 +87,20 @@ const emit = defineEmits<{
     },
   ]
 }>()
-const drivers = useQuery({ queryKey: ['driver-payroll', 'eligible-drivers'], queryFn: DriverPayrollService.getEligibleAdvanceDrivers, enabled: () => props.open })
+const drivers = useQuery({
+  queryKey: ['driver-payroll', 'eligible-drivers'],
+  queryFn: DriverPayrollService.getEligibleAdvanceDrivers,
+  enabled: () => props.open,
+})
 const form = reactive({
   driver_id: null as number | null,
   advance_date: '',
   amount: '',
   description: '',
 })
-const eligibleSelection = computed(() => (drivers.data.value ?? []).some((driver) => driver.id === form.driver_id))
+const eligibleSelection = computed(() =>
+  (drivers.data.value ?? []).some((driver) => driver.id === form.driver_id),
+)
 const open = computed({
   get: () => props.open,
   set: (value: boolean) => {

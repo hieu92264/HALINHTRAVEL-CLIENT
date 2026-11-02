@@ -16,7 +16,7 @@
       >
     </header>
     <Tabs v-model="activeTab" class="space-y-4"
-      ><TabsList
+      ><TabsList class="max-w-full overflow-x-auto whitespace-nowrap"
         ><TabsTrigger value="advances">Tạm ứng</TabsTrigger
         ><TabsTrigger value="attendances">Chấm công chuyến</TabsTrigger
         ><TabsTrigger value="payrolls">Kỳ lương</TabsTrigger></TabsList
@@ -28,6 +28,7 @@
           filter-row
           global-filter
           show-actions
+          mobile-mode="cards"
           :get-row-id="(row) => String(row.id)"
           :persist="{ key: 'driver-advances', url: true, queryPrefix: 'advance' }"
           empty-title="Chưa có tạm ứng"
@@ -35,7 +36,18 @@
           @retry="advances.refetch()"
           ><template #actions="{ row }"
             ><div class="flex h-full items-center justify-center gap-1" v-if="canManage">
-              <span v-if="row.status === 'pending' && (row.driver_type !== 'company' || !row.driver_is_active)" class="text-xs text-destructive">{{ row.driver_type === 'partner' ? 'Tài xế đối tác do đối tác trả lương' : 'Tài xế không còn hoạt động' }}</span>
+              <span
+                v-if="
+                  row.status === 'pending' &&
+                  (row.driver_type !== 'company' || !row.driver_is_active)
+                "
+                class="text-xs text-destructive"
+                >{{
+                  row.driver_type === 'partner'
+                    ? 'Tài xế đối tác do đối tác trả lương'
+                    : 'Tài xế không còn hoạt động'
+                }}</span
+              >
               <Button
                 v-if="row.status === 'pending'"
                 variant="ghost"
@@ -48,7 +60,13 @@
                 variant="ghost"
                 size="icon-xs"
                 :disabled="row.driver_type !== 'company' || !row.driver_is_active"
-                :title="row.driver_type === 'partner' ? 'Tài xế đối tác do đối tác trả lương' : !row.driver_is_active ? 'Tài xế không còn hoạt động' : 'Xác nhận'"
+                :title="
+                  row.driver_type === 'partner'
+                    ? 'Tài xế đối tác do đối tác trả lương'
+                    : !row.driver_is_active
+                      ? 'Tài xế không còn hoạt động'
+                      : 'Xác nhận'
+                "
                 @click="confirmation = { type: 'advance', id: row.id }"
                 ><CircleCheck class="size-4 text-success" /></Button
               ><Button
@@ -67,6 +85,7 @@
           filter-row
           global-filter
           show-actions
+          mobile-mode="cards"
           :get-row-id="(row) => String(row.id)"
           :persist="{ key: 'driver-attendances', url: true, queryPrefix: 'attendance' }"
           empty-title="Chưa có công chuyến"
@@ -90,6 +109,7 @@
           filter-row
           global-filter
           show-actions
+          mobile-mode="cards"
           :get-row-id="(row) => String(row.id)"
           :persist="{ key: 'payrolls', url: true, queryPrefix: 'payroll' }"
           empty-title="Chưa có kỳ lương"

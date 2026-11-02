@@ -63,6 +63,54 @@ describe('DataGrid', () => {
     wrapper.unmount()
   })
 
+  it('renders compact cards and hides the dense table below the mobile breakpoint when requested', () => {
+    const wrapper = mount(DataGrid<Row>, {
+      props: {
+        columns: [
+          {
+            ...columns[0]!,
+            meta: { label: 'Email', mobile: 'primary' },
+          },
+        ],
+        dataSource: { data: [{ id: 1, email: 'mobile@example.test' }] },
+        getRowId: (row) => String(row.id),
+        mobileMode: 'cards',
+      },
+    })
+
+    expect(wrapper.get('article').text()).toContain('Email')
+    expect(wrapper.get('article').text()).toContain('mobile@example.test')
+    expect(wrapper.get('table').classes()).toEqual(expect.arrayContaining(['hidden', 'sm:table']))
+
+    wrapper.unmount()
+  })
+
+  it('keeps mobile loading, empty and error states out of the dense table', () => {
+    const baseProps = {
+      columns,
+      getRowId: (row: Row) => String(row.id),
+      mobileMode: 'cards' as const,
+    }
+    const loading = mount(DataGrid<Row>, {
+      props: { ...baseProps, dataSource: { data: [], isLoading: true } },
+    })
+    const empty = mount(DataGrid<Row>, {
+      props: { ...baseProps, dataSource: { data: [] }, emptyTitle: 'Không có chuyến' },
+    })
+    const failed = mount(DataGrid<Row>, {
+      props: { ...baseProps, dataSource: { data: [], error: new Error('Mất kết nối') } },
+    })
+
+    expect(loading.findAll('[class*="animate-pulse"]')).not.toHaveLength(0)
+    expect(empty.text()).toContain('Không có chuyến')
+    expect(failed.text()).toContain('Mất kết nối')
+    expect(failed.find('table').classes()).toEqual(expect.arrayContaining(['hidden', 'sm:table']))
+
+    loading.unmount()
+    empty.unmount()
+    failed.unmount()
+  })
+
   it('renders the column picker as an accessible popup instead of persistent details', async () => {
     const column = {
       id: 'email',
