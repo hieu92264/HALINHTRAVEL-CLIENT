@@ -1,60 +1,47 @@
 <template>
   <section class="space-y-5">
-    <header>
-      <h1 class="text-2xl font-semibold">{{ title }}</h1>
-      <p class="mt-1 text-sm text-muted-foreground">
-        Theo dõi chuyến chạy, biển số, tài xế và cước đã chốt.
-      </p>
+    <header class="flex flex-wrap items-start justify-between gap-4">
+      <div><p class="text-sm font-medium text-primary">Điều hành xe chạy</p><h1 class="mt-1 text-2xl font-semibold tracking-tight">{{ title }}</h1><p class="mt-1 text-sm text-muted-foreground">Tìm nhanh, lọc từng cột, sắp xếp và phân trang danh sách chuyến chạy.</p></div>
+      <Button v-if="kind === 'worker'" @click="router.push({ name: 'worker-vehicles-create' })"><Plus class="size-4" />Tạo chuyến ngoại lệ</Button>
     </header>
-    <div class="overflow-hidden rounded-lg border border-border bg-card">
-      <table class="w-full text-sm">
-        <thead class="bg-muted/50 text-left text-muted-foreground">
-          <tr>
-            <th class="p-3">Mã chạy</th>
-            <th class="p-3">Ngày giờ</th>
-            <th class="p-3">Xe / lái xe</th>
-            <th class="p-3">Hành trình</th>
-            <th class="p-3 text-right">Cước</th>
-            <th class="p-3">Trạng thái</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="run in runs" :key="run.id" class="border-t border-border">
-            <td class="p-3 font-medium">{{ run.run_no }}</td>
-            <td class="p-3">{{ run.run_date }} · {{ run.pickup_time }}</td>
-            <td class="p-3">
-              <div class="font-medium">{{ run.license_plate }}</div>
-              <div class="text-muted-foreground">{{ run.driver_name || 'Chưa có lái xe' }}</div>
-            </td>
-            <td class="p-3">{{ run.route_name || run.journey || '—' }}</td>
-            <td class="p-3 text-right tabular-nums">{{ currency(run.freight_amount) }}</td>
-            <td class="p-3">{{ label(run.status) }}</td>
-          </tr>
-          <tr v-if="!runs.length">
-            <td class="p-8 text-center text-muted-foreground" colspan="6">Chưa có xe chạy.</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+
+    <DataGrid :data-source="dataSource" :columns="columns" :get-row-id="(run) => String(run.id)" :pagination="{ mode: 'client', pageSize: 25 }" filtering-mode="client" sorting-mode="client" filter-row global-filter show-actions height="calc(100svh - 260px)" :persist="{ key: `${kind}-vehicle-runs`, url: true }" empty-title="Chưa có chuyến chạy" empty-description="Các chuyến phù hợp với điều kiện lọc sẽ hiển thị tại đây." @row-click="openRun" @retry="load">
+      <template #toolbar-end><Button size="sm" variant="outline" :disabled="isLoading" @click="load"><RefreshCw class="size-4" :class="isLoading ? 'animate-spin' : ''" />Làm mới</Button></template>
+      <template #actions="{ row }"><Button v-if="kind === 'worker'" variant="ghost" size="sm" @click.stop="openRun(row)"><span class="sr-only">Xem chi tiết</span><ArrowUpRight class="size-4" /></Button></template>
+    </DataGrid>
   </section>
 </template>
+
 <script setup lang="ts">
 import { VehicleOperationsService, type VehicleRun } from '@/services/vehicle-operations.service'
-import { computed, onMounted, ref } from 'vue'
+import { DataGrid, type DataGridColumnDef, type DataGridDataSource } from '@/shared/components/data-grid'
+import { Button } from '@/shared/components/ui/button'
+import { ArrowUpRight, Plus, RefreshCw } from '@lucide/vue'
+import { computed, h, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+
 const props = defineProps<{ kind: 'worker' | 'tourist' }>()
+const router = useRouter()
 const runs = ref<VehicleRun[]>([])
+const isLoading = ref(false)
 const title = computed(() => (props.kind === 'worker' ? 'Xe chạy công nhân' : 'Xe chạy du lịch'))
-const currency = (amount: string) =>
-  new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
-  }).format(Number(amount))
-const label = (status: string) =>
-  ({ planned: 'Kế hoạch', in_progress: 'Đang chạy', completed: 'Hoàn tất', cancelled: 'Đã hủy' })[
-    status
-  ] ?? status
-onMounted(async () => {
-  runs.value = await VehicleOperationsService.runs(props.kind)
-})
+const currency = (amount: string) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(Number(amount || 0))
+const statusLabel: Record<string, string> = { planned: 'Kế hoạch', in_progress: 'Đang chạy', completed: 'Hoàn tất', cancelled: 'Đã hủy' }
+const statusClass: Record<string, string> = { planned: 'bg-muted text-muted-foreground', in_progress: 'bg-warning/10 text-warning', completed: 'bg-success/10 text-success', cancelled: 'bg-destructive/10 text-destructive' }
+const columns: DataGridColumnDef<VehicleRun>[] = [
+  { accessorKey: 'run_no', header: 'Mã chuyến', width: 150, fixed: 'left', meta: { label: 'Mã chuyến' } },
+  { accessorKey: 'status', header: 'Trạng thái', width: 130, cell: ({ row }) => h('span', { class: `inline-flex rounded-full px-2 py-1 text-xs font-medium ${statusClass[row.original.status] ?? 'bg-muted'}` }, statusLabel[row.original.status] ?? row.original.status), meta: { label: 'Trạng thái' } },
+  { accessorKey: 'run_date', header: 'Ngày chạy', width: 125, meta: { label: 'Ngày chạy' } },
+  { accessorKey: 'pickup_time', header: 'Giờ đón', width: 100, meta: { label: 'Giờ đón' } },
+  { accessorKey: 'customer_name', header: 'Khách hàng', width: 180, cell: ({ row }) => row.original.customer_name ?? '—', meta: { label: 'Khách hàng' } },
+  { accessorKey: 'route_name', header: 'Tuyến / hành trình', width: 190, cell: ({ row }) => row.original.route_name ?? row.original.journey ?? '—', meta: { label: 'Tuyến / hành trình' } },
+  { accessorKey: 'shift_name', header: 'Ca', width: 120, cell: ({ row }) => row.original.shift_name ?? '—', meta: { label: 'Ca' } },
+  { accessorKey: 'license_plate', header: 'Biển số', width: 125, meta: { label: 'Biển số' } },
+  { accessorKey: 'driver_name', header: 'Tài xế', width: 170, cell: ({ row }) => row.original.driver_name ?? row.original.hired_driver_name ?? 'Chưa phân công', meta: { label: 'Tài xế' } },
+  { accessorKey: 'freight_amount', header: 'Cước', width: 145, align: 'right', cell: ({ row }) => currency(row.original.freight_amount), meta: { label: 'Cước' } },
+]
+const dataSource = computed<DataGridDataSource<VehicleRun>>(() => ({ data: runs.value, isLoading: isLoading.value }))
+async function load() { isLoading.value = true; try { runs.value = await VehicleOperationsService.runs(props.kind) } finally { isLoading.value = false } }
+function openRun(run: VehicleRun) { if (props.kind === 'worker') router.push({ name: 'worker-vehicles-detail', params: { id: run.id } }) }
+onMounted(load)
 </script>

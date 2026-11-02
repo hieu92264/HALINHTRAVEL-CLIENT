@@ -12,6 +12,11 @@ export const VehicleOperationsRoute: RouteRecordRaw[] = [
     },
     props: { kind: 'worker' },
   },
+  { path: 'worker-vehicle-schedules/create', name: 'worker-vehicle-schedules-create', component: () => import('./WorkerScheduleForm.vue'), meta: { permission: 'worker-vehicle-schedules.manage', title: 'Tạo lịch xe công nhân' } },
+  { path: 'worker-vehicle-schedules/:id/edit', name: 'worker-vehicle-schedules-edit', component: () => import('./WorkerScheduleForm.vue'), meta: { permission: 'worker-vehicle-schedules.manage', title: 'Cập nhật lịch xe công nhân' } },
+  { path: 'worker-vehicles/create', name: 'worker-vehicles-create', component: () => import('./WorkerVehicleForm.vue'), meta: { permission: 'worker-vehicles.manage', title: 'Tạo xe chạy công nhân' } },
+  { path: 'worker-vehicles/:id', name: 'worker-vehicles-detail', component: () => import('./WorkerVehicleDetail.vue'), meta: { permission: 'worker-vehicles.view', title: 'Chi tiết xe chạy công nhân' } },
+  { path: 'worker-vehicles/:id/edit', name: 'worker-vehicles-edit', component: () => import('./WorkerVehicleForm.vue'), meta: { permission: 'worker-vehicles.manage', title: 'Cập nhật xe chạy công nhân' } },
   {
     path: 'tourist-vehicles',
     name: 'tourist-vehicles',
