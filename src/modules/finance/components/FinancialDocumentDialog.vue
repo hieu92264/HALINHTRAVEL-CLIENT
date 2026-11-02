@@ -6,7 +6,7 @@
         <DialogDescription>{{ description }}</DialogDescription>
       </DialogHeader>
       <form class="flex min-h-0 flex-1 flex-col" @submit.prevent="submit">
-        <div class="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto p-5 sm:grid-cols-2">
+        <div class="grid min-h-0 flex-1 grid-cols-1 gap-5 overflow-y-auto p-5 sm:grid-cols-2">
           <label v-if="kind === 'receipt'" class="grid gap-1.5 text-sm font-medium"
             >Khách hàng<select
               v-model.number="form.customer_id"
@@ -83,17 +83,22 @@
           >
           <label v-if="kind === 'receipt'" class="grid gap-1.5 text-sm font-medium"
             >Người nộp<Input v-model="form.payer_name" placeholder="Tên người nộp" /></label
-          ><label v-if="kind === 'expense'" class="grid gap-1.5 text-sm font-medium"
+          ><label v-if="kind === 'expense'" class="grid gap-1.5 text-sm font-medium sm:col-span-2"
             >Người nhận<Input v-model="form.recipient_name" placeholder="Tên người nhận tiền"
           /></label>
-          <label v-if="kind === 'expense'" class="grid gap-1.5 text-sm font-medium"
-            >Tên lái xe thuê<span class="text-xs font-normal text-muted-foreground"
-              >Bắt buộc với loại chi trả thuê lái.</span
-            ><Input
-              v-model="form.hired_driver_name"
-              :required="isHiredDriverPayment"
-              placeholder="Tên lái xe thuê"
-          /></label>
+          <section
+            v-if="kind === 'expense' && isHiredDriverPayment"
+            class="rounded-lg border border-primary/25 bg-primary/5 p-4 sm:col-span-2"
+          >
+            <div class="flex flex-wrap items-baseline justify-between gap-1.5">
+              <h3 class="text-sm font-semibold">Thông tin chi trả thuê lái</h3>
+              <span class="text-xs text-muted-foreground">Bắt buộc cho chứng từ này</span>
+            </div>
+            <label class="mt-3 grid max-w-md gap-1.5 text-sm font-medium"
+              >Tên lái xe thuê <span class="text-destructive">*</span
+              ><Input v-model="form.hired_driver_name" required placeholder="Ví dụ: Nguyễn Văn A"
+            /></label>
+          </section>
           <label class="grid gap-1.5 text-sm font-medium sm:col-span-2"
             >Diễn giải<textarea
               v-model="form.description"
@@ -177,6 +182,9 @@ const isHiredDriverPayment = computed(() =>
     `${selectedExpenseType.value?.code ?? ''} ${selectedExpenseType.value?.name ?? ''}`,
   ),
 )
+watch(isHiredDriverPayment, (isHiredDriverPayment) => {
+  if (!isHiredDriverPayment) form.hired_driver_name = ''
+})
 watch(
   () => [props.open, props.kind, props.row] as const,
   () => {

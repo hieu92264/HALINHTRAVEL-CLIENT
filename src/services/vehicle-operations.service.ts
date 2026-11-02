@@ -55,6 +55,7 @@ export type WorkerRate = {
   driver_wage: string
   effective_from: string
   effective_to?: string | null
+  is_active?: boolean
 }
 export type WorkerSchedule = {
   id: number
