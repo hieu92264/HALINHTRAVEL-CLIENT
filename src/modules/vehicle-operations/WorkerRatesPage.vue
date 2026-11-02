@@ -34,6 +34,7 @@
 
 <script setup lang="ts">
 import { VehicleOperationsService, type WorkerRate } from '@/services/vehicle-operations.service'
+import { formatVietnameseDate } from '@/shared/helpers/date.helper'
 import {
   DataGrid,
   type DataGridColumnDef,
@@ -81,13 +82,15 @@ const columns: DataGridColumnDef<WorkerRate>[] = [
     accessorKey: 'effective_from',
     header: 'Hiệu lực từ',
     width: 140,
+    cell: ({ getValue }) => formatVietnameseDate(String(getValue() ?? '')),
     meta: { label: 'Hiệu lực từ' },
   },
   {
     accessorKey: 'effective_to',
     header: 'Hiệu lực đến',
     width: 150,
-    cell: ({ row }) => row.original.effective_to ?? 'Không thời hạn',
+    cell: ({ row }) =>
+      row.original.effective_to ? formatVietnameseDate(row.original.effective_to) : 'Không thời hạn',
     meta: { label: 'Hiệu lực đến' },
   },
 ]

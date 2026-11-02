@@ -54,6 +54,7 @@
 
 <script setup lang="ts">
 import { VehicleOperationsService, type VehicleRun } from '@/services/vehicle-operations.service'
+import { formatVietnameseDate } from '@/shared/helpers/date.helper'
 import {
   DataGrid,
   type DataGridColumnDef,
@@ -113,6 +114,7 @@ const columns: DataGridColumnDef<VehicleRun>[] = [
     accessorKey: 'run_date',
     header: 'Ngày chạy',
     width: 125,
+    cell: ({ getValue }) => formatVietnameseDate(String(getValue() ?? '')),
     meta: { label: 'Ngày chạy', mobile: 'primary' },
   },
   { accessorKey: 'pickup_time', header: 'Giờ đón', width: 100, meta: { label: 'Giờ đón' } },

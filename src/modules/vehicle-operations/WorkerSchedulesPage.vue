@@ -69,6 +69,7 @@ import {
   type DataGridColumnDef,
   type DataGridDataSource,
 } from '@/shared/components/data-grid'
+import { formatVietnameseDate } from '@/shared/helpers/date.helper'
 import { Button } from '@/shared/components/ui/button'
 import { PencilLine, Plus, RefreshCw, Trash2 } from '@lucide/vue'
 import { computed, h, onMounted, ref } from 'vue'
@@ -118,6 +119,7 @@ const columns: DataGridColumnDef<WorkerSchedule>[] = [
     accessorKey: 'effective_from',
     header: 'Hiệu lực từ',
     width: 130,
+    cell: ({ getValue }) => formatVietnameseDate(String(getValue() ?? '')),
     meta: { label: 'Hiệu lực từ' },
   },
   {

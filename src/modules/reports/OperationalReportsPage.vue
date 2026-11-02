@@ -60,31 +60,84 @@
       /></TabsContent>
       <TabsContent value="profit" class="space-y-4"
         ><ProfitSummary :summary="profit.data.value?.summary" />
-        <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_400px]">
-          <DataGrid
-            :data-source="profitRunSource"
-            :columns="profitRunColumns"
-            :pagination="pagination"
-            filter-row
-            global-filter
-            mobile-mode="cards"
-            :get-row-id="(row) => `${row.kind}-${row.id}`"
-            empty-title="Không có doanh thu hoàn tất"
-            empty-description="Lợi nhuận chỉ tính các chuyến đã hoàn tất trong kỳ."
-            @retry="profit.refetch()"
-          /><DataGrid
-            :data-source="hiredDriverSource"
-            :columns="hiredDriverColumns"
-            :pagination="{ mode: 'client', pageSize: 10 }"
-            filter-row
-            global-filter
-            mobile-mode="cards"
-            :get-row-id="(row) => row.name"
-            empty-title="Không có thuê lái"
-            empty-description="Chưa có phát sinh hoặc phiếu chi thuê lái trong kỳ."
-            @retry="profit.refetch()"
-          /></div
-      ></TabsContent>
+        <div class="space-y-4">
+          <section class="overflow-hidden rounded-xl border border-border bg-card">
+            <header
+              class="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/35 px-4 py-3 sm:px-5"
+            >
+              <div class="flex min-w-0 items-center gap-3">
+                <span
+                  class="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"
+                >
+                  <BusFront class="size-4" />
+                </span>
+                <div class="min-w-0">
+                  <h2 class="text-base font-semibold text-foreground">Doanh thu chuyến hoàn tất</h2>
+                  <p class="mt-0.5 text-sm text-muted-foreground">
+                    Theo dõi cước đã chốt của từng chuyến trong kỳ.
+                  </p>
+                </div>
+              </div>
+              <span
+                class="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold tabular-nums text-primary"
+              >
+                {{ profitRunSource.data.length }} chuyến
+              </span>
+            </header>
+            <DataGrid
+              class="rounded-none border-x-0 border-b-0"
+              :data-source="profitRunSource"
+              :columns="profitRunColumns"
+              :pagination="pagination"
+              filter-row
+              global-filter
+              mobile-mode="cards"
+              :get-row-id="(row) => `${row.kind}-${row.id}`"
+              empty-title="Không có doanh thu hoàn tất"
+              empty-description="Lợi nhuận chỉ tính các chuyến đã hoàn tất trong kỳ."
+              @retry="profit.refetch()"
+            />
+          </section>
+
+          <section class="overflow-hidden rounded-xl border border-border bg-card">
+            <header
+              class="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/35 px-4 py-3 sm:px-5"
+            >
+              <div class="flex min-w-0 items-center gap-3">
+                <span
+                  class="grid size-9 shrink-0 place-items-center rounded-lg bg-warning/15 text-warning"
+                >
+                  <WalletCards class="size-4" />
+                </span>
+                <div class="min-w-0">
+                  <h2 class="text-base font-semibold text-foreground">Đối soát thuê lái</h2>
+                  <p class="mt-0.5 text-sm text-muted-foreground">
+                    Phát sinh, số đã trả và công nợ cần theo dõi theo từng lái xe.
+                  </p>
+                </div>
+              </div>
+              <span
+                class="rounded-full bg-warning/15 px-2.5 py-1 text-xs font-semibold tabular-nums text-warning"
+              >
+                {{ hiredDriverSource.data.length }} lái xe
+              </span>
+            </header>
+            <DataGrid
+              class="rounded-none border-x-0 border-b-0"
+              :data-source="hiredDriverSource"
+              :columns="hiredDriverColumns"
+              :pagination="{ mode: 'client', pageSize: 10 }"
+              filter-row
+              global-filter
+              mobile-mode="cards"
+              :get-row-id="(row) => row.name"
+              empty-title="Không có thuê lái"
+              empty-description="Chưa có phát sinh hoặc phiếu chi thuê lái trong kỳ."
+              @retry="profit.refetch()"
+            />
+          </section>
+        </div>
+      </TabsContent>
       <TabsContent value="payroll" class="space-y-4"
         ><PayrollSummary
           :summary="payroll.data.value?.summary"
@@ -108,7 +161,7 @@
 <script setup lang="ts">
 import { computed, defineComponent, h, reactive, ref } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { RefreshCw } from '@lucide/vue'
+import { BusFront, RefreshCw, WalletCards } from '@lucide/vue'
 import type { DataGridColumnDef, DataGridDataSource } from '@/shared/components/data-grid'
 import { DataGrid } from '@/shared/components/data-grid'
 import { Button } from '@/shared/components/ui/button'

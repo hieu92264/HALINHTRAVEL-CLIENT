@@ -10,7 +10,7 @@
         </div>
         <h1 class="mt-1 text-2xl font-semibold tracking-tight">{{ run.run_no }}</h1>
         <p class="mt-1 text-sm text-muted-foreground">
-          {{ run.run_date }} · {{ run.pickup_time }} · {{ run.license_plate }}
+          {{ formatVietnameseDate(run.run_date) }} · {{ run.pickup_time }} · {{ run.license_plate }}
         </p>
       </div>
       <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
@@ -43,7 +43,7 @@
         :value="`${run.license_plate} · ${run.driver_name ?? run.hired_driver_name ?? 'Chưa phân công'}`"
       /><Info
         label="Kế hoạch"
-        :value="`${run.run_date} ${run.pickup_time}${run.return_time ? ` — ${run.return_time}` : ''}`"
+        :value="`${formatVietnameseDate(run.run_date)} ${run.pickup_time}${run.return_time ? ` — ${run.return_time}` : ''}`"
       /><Info label="Bắt đầu thực tế" :value="formatDateTime(run.actual_started_at)" /><Info
         label="Hoàn thành thực tế"
         :value="formatDateTime(run.actual_completed_at)"
@@ -96,6 +96,7 @@
 
 <script setup lang="ts">
 import { VehicleOperationsService, type VehicleRun } from '@/services/vehicle-operations.service'
+import { formatVietnameseDate, formatVietnameseDateTime } from '@/shared/helpers/date.helper'
 import { Button } from '@/shared/components/ui/button'
 import { computed, defineComponent, h, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -136,12 +137,7 @@ const money = (value: string) =>
     currency: 'VND',
     maximumFractionDigits: 0,
   }).format(Number(value || 0))
-const formatDateTime = (value?: string | null) =>
-  value
-    ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(
-        new Date(value),
-      )
-    : 'Chưa cập nhật'
+const formatDateTime = formatVietnameseDateTime
 async function load() {
   run.value = await VehicleOperationsService.workerRun(Number(route.params.id))
 }
