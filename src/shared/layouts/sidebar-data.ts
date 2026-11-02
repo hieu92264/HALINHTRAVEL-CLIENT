@@ -3,6 +3,7 @@ import {
   Building2Icon,
   BusFrontIcon,
   CalendarClockIcon,
+  CircleUserRoundIcon,
   HandCoinsIcon,
   HandshakeIcon,
   KeyRoundIcon,
@@ -39,7 +40,7 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
   {
     kind: 'group',
     id: 'operations',
-    label: 'Điều hành xe chạy',
+    label: 'Quản lý chạy xe',
     icon: CalendarClockIcon,
     items: [
       {
@@ -49,22 +50,6 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
         routeName: 'worker-vehicles',
         icon: BusFrontIcon,
         permission: 'worker-vehicles.view',
-      },
-      {
-        kind: 'item',
-        label: 'Lịch xe công nhân',
-        to: { name: 'worker-vehicle-schedules' },
-        routeName: 'worker-vehicle-schedules',
-        icon: CalendarClockIcon,
-        permission: 'worker-vehicle-schedules.manage',
-      },
-      {
-        kind: 'item',
-        label: 'Bảng giá công nhân',
-        to: { name: 'worker-vehicle-rates' },
-        routeName: 'worker-vehicle-rates',
-        icon: MapPinnedIcon,
-        permission: 'worker-vehicle-rates.view',
       },
       {
         kind: 'item',
@@ -114,6 +99,14 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
         icon: MapPinnedIcon,
         permission: 'routes.view',
       },
+      {
+        kind: 'item',
+        label: 'Loại chi phí',
+        to: '/expense-types',
+        routeName: 'expense-types',
+        icon: ListTreeIcon,
+        permission: 'expense-types.view',
+      },
     ],
   },
   {
@@ -132,13 +125,21 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
       },
       {
         kind: 'item',
-        label: 'Báo cáo tài chính',
-        to: { name: 'finance' },
-        routeName: 'finance-report',
-        icon: BarChart3Icon,
-        permission: 'payrolls.view',
+        label: 'Chấm công và lương',
+        to: { name: 'driver-payroll' },
+        routeName: 'driver-payroll',
+        icon: CalendarClockIcon,
+        permission: 'driver-attendances.view',
       },
     ],
+  },
+  {
+    kind: 'item',
+    label: 'Báo cáo',
+    to: { name: 'reports' },
+    routeName: 'reports',
+    icon: BarChart3Icon,
+    permission: 'payrolls.view',
   },
   {
     kind: 'group',
@@ -148,7 +149,7 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
     items: [
       {
         kind: 'item',
-        label: 'Tài khoản',
+        label: 'Quản lý người dùng',
         to: '/users',
         routeName: 'users',
         icon: UsersIcon,
@@ -156,7 +157,7 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
       },
       {
         kind: 'item',
-        label: 'Vai trò',
+        label: 'Quản lý vai trò',
         to: '/roles',
         routeName: 'roles',
         icon: ShieldCheckIcon,
@@ -164,11 +165,18 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
       },
       {
         kind: 'item',
-        label: 'Quyền',
+        label: 'Quản lý phân quyền',
         to: '/permissions',
         routeName: 'permissions',
         icon: KeyRoundIcon,
         permission: 'permissions.view',
+      },
+      {
+        kind: 'item',
+        label: 'Đổi mật khẩu',
+        to: { name: 'change-password' },
+        routeName: 'change-password',
+        icon: CircleUserRoundIcon,
       },
     ],
   },

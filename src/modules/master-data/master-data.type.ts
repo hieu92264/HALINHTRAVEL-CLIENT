@@ -71,6 +71,7 @@ export interface Driver extends BaseEntity {
   license_expired_at: string
   base_salary: number
   responsibility_allowance: number
+  tourism_commission_rate: string
   joined_at: string | null
   left_at: string | null
 }

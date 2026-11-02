@@ -1,20 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { sidebarNavigation, type SidebarGroup } from './sidebar-data'
 
-describe('điều hướng báo cáo', () => {
-  it('chỉ giữ các báo cáo tổng hợp có thể mở chi tiết trong bảng', () => {
-    const reports = sidebarNavigation.find(
-      (node): node is SidebarGroup => node.kind === 'group' && node.id === 'reports',
+describe('điều hướng theo schema xe chạy mới', () => {
+  it('giữ báo cáo ở một điểm vào và không còn nhóm luồng thuê xe hoặc điều hành cũ', () => {
+    const routeNames = sidebarNavigation.flatMap((node) =>
+      node.kind === 'group' ? node.items.map((item) => item.routeName) : [node.routeName],
     )
-    const routeNames = reports?.items.map((item) => item.routeName) ?? []
 
-    expect(routeNames).toContain('report-customer-debts')
-    expect(routeNames).toContain('report-partner-debts')
-    expect(routeNames).toContain('report-driver-payroll')
-    expect(routeNames).toContain('report-profit-loss')
-    expect(routeNames).toContain('report-vehicle-profit')
-    expect(routeNames).not.toContain('report-customer-debt-details')
-    expect(routeNames).not.toContain('report-partner-debt-details')
-    expect(routeNames).not.toContain('report-driver-payroll-details')
+    expect(routeNames).toContain('reports')
+    expect(routeNames).toContain('worker-vehicles')
+    expect(routeNames).toContain('tourist-vehicles')
+    expect(sidebarNavigation.some((node): node is SidebarGroup => node.kind === 'group' && ['reports', 'rental', 'dispatch', 'driver-space'].includes(node.id))).toBe(false)
   })
 })

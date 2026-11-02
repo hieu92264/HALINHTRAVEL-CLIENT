@@ -158,6 +158,16 @@
           </FormItem>
         </FormField>
 
+        <FormField v-slot="{ componentField }" name="tourism_commission_rate">
+          <FormItem>
+            <FormLabel>Tỷ lệ lương du lịch (%)</FormLabel>
+            <FormControl>
+              <Input type="number" min="0" max="100" step="0.01" placeholder="10" v-bind="componentField" />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        </FormField>
+
         <FormField v-slot="{ componentField }" name="joined_at">
           <FormItem>
             <FormLabel>Ngày vào làm</FormLabel>
@@ -296,6 +306,7 @@ const driverFieldKeys = [
   'license_issued_at',
   'license_expired_at',
   'responsibility_allowance',
+  'tourism_commission_rate',
   'joined_at',
   'left_at',
 ] as const
@@ -313,6 +324,7 @@ function getFormValues(driver?: Driver | null) {
     license_issued_at: driver?.license_issued_at ?? null,
     license_expired_at: driver?.license_expired_at ?? null,
     responsibility_allowance: driver?.responsibility_allowance ?? 0,
+    tourism_commission_rate: Number(driver?.tourism_commission_rate ?? 0) * 100,
     joined_at: driver?.joined_at ?? null,
     left_at: driver?.left_at ?? null,
     is_active: false,
@@ -358,12 +370,17 @@ const onSubmit = form.handleSubmit(async (values) => {
     const driverValues = createDriverSchema.parse(values)
 
     if (isEdit.value) {
-      const currentValues = createDriverSchema.parse(props.row)
+      const currentValues = createDriverSchema.parse({
+        ...props.row,
+        tourism_commission_rate: Number(props.row?.tourism_commission_rate ?? 0) * 100,
+      })
       const payload: Record<string, unknown> = {}
 
       for (const key of driverFieldKeys) {
         if (!Object.is(driverValues[key], currentValues[key])) {
-          payload[key] = driverValues[key]
+        payload[key] = key === 'tourism_commission_rate'
+          ? Number(driverValues[key]) / 100
+          : driverValues[key]
         }
       }
 
@@ -382,7 +399,10 @@ const onSubmit = form.handleSubmit(async (values) => {
       })
       toast.success('Đã cập nhật tài xế')
     } else {
-      await createMutation.mutateAsync(driverValues)
+      await createMutation.mutateAsync({
+        ...driverValues,
+        tourism_commission_rate: Number(driverValues.tourism_commission_rate) / 100,
+      })
       toast.success('Đã thêm tài xế')
     }
 

@@ -24,6 +24,9 @@ export const VehicleOperationsRoute: RouteRecordRaw[] = [
     meta: { permission: 'tourist-vehicles.view', title: 'Xe chạy du lịch' },
     props: { kind: 'tourist' },
   },
+  { path: 'tourist-vehicles/create', name: 'tourist-vehicles-create', component: () => import('./TouristVehicleForm.vue'), meta: { permission: 'tourist-vehicles.manage', title: 'Tạo xe chạy du lịch' } },
+  { path: 'tourist-vehicles/:id/edit', name: 'tourist-vehicles-edit', component: () => import('./TouristVehicleForm.vue'), meta: { permission: 'tourist-vehicles.manage', title: 'Cập nhật xe chạy du lịch' } },
+  { path: 'tourist-vehicles/:id', name: 'tourist-vehicles-detail', component: () => import('./TouristVehicleDetail.vue'), meta: { permission: 'tourist-vehicles.view', title: 'Chi tiết xe chạy du lịch' } },
   {
     path: 'worker-vehicle-schedules',
     name: 'worker-vehicle-schedules',

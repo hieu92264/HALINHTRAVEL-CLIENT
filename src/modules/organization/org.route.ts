@@ -2,6 +2,12 @@ import type { RouteRecordRaw } from 'vue-router'
 
 export const OrganizationRoute: RouteRecordRaw[] = [
   {
+    path: 'change-password',
+    name: 'change-password',
+    component: () => import('@/modules/organization/ChangePasswordPage.vue'),
+    meta: { title: 'Đổi mật khẩu' },
+  },
+  {
     path: 'users/:id',
     name: 'user-detail',
     component: () => import('@/modules/organization/user/UserDetailPage.vue'),

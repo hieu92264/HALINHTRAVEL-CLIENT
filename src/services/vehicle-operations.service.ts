@@ -16,6 +16,7 @@ export type VehicleRun = {
   dropoff_location?: string | null
   license_plate: string
   driver_name?: string | null
+  partner_name?: string | null
   hired_driver_name?: string | null
   customer_name?: string | null
   route_name?: string | null
@@ -23,6 +24,13 @@ export type VehicleRun = {
   journey?: string | null
   freight_amount: string
   driver_wage: string
+  driver_wage_rate?: string
+  driver_wage_is_overridden?: boolean
+  partner_vehicle_cost?: string
+  driver_collected_amount?: string
+  company_collected_amount?: string
+  driver_remitted_amount?: string
+  driver_expense_amount?: string
   status: string
   is_company_vehicle?: boolean
   is_hired_driver?: boolean
@@ -72,14 +80,27 @@ export const VehicleOperationsService = {
   runs: (kind: 'worker' | 'tourist', params?: Record<string, unknown>) =>
     httpService.get<VehicleRun[]>(`${baseUrl}/${kind}-vehicles`, { params }),
   workerRun: (id: number) => httpService.get<VehicleRun>(`${baseUrl}/worker-vehicles/${id}`),
-  createWorkerRun: (data: Record<string, unknown>) => httpService.post<VehicleRun>(`${baseUrl}/worker-vehicles`, data),
-  updateWorkerRun: (id: number, data: Record<string, unknown>) => httpService.patch<VehicleRun>(`${baseUrl}/worker-vehicles/${id}`, data),
-  startWorkerRun: (id: number) => httpService.post<VehicleRun>(`${baseUrl}/worker-vehicles/${id}/start`),
-  completeWorkerRun: (id: number) => httpService.post<VehicleRun>(`${baseUrl}/worker-vehicles/${id}/complete`),
+  createWorkerRun: (data: Record<string, unknown>) =>
+    httpService.post<VehicleRun>(`${baseUrl}/worker-vehicles`, data),
+  updateWorkerRun: (id: number, data: Record<string, unknown>) =>
+    httpService.patch<VehicleRun>(`${baseUrl}/worker-vehicles/${id}`, data),
+  startWorkerRun: (id: number) =>
+    httpService.post<VehicleRun>(`${baseUrl}/worker-vehicles/${id}/start`),
+  completeWorkerRun: (id: number) =>
+    httpService.post<VehicleRun>(`${baseUrl}/worker-vehicles/${id}/complete`),
   deleteWorkerRun: (id: number) => httpService.delete<void>(`${baseUrl}/worker-vehicles/${id}`),
+  touristRun: (id: number) => httpService.get<VehicleRun>(`${baseUrl}/tourist-vehicles/${id}`),
+  createTouristRun: (data: Record<string, unknown>) => httpService.post<VehicleRun>(`${baseUrl}/tourist-vehicles`, data),
+  updateTouristRun: (id: number, data: Record<string, unknown>) => httpService.patch<VehicleRun>(`${baseUrl}/tourist-vehicles/${id}`, data),
+  startTouristRun: (id: number) => httpService.post<VehicleRun>(`${baseUrl}/tourist-vehicles/${id}/start`),
+  completeTouristRun: (id: number) => httpService.post<VehicleRun>(`${baseUrl}/tourist-vehicles/${id}/complete`),
+  deleteTouristRun: (id: number) => httpService.delete<void>(`${baseUrl}/tourist-vehicles/${id}`),
   rates: () => httpService.get<WorkerRate[]>(`${baseUrl}/worker-vehicle-rates`),
   schedules: () => httpService.get<WorkerSchedule[]>(`${baseUrl}/worker-vehicle-schedule-rules`),
-  createSchedule: (data: Record<string, unknown>) => httpService.post<WorkerSchedule>(`${baseUrl}/worker-vehicle-schedule-rules`, data),
-  updateSchedule: (id: number, data: Record<string, unknown>) => httpService.patch<WorkerSchedule>(`${baseUrl}/worker-vehicle-schedule-rules/${id}`, data),
-  deleteSchedule: (id: number) => httpService.delete<void>(`${baseUrl}/worker-vehicle-schedule-rules/${id}`),
+  createSchedule: (data: Record<string, unknown>) =>
+    httpService.post<WorkerSchedule>(`${baseUrl}/worker-vehicle-schedule-rules`, data),
+  updateSchedule: (id: number, data: Record<string, unknown>) =>
+    httpService.patch<WorkerSchedule>(`${baseUrl}/worker-vehicle-schedule-rules/${id}`, data),
+  deleteSchedule: (id: number) =>
+    httpService.delete<void>(`${baseUrl}/worker-vehicle-schedule-rules/${id}`),
 }

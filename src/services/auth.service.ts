@@ -18,4 +18,12 @@ export const AuthService = {
   logout(): Promise<void> {
     return httpService.post<void>('/auth/logout')
   },
+
+  changePassword(payload: {
+    current_password: string
+    new_password: string
+    new_password_confirmation: string
+  }): Promise<void> {
+    return httpService.put<void, typeof payload>('/auth/password', payload)
+  },
 }

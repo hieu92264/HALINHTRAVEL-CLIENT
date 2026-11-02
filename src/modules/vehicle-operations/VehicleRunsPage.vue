@@ -2,12 +2,12 @@
   <section class="space-y-5">
     <header class="flex flex-wrap items-start justify-between gap-4">
       <div><p class="text-sm font-medium text-primary">Điều hành xe chạy</p><h1 class="mt-1 text-2xl font-semibold tracking-tight">{{ title }}</h1><p class="mt-1 text-sm text-muted-foreground">Tìm nhanh, lọc từng cột, sắp xếp và phân trang danh sách chuyến chạy.</p></div>
-      <Button v-if="kind === 'worker'" @click="router.push({ name: 'worker-vehicles-create' })"><Plus class="size-4" />Tạo chuyến ngoại lệ</Button>
+      <Button @click="router.push({ name: kind === 'worker' ? 'worker-vehicles-create' : 'tourist-vehicles-create' })"><Plus class="size-4" />{{ kind === 'worker' ? 'Tạo chuyến ngoại lệ' : 'Tạo chuyến du lịch' }}</Button>
     </header>
 
     <DataGrid :data-source="dataSource" :columns="columns" :get-row-id="(run) => String(run.id)" :pagination="{ mode: 'client', pageSize: 25 }" filtering-mode="client" sorting-mode="client" filter-row global-filter show-actions height="calc(100svh - 260px)" :persist="{ key: `${kind}-vehicle-runs`, url: true }" empty-title="Chưa có chuyến chạy" empty-description="Các chuyến phù hợp với điều kiện lọc sẽ hiển thị tại đây." @row-click="openRun" @retry="load">
       <template #toolbar-end><Button size="sm" variant="outline" :disabled="isLoading" @click="load"><RefreshCw class="size-4" :class="isLoading ? 'animate-spin' : ''" />Làm mới</Button></template>
-      <template #actions="{ row }"><Button v-if="kind === 'worker'" variant="ghost" size="sm" @click.stop="openRun(row)"><span class="sr-only">Xem chi tiết</span><ArrowUpRight class="size-4" /></Button></template>
+      <template #actions="{ row }"><Button variant="ghost" size="sm" @click.stop="openRun(row)"><span class="sr-only">Xem chi tiết</span><ArrowUpRight class="size-4" /></Button></template>
     </DataGrid>
   </section>
 </template>
@@ -42,6 +42,6 @@ const columns: DataGridColumnDef<VehicleRun>[] = [
 ]
 const dataSource = computed<DataGridDataSource<VehicleRun>>(() => ({ data: runs.value, isLoading: isLoading.value }))
 async function load() { isLoading.value = true; try { runs.value = await VehicleOperationsService.runs(props.kind) } finally { isLoading.value = false } }
-function openRun(run: VehicleRun) { if (props.kind === 'worker') router.push({ name: 'worker-vehicles-detail', params: { id: run.id } }) }
+function openRun(run: VehicleRun) { router.push({ name: props.kind === 'worker' ? 'worker-vehicles-detail' : 'tourist-vehicles-detail', params: { id: run.id } }) }
 onMounted(load)
 </script>

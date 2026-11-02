@@ -75,7 +75,7 @@
           <h2 class="font-semibold">Bảng lương theo tài xế</h2>
         </div>
         <div class="overflow-x-auto">
-          <table class="w-full min-w-[1180px] text-sm">
+          <table class="w-full min-w-[980px] text-sm">
             <thead class="border-b bg-muted/40 text-left text-muted-foreground">
               <tr>
                 <th class="px-4 py-3">Tài xế</th>
@@ -83,8 +83,6 @@
                 <th class="px-4 py-3 text-right">Lương CN</th>
                 <th class="px-4 py-3 text-right">Lương du lịch</th>
                 <th class="px-4 py-3 text-right">Tạm ứng</th>
-                <th class="px-4 py-3 text-right">Khách trả trực tiếp</th>
-                <th class="px-4 py-3 text-right">Lái xe tự chi</th>
                 <th class="px-4 py-3 text-right">Lương trước khấu trừ</th>
                 <th class="px-4 py-3 text-right">Thực nhận</th>
               </tr>
@@ -99,9 +97,8 @@
                   >
                     <p v-for="detail in item.details" :key="detail.id">
                       {{
-                        detail.dispatch_order_no ??
-                        detail.receipt_no ??
-                        detail.expense_no ??
+                        detail.worker_run_no ??
+                        detail.tourist_run_no ??
                         'Nguồn khác'
                       }}
                       · {{ payrollCalculationLabel(detail.calculation_type) }} ·
@@ -121,12 +118,6 @@
                 <td class="px-4 py-3 text-right tabular-nums text-destructive">
                   −{{ formatMoney(item.advance_amount) }}
                 </td>
-                <td class="px-4 py-3 text-right tabular-nums text-destructive">
-                  −{{ formatMoney(item.direct_customer_collection) }}
-                </td>
-                <td class="px-4 py-3 text-right tabular-nums text-success">
-                  +{{ formatMoney(item.driver_reimbursement) }}
-                </td>
                 <td class="px-4 py-3 text-right font-medium tabular-nums">
                   {{ formatMoney(item.gross_salary) }}
                 </td>
@@ -135,7 +126,7 @@
                 </td>
               </tr>
               <tr v-if="!payroll.items?.length">
-                <td colspan="9" class="px-4 py-10 text-center text-muted-foreground">
+                <td colspan="7" class="px-4 py-10 text-center text-muted-foreground">
                   Chưa có dòng lương. Hãy chạy “Tính lương” sau khi xác nhận công và tạm ứng.
                 </td>
               </tr>

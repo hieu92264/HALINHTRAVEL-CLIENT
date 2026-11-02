@@ -23,7 +23,7 @@ export const MasterDataRoute: RouteRecordRaw[] = [
     path: 'expense-types',
     name: 'expense-types',
     component: () => import('@/modules/master-data/expense-type/ExpenseTypePage.vue'),
-    meta: { permission: 'expense-types.view', title: 'Tài xế' },
+    meta: { permission: 'expense-types.view', title: 'Loại chi phí' },
   },
   {
     path: 'routes',
