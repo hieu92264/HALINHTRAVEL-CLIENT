@@ -59,13 +59,6 @@ export interface DebtRow {
   closing_balance: Money
 }
 
-export interface DebtReport {
-  filters: Record<string, string>
-  generated_at: string
-  totals: Record<string, Money>
-  rows: DebtRow[]
-}
-
 export interface DriverAdvance {
   id: number
   advance_no: string

@@ -10,7 +10,9 @@ function toVietnameseMessage(message: unknown, fallback = fallbackMessage): stri
   return vietnameseCharacterPattern.test(normalized) ? normalized : fallback
 }
 
-function normalizeFieldErrors(errors: Record<string, string[]> | undefined): Record<string, string[]> {
+function normalizeFieldErrors(
+  errors: Record<string, string[]> | undefined,
+): Record<string, string[]> {
   return Object.fromEntries(
     Object.entries(errors ?? {}).map(([field, messages]) => [
       field,
@@ -35,11 +37,15 @@ export function toApiError(error: unknown): ApiError {
 
   if (error instanceof AxiosError) {
     const response = error.response?.data as
-      (Partial<ResponseBody<unknown>> & { errors?: Record<string, string[]> }) | undefined
+      | (Partial<ResponseBody<unknown>> & {
+          errors?: Record<string, string[]>
+          metadata?: Record<string, string[]>
+        })
+      | undefined
     return new ApiError(
       toVietnameseMessage(response?.message || error.message),
       error.response?.status,
-      normalizeFieldErrors(response?.errors),
+      normalizeFieldErrors(response?.errors ?? response?.metadata),
     )
   }
 

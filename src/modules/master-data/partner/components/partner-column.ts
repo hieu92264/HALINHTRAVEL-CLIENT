@@ -1,3 +1,4 @@
+import { formatMoney } from '@/modules/finance/finance.format'
 import { partnerTypeLabel } from '@/modules/master-data/type-labels'
 import type { Partner } from '@/modules/master-data/master-data.type'
 import type { DataGridColumnDef } from '@/shared/components/data-grid'
@@ -114,7 +115,7 @@ export const partnerColumns: DataGridColumnDef<Partner>[] = [
   {
     accessorKey: 'opening_balance',
     header: 'Số dư đầu kỳ',
-    cell: ({ row }) => row.original.opening_balance || '0',
+    cell: ({ row }) => formatMoney(row.original.opening_balance),
     width: 128,
     align: 'right',
     meta: { label: 'Số dư đầu kỳ', filterPlaceholder: 'Số dư đầu kỳ...' },

@@ -7,6 +7,7 @@
         Cước và lương được chốt theo tuyến, biển số và thời hạn hiệu lực.
       </p>
     </header>
+    <WorkerOperationsTabs />
     <DataGrid
       :data-source="dataSource"
       :columns="columns"
@@ -16,6 +17,7 @@
       sorting-mode="client"
       filter-row
       global-filter
+      show-actions
       mobile-mode="cards"
       height="calc(100svh - 260px)"
       :persist="{ key: 'worker-vehicle-rates', url: true }"
@@ -23,17 +25,37 @@
       empty-description="Bảng giá có hiệu lực sẽ xuất hiện tại đây."
       @retry="load"
     >
-      <template #toolbar-end
-        ><Button size="sm" variant="outline" :disabled="isLoading" @click="load"
+      <template #toolbar-end>
+        <Button v-if="canManage" size="sm" @click="openCreate"
+          ><Plus class="size-4" />Thêm bảng giá</Button
+        >
+        <Button size="sm" variant="outline" :disabled="isLoading" @click="load"
           ><RefreshCw class="size-4" :class="isLoading ? 'animate-spin' : ''" />Làm mới</Button
-        ></template
-      >
+        >
+      </template>
+      <template #actions="{ row }">
+        <Button v-if="canManage" size="sm" variant="ghost" @click.stop="openEdit(row)"
+          ><PencilLine class="size-4" /><span class="sr-only">Sửa bảng giá</span></Button
+        >
+      </template>
     </DataGrid>
+    <WorkerRateDialog
+      ref="dialog"
+      :open="isDialogOpen"
+      :rate="selectedRate"
+      :routes="routes"
+      :pending="isSaving"
+      @close="closeDialog"
+      @save="save"
+    />
   </section>
 </template>
 
 <script setup lang="ts">
 import { VehicleOperationsService, type WorkerRate } from '@/services/vehicle-operations.service'
+import type { Route } from '@/modules/master-data/master-data.type'
+import { RouteService } from '@/services/route.service'
+import { useAuthStore } from '@/modules/auth/auth.store'
 import { formatVietnameseDate } from '@/shared/helpers/date.helper'
 import {
   DataGrid,
@@ -41,11 +63,23 @@ import {
   type DataGridDataSource,
 } from '@/shared/components/data-grid'
 import { Button } from '@/shared/components/ui/button'
-import { RefreshCw } from '@lucide/vue'
+import { PencilLine, Plus, RefreshCw } from '@lucide/vue'
 import { computed, onMounted, ref } from 'vue'
+import { toast } from 'vue-sonner'
+import WorkerOperationsTabs from './WorkerOperationsTabs.vue'
+import WorkerRateDialog from './WorkerRateDialog.vue'
 
 const rates = ref<WorkerRate[]>([])
+const routes = ref<Route[]>([])
 const isLoading = ref(false)
+const isSaving = ref(false)
+const isDialogOpen = ref(false)
+const selectedRate = ref<WorkerRate | null>(null)
+const dialog = ref<InstanceType<typeof WorkerRateDialog> | null>(null)
+const auth = useAuthStore()
+const canManage = computed(
+  () => auth.user?.permissions.includes('worker-vehicle-rates.manage') ?? false,
+)
 const money = (value: string) =>
   new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -90,7 +124,9 @@ const columns: DataGridColumnDef<WorkerRate>[] = [
     header: 'Hiệu lực đến',
     width: 150,
     cell: ({ row }) =>
-      row.original.effective_to ? formatVietnameseDate(row.original.effective_to) : 'Không thời hạn',
+      row.original.effective_to
+        ? formatVietnameseDate(row.original.effective_to)
+        : 'Không thời hạn',
     meta: { label: 'Hiệu lực đến' },
   },
 ]
@@ -101,9 +137,41 @@ const dataSource = computed<DataGridDataSource<WorkerRate>>(() => ({
 async function load() {
   isLoading.value = true
   try {
-    rates.value = await VehicleOperationsService.rates()
+    const [rateList, routeList] = await Promise.all([
+      VehicleOperationsService.rates(),
+      RouteService.getRouteList(),
+    ])
+    rates.value = rateList
+    routes.value = routeList
   } finally {
     isLoading.value = false
+  }
+}
+function openCreate() {
+  selectedRate.value = null
+  isDialogOpen.value = true
+}
+function openEdit(rate: WorkerRate) {
+  selectedRate.value = rate
+  isDialogOpen.value = true
+}
+function closeDialog() {
+  isDialogOpen.value = false
+  selectedRate.value = null
+}
+async function save(payload: Omit<WorkerRate, 'id' | 'route_name'>) {
+  isSaving.value = true
+  try {
+    if (selectedRate.value)
+      await VehicleOperationsService.updateRate(selectedRate.value.id, payload)
+    else await VehicleOperationsService.createRate(payload)
+    toast.success(selectedRate.value ? 'Đã cập nhật bảng giá' : 'Đã tạo bảng giá')
+    closeDialog()
+    await load()
+  } catch (error) {
+    dialog.value?.showApiError(error)
+  } finally {
+    isSaving.value = false
   }
 }
 onMounted(load)

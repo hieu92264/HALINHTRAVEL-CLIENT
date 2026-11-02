@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { permissionDisplayLabel, permissionGroupLabel, permissionLabel, roleLabel } from './access-labels'
+import {
+  permissionDisplayLabel,
+  permissionGroupLabel,
+  permissionLabel,
+  roleLabel,
+} from './access-labels'
 
 describe('Nhãn quyền và vai trò', () => {
   it('hiển thị tên quyền và nhóm quyền hệ thống bằng tiếng Việt', () => {
-    expect(permissionGroupLabel('dispatch-orders')).toBe('Lệnh điều xe')
+    expect(permissionGroupLabel('worker-vehicles')).toBe('Xe chạy công nhân')
     expect(permissionLabel('customers.view')).toBe('Xem khách hàng')
     expect(permissionLabel('driver-advances.manage')).toBe('Quản lý tạm ứng tài xế')
     expect(permissionDisplayLabel('customers.manage')).toBe('Quản lý khách hàng (customers.manage)')

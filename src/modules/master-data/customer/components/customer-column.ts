@@ -1,3 +1,4 @@
+import { formatMoney } from '@/modules/finance/finance.format'
 import { customerTypeLabel } from '@/modules/master-data/type-labels'
 import { h } from 'vue'
 import type { Customer } from '@/modules/master-data/master-data.type'
@@ -107,7 +108,7 @@ export const customerColumns: DataGridColumnDef<Customer>[] = [
   {
     accessorKey: 'opening_balance',
     header: 'Số dư đầu kỳ',
-    cell: ({ row }) => row.original.opening_balance || '0',
+    cell: ({ row }) => formatMoney(row.original.opening_balance),
     width: 128,
     align: 'right',
     meta: { label: 'Số dư đầu kỳ', filterPlaceholder: 'Số dư đầu kỳ...' },

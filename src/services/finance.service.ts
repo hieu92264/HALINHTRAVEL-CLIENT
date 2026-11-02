@@ -1,4 +1,4 @@
-import type { DebtReport, DebtRow, Expense, ExpensePayload, PartnerPayment, PartnerPaymentPayload, Receipt, ReceiptPayload } from '@/modules/finance/finance.types'
+import type { DebtRow, Expense, ExpensePayload, PartnerPayment, PartnerPaymentPayload, Receipt, ReceiptPayload } from '@/modules/finance/finance.types'
 import { httpService } from '@/services/http.service'
 
 const financeUrl = '/finance'
@@ -22,7 +22,7 @@ export class FinanceService {
   static deletePartnerPayment(id: number) { return httpService.delete<void>(`${financeUrl}/partner-payments/${id}`) }
   static lockPartnerPayment(id: number) { return httpService.post<PartnerPayment>(`${financeUrl}/partner-payments/${id}/lock`) }
 
-  static async getCustomerDebts(params?: Record<string, string>): Promise<DebtRow[]> { return (await httpService.get<DebtReport>('/other/reports/customer-debts', { params })).rows }
-  static async getPartnerDebts(params?: Record<string, string>): Promise<DebtRow[]> { return (await httpService.get<DebtReport>('/other/reports/partner-debts', { params })).rows }
-  static async getExternalDriverDebts(params?: Record<string, string>): Promise<DebtRow[]> { return (await httpService.get<DebtReport>('/other/reports/external-driver-debts', { params })).rows }
+  static getCustomerDebts(params?: Record<string, string>): Promise<DebtRow[]> { return httpService.get<DebtRow[]>('/other/reports/customer-debts', { params }) }
+  static getPartnerDebts(params?: Record<string, string>): Promise<DebtRow[]> { return httpService.get<DebtRow[]>('/other/reports/partner-debts', { params }) }
+  static getExternalDriverDebts(params?: Record<string, string>): Promise<DebtRow[]> { return httpService.get<DebtRow[]>('/other/reports/external-driver-debts', { params }) }
 }

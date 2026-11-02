@@ -90,12 +90,20 @@ export const VehicleOperationsService = {
     httpService.post<VehicleRun>(`${baseUrl}/worker-vehicles/${id}/complete`),
   deleteWorkerRun: (id: number) => httpService.delete<void>(`${baseUrl}/worker-vehicles/${id}`),
   touristRun: (id: number) => httpService.get<VehicleRun>(`${baseUrl}/tourist-vehicles/${id}`),
-  createTouristRun: (data: Record<string, unknown>) => httpService.post<VehicleRun>(`${baseUrl}/tourist-vehicles`, data),
-  updateTouristRun: (id: number, data: Record<string, unknown>) => httpService.patch<VehicleRun>(`${baseUrl}/tourist-vehicles/${id}`, data),
-  startTouristRun: (id: number) => httpService.post<VehicleRun>(`${baseUrl}/tourist-vehicles/${id}/start`),
-  completeTouristRun: (id: number) => httpService.post<VehicleRun>(`${baseUrl}/tourist-vehicles/${id}/complete`),
+  createTouristRun: (data: Record<string, unknown>) =>
+    httpService.post<VehicleRun>(`${baseUrl}/tourist-vehicles`, data),
+  updateTouristRun: (id: number, data: Record<string, unknown>) =>
+    httpService.patch<VehicleRun>(`${baseUrl}/tourist-vehicles/${id}`, data),
+  startTouristRun: (id: number) =>
+    httpService.post<VehicleRun>(`${baseUrl}/tourist-vehicles/${id}/start`),
+  completeTouristRun: (id: number) =>
+    httpService.post<VehicleRun>(`${baseUrl}/tourist-vehicles/${id}/complete`),
   deleteTouristRun: (id: number) => httpService.delete<void>(`${baseUrl}/tourist-vehicles/${id}`),
   rates: () => httpService.get<WorkerRate[]>(`${baseUrl}/worker-vehicle-rates`),
+  createRate: (data: Omit<WorkerRate, 'id' | 'route_name'>) =>
+    httpService.post<WorkerRate>(`${baseUrl}/worker-vehicle-rates`, data),
+  updateRate: (id: number, data: Partial<Omit<WorkerRate, 'id' | 'route_name'>>) =>
+    httpService.patch<WorkerRate>(`${baseUrl}/worker-vehicle-rates/${id}`, data),
   schedules: () => httpService.get<WorkerSchedule[]>(`${baseUrl}/worker-vehicle-schedule-rules`),
   createSchedule: (data: Record<string, unknown>) =>
     httpService.post<WorkerSchedule>(`${baseUrl}/worker-vehicle-schedule-rules`, data),

@@ -398,7 +398,7 @@ const RunSummary = defineComponent({
       h('div', { class: 'space-y-2' }, [
         h('p', { class: 'text-sm font-semibold' }, props.title),
         h('div', { class: 'grid gap-3 sm:grid-cols-2 xl:grid-cols-4' }, [
-          summaryCardFrom(props.summary, 'Chuyến hoàn tất', 'completed_runs'),
+          summaryCardFrom(props.summary, 'Chuyến hoàn tất', 'completed_runs', false, 'count'),
           summaryCardFrom(props.summary, 'Cước đã chốt', 'freight_amount', true),
           summaryCardFrom(props.summary, 'Lương lái xe', 'driver_wage'),
           summaryCardFrom(props.summary, 'Chi thuê lái', 'hired_driver_cost'),
@@ -429,8 +429,20 @@ const PayrollSummary = defineComponent({
       ])
   },
 })
-function summaryCardFrom(summary: unknown, label: string, key: string, emphasis = false) {
+function summaryCardFrom(
+  summary: unknown,
+  label: string,
+  key: string,
+  emphasis = false,
+  valueType: 'money' | 'count' = 'money',
+) {
   const values = summary as Record<string, string | number> | undefined
+  const value = values?.[key]
+  const formattedValue =
+    valueType === 'count'
+      ? `${new Intl.NumberFormat('vi-VN').format(Number(value ?? 0))} chuyến`
+      : formatMoney(value)
+
   return h(
     'div',
     {
@@ -447,7 +459,7 @@ function summaryCardFrom(summary: unknown, label: string, key: string, emphasis 
             ? 'mt-1 text-xl font-semibold tabular-nums text-primary'
             : 'mt-1 text-xl font-semibold tabular-nums',
         },
-        formatMoney(values?.[key]),
+        formattedValue,
       ),
     ],
   )

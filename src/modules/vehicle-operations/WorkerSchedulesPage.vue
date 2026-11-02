@@ -14,6 +14,7 @@
         ><Plus class="size-4" />Tạo lịch lặp</Button
       >
     </header>
+    <WorkerOperationsTabs />
     <DataGrid
       :data-source="dataSource"
       :columns="columns"
@@ -71,6 +72,7 @@ import {
 } from '@/shared/components/data-grid'
 import { formatVietnameseDate } from '@/shared/helpers/date.helper'
 import { Button } from '@/shared/components/ui/button'
+import WorkerOperationsTabs from './WorkerOperationsTabs.vue'
 import { PencilLine, Plus, RefreshCw, Trash2 } from '@lucide/vue'
 import { computed, h, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
