@@ -14,18 +14,6 @@ export const MasterDataRoute: RouteRecordRaw[] = [
     meta: { permission: 'partners.view', title: 'Thông tin đối tác' },
   },
   {
-    path: 'vehicle-types',
-    name: 'vehicle-types',
-    component: () => import('@/modules/master-data/vehicle-type/VehicleTypePage.vue'),
-    meta: { permission: 'vehicle-types.view', title: 'Thông tin loại xe' },
-  },
-  {
-    path: 'vehicles',
-    name: 'vehicles',
-    component: () => import('@/modules/master-data/vehicles/VehiclePage.vue'),
-    meta: { permission: 'vehicles.view', title: 'Danh sách xe' },
-  },
-  {
     path: 'drivers',
     name: 'drivers',
     component: () => import('@/modules/master-data/drivers/DriverPage.vue'),
@@ -41,12 +29,6 @@ export const MasterDataRoute: RouteRecordRaw[] = [
     path: 'routes',
     name: 'routes',
     component: () => import('@/modules/master-data/route/RoutePage.vue'),
-    meta: { permission: 'routes.view', title: 'Tuyến xe' },
-  },
-  {
-    path: 'route-rates',
-    name: 'route-rates',
-    redirect: { name: 'routes' },
     meta: { permission: 'routes.view', title: 'Tuyến xe' },
   },
 ]
