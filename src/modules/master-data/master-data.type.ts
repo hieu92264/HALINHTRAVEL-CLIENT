@@ -72,3 +72,14 @@ export interface Route extends BaseEntity {
   default_return_time: string | null
   estimated_distance_km: number | null
 }
+
+export interface Vehicle extends BaseEntity {
+  code: string
+  license_plate: string
+  seat_count: number
+  vehicle_model: string | null
+  ownership_type: OwnershipTypeEnum
+  partner_id: number | null
+  partner_name: string | null
+  note: string | null
+}

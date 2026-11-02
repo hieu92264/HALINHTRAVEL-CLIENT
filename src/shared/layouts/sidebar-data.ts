@@ -94,6 +94,14 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
       },
       {
         kind: 'item',
+        label: 'Xe',
+        to: '/vehicles',
+        routeName: 'vehicles',
+        icon: BusFrontIcon,
+        permission: 'vehicles.view',
+      },
+      {
+        kind: 'item',
         label: 'Tuyến đường',
         to: '/routes',
         routeName: 'routes',

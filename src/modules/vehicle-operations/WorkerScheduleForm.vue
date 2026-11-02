@@ -105,26 +105,15 @@
 
       <div class="grid gap-5 rounded-xl border border-border bg-card p-5 shadow-sm sm:grid-cols-2">
         <h2 class="sm:col-span-2 text-base font-semibold">Xe và lái xe</h2>
-        <label class="field"
-          >Nguồn xe <span>*</span
-          ><select v-model="form.is_company_vehicle" class="control">
-            <option :value="true">Xe công ty</option>
-            <option :value="false">Xe đối tác</option>
-          </select></label
-        >
-        <label class="field"
-          >Biển số <span>*</span
-          ><Input v-model.trim="form.license_plate" required placeholder="29A-123.45"
-        /></label>
-        <label v-if="!form.is_company_vehicle" class="field"
-          >Đối tác xe <span>*</span
-          ><select v-model.number="form.partner_id" required class="control">
-            <option :value="null" disabled>Chọn đối tác</option>
-            <option v-for="partner in partners" :key="partner.id" :value="partner.id">
-              {{ partner.name }}
-            </option>
-          </select></label
-        >
+        <label class="field sm:col-span-2"
+          >Xe <span>*</span
+          ><select v-model.number="form.vehicle_id" :required="!isEdit" class="control" @change="applyVehicleDefaults">
+            <option :value="null" disabled>Chọn xe</option>
+            <option v-for="vehicle in vehicles" :key="vehicle.id" :value="vehicle.id">{{ vehicle.license_plate }} · {{ vehicle.seat_count }} chỗ{{ vehicle.vehicle_model ? ` · ${vehicle.vehicle_model}` : '' }}</option>
+          </select>
+          <small v-if="selectedVehicle" class="text-muted-foreground">{{ selectedVehicle.ownership_type === OwnershipTypeEnum.COMPANY ? 'Xe công ty' : `Xe đối tác · ${selectedVehicle.partner_name ?? 'Chưa xác định'}` }}</small>
+          <small v-else-if="form.license_plate" class="text-muted-foreground">Lịch lịch sử: {{ form.license_plate }}. Chọn xe khi cần thay đổi.</small>
+        </label>
         <label class="field"
           >Lái xe nội bộ<select
             v-model.number="form.driver_id"
@@ -172,13 +161,13 @@ import { OwnershipTypeEnum } from '@/modules/master-data/master-data.enum'
 import type {
   Customer,
   Driver,
-  Partner,
   Route as WorkerRoute,
+  Vehicle,
 } from '@/modules/master-data/master-data.type'
 import { CustomerService } from '@/services/customer.service'
 import { DriverService } from '@/services/driver.service'
-import { PartnerService } from '@/services/partner.service'
 import { RouteService } from '@/services/route.service'
+import { VehicleService } from '@/services/vehicle.service'
 import { VehicleOperationsService } from '@/services/vehicle-operations.service'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -203,7 +192,7 @@ const isSaving = ref(false)
 const customers = ref<Customer[]>([])
 const routes = ref<WorkerRoute[]>([])
 const drivers = ref<Driver[]>([])
-const partners = ref<Partner[]>([])
+const vehicles = ref<Vehicle[]>([])
 const newDays = (): Record<number, ScheduleDay> =>
   Object.fromEntries(
     weekdays.map(({ value }) => [value, { enabled: false, pickup_time: '', return_time: '' }]),
@@ -211,6 +200,7 @@ const newDays = (): Record<number, ScheduleDay> =>
 const form = reactive({
   customer_id: null as number | null,
   route_id: null as number | null,
+  vehicle_id: null as number | null,
   shift_name: '',
   effective_from: new Date().toISOString().slice(0, 10),
   effective_to: '',
@@ -234,6 +224,7 @@ const companyDrivers = computed(() =>
     (driver) => driver.type === OwnershipTypeEnum.COMPANY && driver.is_active !== false,
   ),
 )
+const selectedVehicle = computed(() => vehicles.value.find((vehicle) => vehicle.id === form.vehicle_id) ?? null)
 const dayState = (weekday: number) => form.days[weekday]!
 const selectedDays = computed(() => weekdays.filter((day) => dayState(day.value).enabled))
 watch(
@@ -260,17 +251,24 @@ function applyRouteDefaults() {
     day.return_time ||= selected.default_return_time ?? ''
   }
 }
+function applyVehicleDefaults() {
+  const vehicle = selectedVehicle.value
+  if (!vehicle) return
+  form.license_plate = vehicle.license_plate
+  form.is_company_vehicle = vehicle.ownership_type === OwnershipTypeEnum.COMPANY
+  form.partner_id = vehicle.partner_id
+}
 onMounted(async () => {
-  const [customerList, routeList, driverList, partnerList] = await Promise.all([
+  const [customerList, routeList, driverList, vehicleList] = await Promise.all([
     CustomerService.getCustomerList(),
     RouteService.getRouteList(),
     DriverService.getDriverList(),
-    PartnerService.getPartnerList(),
+    VehicleService.getVehicleOptions(),
   ])
   customers.value = customerList
   routes.value = routeList
   drivers.value = driverList
-  partners.value = partnerList
+  vehicles.value = vehicleList
   if (isEdit.value) {
     const saved = (await VehicleOperationsService.schedules()).find(
       (item) => item.id === Number(route.params.id),
@@ -283,6 +281,7 @@ onMounted(async () => {
     Object.assign(form, {
       customer_id: saved.customer_id,
       route_id: saved.route_id,
+      vehicle_id: saved.vehicle_id ?? null,
       driver_id: saved.driver_id ?? null,
       partner_id: saved.partner_id ?? null,
       shift_name: saved.shift_name,

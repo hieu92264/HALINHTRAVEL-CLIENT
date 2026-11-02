@@ -2,6 +2,7 @@ import { httpService } from '@/services/http.service'
 
 export type VehicleRun = {
   id: number
+  vehicle_id?: number | null
   run_no: string
   schedule_rule_id?: number | null
   customer_id?: number | null
@@ -15,6 +16,8 @@ export type VehicleRun = {
   pickup_location?: string | null
   dropoff_location?: string | null
   license_plate: string
+  vehicle_model?: string | null
+  seat_count?: number | null
   driver_name?: string | null
   partner_name?: string | null
   hired_driver_name?: string | null
@@ -42,9 +45,12 @@ export type VehicleRun = {
 }
 export type WorkerRate = {
   id: number
+  vehicle_id?: number | null
   route_id: number
   route_name?: string
   license_plate: string
+  vehicle_model?: string | null
+  seat_count?: number | null
   freight_amount: string
   driver_wage: string
   effective_from: string
@@ -52,6 +58,7 @@ export type WorkerRate = {
 }
 export type WorkerSchedule = {
   id: number
+  vehicle_id?: number | null
   customer_id: number
   route_id: number
   driver_id?: number | null
@@ -61,6 +68,8 @@ export type WorkerSchedule = {
   driver_name?: string | null
   shift_name: string
   license_plate: string
+  vehicle_model?: string | null
+  seat_count?: number | null
   effective_from: string
   effective_to?: string | null
   pickup_location: string

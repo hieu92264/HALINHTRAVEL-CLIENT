@@ -44,6 +44,7 @@
       :open="isDialogOpen"
       :rate="selectedRate"
       :routes="routes"
+      :vehicles="vehicles"
       :pending="isSaving"
       @close="closeDialog"
       @save="save"
@@ -53,8 +54,9 @@
 
 <script setup lang="ts">
 import { VehicleOperationsService, type WorkerRate } from '@/services/vehicle-operations.service'
-import type { Route } from '@/modules/master-data/master-data.type'
+import type { Route, Vehicle } from '@/modules/master-data/master-data.type'
 import { RouteService } from '@/services/route.service'
+import { VehicleService } from '@/services/vehicle.service'
 import { useAuthStore } from '@/modules/auth/auth.store'
 import { formatVietnameseDate } from '@/shared/helpers/date.helper'
 import {
@@ -71,6 +73,7 @@ import WorkerRateDialog from './WorkerRateDialog.vue'
 
 const rates = ref<WorkerRate[]>([])
 const routes = ref<Route[]>([])
+const vehicles = ref<Vehicle[]>([])
 const isLoading = ref(false)
 const isSaving = ref(false)
 const isDialogOpen = ref(false)
@@ -137,12 +140,14 @@ const dataSource = computed<DataGridDataSource<WorkerRate>>(() => ({
 async function load() {
   isLoading.value = true
   try {
-    const [rateList, routeList] = await Promise.all([
+    const [rateList, routeList, vehicleList] = await Promise.all([
       VehicleOperationsService.rates(),
       RouteService.getRouteList(),
+      VehicleService.getVehicleOptions(),
     ])
     rates.value = rateList
     routes.value = routeList
+    vehicles.value = vehicleList
   } finally {
     isLoading.value = false
   }

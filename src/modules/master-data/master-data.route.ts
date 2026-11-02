@@ -31,4 +31,10 @@ export const MasterDataRoute: RouteRecordRaw[] = [
     component: () => import('@/modules/master-data/route/RoutePage.vue'),
     meta: { permission: 'routes.view', title: 'Tuyến xe' },
   },
+  {
+    path: 'vehicles',
+    name: 'vehicles',
+    component: () => import('@/modules/master-data/vehicle/VehiclePage.vue'),
+    meta: { permission: 'vehicles.view', title: 'Xe' },
+  },
 ]

@@ -42,25 +42,18 @@
 
       <div class="grid gap-5 rounded-xl border border-border bg-card p-5 shadow-sm sm:grid-cols-2">
         <h2 class="sm:col-span-2 text-base font-semibold">Xe và lái xe</h2>
-        <label class="field"
-          >Nguồn xe <span>*</span
-          ><select v-model="form.is_company_vehicle" class="control">
-            <option :value="true">Xe công ty</option>
-            <option :value="false">Xe đối tác</option>
-          </select></label
-        ><label class="field"
-          >Biển số <span>*</span
-          ><Input v-model.trim="form.license_plate" required placeholder="15B-123.45"
-        /></label>
-        <label v-if="!form.is_company_vehicle" class="field"
-          >Đối tác xe <span>*</span
-          ><select v-model.number="form.partner_id" required class="control">
-            <option :value="null" disabled>Chọn đối tác</option>
-            <option v-for="partner in partners" :key="partner.id" :value="partner.id">
-              {{ partner.name }}
+        <label class="field sm:col-span-2"
+          >Xe <span>*</span
+          ><select v-model.number="form.vehicle_id" :required="!isEdit" class="control" @change="applyVehicleDefaults">
+            <option :value="null" disabled>Chọn xe</option>
+            <option v-for="vehicle in vehicles" :key="vehicle.id" :value="vehicle.id">
+              {{ vehicle.license_plate }} · {{ vehicle.seat_count }} chỗ{{ vehicle.vehicle_model ? ` · ${vehicle.vehicle_model}` : '' }}
             </option>
-          </select></label
-        ><label v-if="!form.is_company_vehicle" class="field"
+          </select>
+          <small v-if="selectedVehicle" class="text-muted-foreground">{{ selectedVehicle.ownership_type === OwnershipTypeEnum.COMPANY ? 'Xe công ty' : `Xe đối tác · ${selectedVehicle.partner_name ?? 'Chưa xác định'}` }}</small>
+          <small v-else-if="form.license_plate" class="text-muted-foreground">Chuyến lịch sử: {{ form.license_plate }}. Chọn xe khi cần thay đổi.</small>
+        </label>
+        <label v-if="!form.is_company_vehicle" class="field"
           >Tiền thuê xe <span>*</span
           ><Input v-model="form.partner_vehicle_cost" min="1" type="number" required
         /></label>
@@ -174,10 +167,10 @@
 
 <script setup lang="ts">
 import { OwnershipTypeEnum } from '@/modules/master-data/master-data.enum'
-import type { Customer, Driver, Partner } from '@/modules/master-data/master-data.type'
+import type { Customer, Driver, Vehicle } from '@/modules/master-data/master-data.type'
 import { CustomerService } from '@/services/customer.service'
 import { DriverService } from '@/services/driver.service'
-import { PartnerService } from '@/services/partner.service'
+import { VehicleService } from '@/services/vehicle.service'
 import { VehicleOperationsService } from '@/services/vehicle-operations.service'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -191,7 +184,7 @@ const isEdit = computed(() => Boolean(route.params.id))
 const isSaving = ref(false)
 const customers = ref<Customer[]>([])
 const drivers = ref<Driver[]>([])
-const partners = ref<Partner[]>([])
+const vehicles = ref<Vehicle[]>([])
 const form = reactive({
   customer_id: null as number | null,
   journey: '',
@@ -202,6 +195,7 @@ const form = reactive({
   pickup_location: '',
   dropoff_location: '',
   is_company_vehicle: true,
+  vehicle_id: null as number | null,
   partner_id: null as number | null,
   license_plate: '',
   driver_id: null as number | null,
@@ -224,6 +218,7 @@ const companyDrivers = computed(() =>
     (driver) => driver.type === OwnershipTypeEnum.COMPANY && driver.is_active !== false,
   ),
 )
+const selectedVehicle = computed(() => vehicles.value.find((vehicle) => vehicle.id === form.vehicle_id) ?? null)
 const canSetWage = computed(
   () => form.is_company_vehicle && !form.is_hired_driver && Boolean(form.driver_id),
 )
@@ -253,6 +248,13 @@ function applyDriverRate() {
   form.driver_wage_is_overridden = false
   recalculateWage()
 }
+function applyVehicleDefaults() {
+  const vehicle = selectedVehicle.value
+  if (!vehicle) return
+  form.license_plate = vehicle.license_plate
+  form.is_company_vehicle = vehicle.ownership_type === OwnershipTypeEnum.COMPANY
+  form.partner_id = vehicle.partner_id
+}
 function recalculateWage() {
   if (!canSetWage.value || form.driver_wage_is_overridden) return
   form.driver_wage = (
@@ -260,14 +262,14 @@ function recalculateWage() {
   ).toFixed(2)
 }
 onMounted(async () => {
-  const [customerList, driverList, partnerList] = await Promise.all([
+  const [customerList, driverList, vehicleList] = await Promise.all([
     CustomerService.getCustomerList(),
     DriverService.getDriverList(),
-    PartnerService.getPartnerList(),
+    VehicleService.getVehicleOptions(),
   ])
   customers.value = customerList
   drivers.value = driverList
-  partners.value = partnerList
+  vehicles.value = vehicleList
   if (isEdit.value)
     Object.assign(form, await VehicleOperationsService.touristRun(Number(route.params.id)))
   recalculateWage()
