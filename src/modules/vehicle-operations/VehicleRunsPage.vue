@@ -34,7 +34,7 @@
       show-actions
       mobile-mode="cards"
       height="calc(100svh - 260px)"
-      :persist="{ key: `${kind}-vehicle-runs`, url: true }"
+      :persist="{ key: `${kind}-vehicle-runs-v2`, queryPrefix: `${kind}-vehicle-runs-v2`, url: true }"
       empty-title="Chưa có chuyến chạy"
       empty-description="Các chuyến phù hợp với điều kiện lọc sẽ hiển thị tại đây."
       @row-click="openRun"
@@ -55,7 +55,7 @@
 
 <script setup lang="ts">
 import { VehicleOperationsService, type VehicleRun } from '@/services/vehicle-operations.service'
-import { formatVietnameseDate } from '@/shared/helpers/date.helper'
+import { formatVietnameseDate, formatVietnameseDateTime } from '@/shared/helpers/date.helper'
 import {
   DataGrid,
   type DataGridColumnDef,
@@ -90,7 +90,13 @@ const statusClass: Record<string, string> = {
   completed: 'bg-success/10 text-success',
   cancelled: 'bg-destructive/10 text-destructive',
 }
-const columns: DataGridColumnDef<VehicleRun>[] = [
+const moneyCell = (value?: string) => currency(value ?? '0')
+const sourceLabel = (run: VehicleRun) => (run.is_company_vehicle ? 'Xe công ty' : 'Xe đối tác')
+const driverLabel = (run: VehicleRun) =>
+  run.driver_name ?? run.hired_driver_name ?? 'Chưa phân công'
+const attendanceLabel = (run: VehicleRun) =>
+  run.attendance ? `${run.attendance.status} · ${moneyCell(run.attendance.calculated_wage)}` : 'Chưa có'
+const columns = computed<DataGridColumnDef<VehicleRun>[]>(() => [
   {
     accessorKey: 'run_no',
     header: 'Mã chuyến',
@@ -119,7 +125,21 @@ const columns: DataGridColumnDef<VehicleRun>[] = [
     cell: ({ getValue }) => formatVietnameseDate(String(getValue() ?? '')),
     meta: { label: 'Ngày chạy', mobile: 'primary' },
   },
+  {
+    accessorKey: 'return_date',
+    header: 'Ngày về',
+    width: 125,
+    cell: ({ row }) => formatVietnameseDate(row.original.return_date ?? row.original.run_date),
+    meta: { label: 'Ngày về' },
+  },
   { accessorKey: 'pickup_time', header: 'Giờ đón', width: 100, meta: { label: 'Giờ đón' } },
+  {
+    accessorKey: 'return_time',
+    header: 'Giờ về',
+    width: 100,
+    cell: ({ row }) => row.original.return_time ?? '—',
+    meta: { label: 'Giờ về' },
+  },
   {
     accessorKey: 'customer_name',
     header: 'Khách hàng',
@@ -134,21 +154,105 @@ const columns: DataGridColumnDef<VehicleRun>[] = [
     cell: ({ row }) => row.original.route_name ?? row.original.journey ?? '—',
     meta: { label: 'Tuyến / hành trình' },
   },
-  {
-    accessorKey: 'shift_name',
-    header: 'Ca',
-    width: 120,
-    cell: ({ row }) => row.original.shift_name ?? '—',
-    meta: { label: 'Ca' },
-  },
+  ...(props.kind === 'worker'
+    ? [
+        {
+          accessorKey: 'shift_name',
+          header: 'Ca chạy',
+          width: 120,
+          cell: ({ row }: { row: { original: VehicleRun } }) => row.original.shift_name ?? '—',
+          meta: { label: 'Ca chạy' },
+        },
+        {
+          accessorKey: 'schedule_rule_id',
+          header: 'Nguồn chuyến',
+          width: 145,
+          cell: ({ row }: { row: { original: VehicleRun } }) =>
+            row.original.schedule_rule_id ? 'Theo lịch lặp' : 'Chuyến tạo tay',
+          meta: { label: 'Nguồn chuyến' },
+        },
+      ] as DataGridColumnDef<VehicleRun>[]
+    : [
+        {
+          accessorKey: 'journey',
+          header: 'Hành trình',
+          width: 220,
+          cell: ({ row }: { row: { original: VehicleRun } }) => row.original.journey ?? '—',
+          meta: { label: 'Hành trình' },
+        },
+      ] as DataGridColumnDef<VehicleRun>[]),
   { accessorKey: 'license_plate', header: 'Biển số', width: 125, meta: { label: 'Biển số' } },
+  {
+    accessorKey: 'vehicle_model',
+    header: 'Hãng / loại xe',
+    width: 180,
+    cell: ({ row }) => row.original.vehicle_model ?? '—',
+    meta: { label: 'Hãng / loại xe' },
+  },
+  {
+    accessorKey: 'seat_count',
+    header: 'Số chỗ',
+    width: 95,
+    align: 'right',
+    cell: ({ row }) => (row.original.seat_count ? `${row.original.seat_count} chỗ` : '—'),
+    meta: { label: 'Số chỗ' },
+  },
+  {
+    accessorKey: 'is_company_vehicle',
+    header: 'Nguồn xe',
+    width: 125,
+    cell: ({ row }) => sourceLabel(row.original),
+    meta: { label: 'Nguồn xe' },
+  },
+  {
+    accessorKey: 'partner_name',
+    header: 'Đối tác xe',
+    width: 170,
+    cell: ({ row }) => row.original.partner_name ?? '—',
+    meta: { label: 'Đối tác xe' },
+  },
   {
     accessorKey: 'driver_name',
     header: 'Tài xế',
     width: 170,
-    cell: ({ row }) =>
-      row.original.driver_name ?? row.original.hired_driver_name ?? 'Chưa phân công',
+    cell: ({ row }) => driverLabel(row.original),
     meta: { label: 'Tài xế' },
+  },
+  {
+    accessorKey: 'is_hired_driver',
+    header: 'Hình thức lái',
+    width: 135,
+    cell: ({ row }) => (row.original.is_hired_driver ? 'Thuê lái' : 'Lái nội bộ'),
+    meta: { label: 'Hình thức lái' },
+  },
+  {
+    accessorKey: 'hired_driver_name',
+    header: 'Tên lái thuê',
+    width: 165,
+    cell: ({ row }) => row.original.hired_driver_name ?? '—',
+    meta: { label: 'Tên lái thuê' },
+  },
+  {
+    accessorKey: 'hired_driver_cost',
+    header: 'Chi phí thuê lái',
+    width: 155,
+    align: 'right',
+    cell: ({ row }) => (row.original.is_hired_driver ? moneyCell(row.original.hired_driver_cost ?? '0') : '—'),
+    meta: { label: 'Chi phí thuê lái' },
+  },
+  {
+    accessorKey: 'pickup_location',
+    header: 'Điểm đón',
+    width: 190,
+    cell: ({ row }) => row.original.pickup_location ?? '—',
+    meta: { label: 'Điểm đón' },
+  },
+  {
+    accessorKey: 'dropoff_location',
+    header: 'Điểm trả',
+    width: 190,
+    cell: ({ row }) => row.original.dropoff_location ?? '—',
+    meta: { label: 'Điểm trả' },
   },
   {
     accessorKey: 'freight_amount',
@@ -158,7 +262,95 @@ const columns: DataGridColumnDef<VehicleRun>[] = [
     cell: ({ row }) => currency(row.original.freight_amount),
     meta: { label: 'Cước', mobile: 'primary' },
   },
-]
+  {
+    accessorKey: 'driver_wage',
+    header: 'Lương lái',
+    width: 145,
+    align: 'right',
+    cell: ({ row }) => moneyCell(row.original.driver_wage),
+    meta: { label: 'Lương lái' },
+  },
+  ...(props.kind === 'tourist'
+    ? [
+        {
+          accessorKey: 'driver_wage_rate',
+          header: 'Tỷ lệ lương',
+          width: 125,
+          align: 'right',
+          cell: ({ row }: { row: { original: VehicleRun } }) => `${Number(row.original.driver_wage_rate ?? 0) * 100}%`,
+          meta: { label: 'Tỷ lệ lương' },
+        },
+        {
+          accessorKey: 'partner_vehicle_cost',
+          header: 'Thuê xe đối tác',
+          width: 160,
+          align: 'right',
+          cell: ({ row }: { row: { original: VehicleRun } }) => moneyCell(row.original.partner_vehicle_cost),
+          meta: { label: 'Thuê xe đối tác' },
+        },
+        {
+          accessorKey: 'driver_collected_amount',
+          header: 'Lái xe thu',
+          width: 140,
+          align: 'right',
+          cell: ({ row }: { row: { original: VehicleRun } }) => moneyCell(row.original.driver_collected_amount),
+          meta: { label: 'Lái xe thu' },
+        },
+        {
+          accessorKey: 'company_collected_amount',
+          header: 'Công ty thu',
+          width: 140,
+          align: 'right',
+          cell: ({ row }: { row: { original: VehicleRun } }) => moneyCell(row.original.company_collected_amount),
+          meta: { label: 'Công ty thu' },
+        },
+        {
+          accessorKey: 'driver_remitted_amount',
+          header: 'Lái xe nộp',
+          width: 140,
+          align: 'right',
+          cell: ({ row }: { row: { original: VehicleRun } }) => moneyCell(row.original.driver_remitted_amount),
+          meta: { label: 'Lái xe nộp' },
+        },
+        {
+          accessorKey: 'driver_expense_amount',
+          header: 'Lái xe chi',
+          width: 140,
+          align: 'right',
+          cell: ({ row }: { row: { original: VehicleRun } }) => moneyCell(row.original.driver_expense_amount),
+          meta: { label: 'Lái xe chi' },
+        },
+      ] as DataGridColumnDef<VehicleRun>[]
+    : []),
+  {
+    accessorKey: 'actual_started_at',
+    header: 'Bắt đầu thực tế',
+    width: 175,
+    cell: ({ row }) => formatVietnameseDateTime(row.original.actual_started_at),
+    meta: { label: 'Bắt đầu thực tế' },
+  },
+  {
+    accessorKey: 'actual_completed_at',
+    header: 'Hoàn thành thực tế',
+    width: 180,
+    cell: ({ row }) => formatVietnameseDateTime(row.original.actual_completed_at),
+    meta: { label: 'Hoàn thành thực tế' },
+  },
+  {
+    accessorKey: 'attendance',
+    header: 'Chấm công',
+    width: 175,
+    cell: ({ row }) => attendanceLabel(row.original),
+    meta: { label: 'Chấm công' },
+  },
+  {
+    accessorKey: 'note',
+    header: 'Ghi chú',
+    width: 220,
+    cell: ({ row }) => row.original.note ?? '—',
+    meta: { label: 'Ghi chú' },
+  },
+])
 const dataSource = computed<DataGridDataSource<VehicleRun>>(() => ({
   data: runs.value,
   isLoading: isLoading.value,

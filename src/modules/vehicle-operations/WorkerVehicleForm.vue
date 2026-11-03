@@ -57,26 +57,24 @@
 
       <div class="grid gap-5 rounded-xl border border-border bg-card p-5 shadow-sm sm:grid-cols-2">
         <h2 class="sm:col-span-2 text-base font-semibold">Xe và lái xe</h2>
-        <label class="field"
-          >Nguồn xe <span>*</span
-          ><select v-model="form.is_company_vehicle" class="control">
-            <option :value="true">Xe công ty</option>
-            <option :value="false">Xe đối tác</option>
-          </select></label
-        >
-        <label class="field"
-          >Biển số <span>*</span
-          ><Input v-model.trim="form.license_plate" required placeholder="29A-123.45"
-        /></label>
-        <label v-if="!form.is_company_vehicle" class="field"
-          >Đối tác xe <span>*</span
-          ><select v-model.number="form.partner_id" required class="control">
-            <option :value="null" disabled>Chọn đối tác</option>
-            <option v-for="partner in partners" :key="partner.id" :value="partner.id">
-              {{ partner.name }}
+        <label class="field sm:col-span-2"
+          >Xe <span>*</span
+          ><select
+            v-model.number="form.vehicle_id"
+            required
+            class="control"
+            :disabled="!form.route_id || !form.run_date || !ratesLoaded"
+            @change="applyVehicleDefaults"
+          >
+            <option :value="null" disabled>{{ vehiclePrompt }}</option>
+            <option v-for="vehicle in eligibleVehicles" :key="vehicle.id" :value="vehicle.id">
+              {{ vehicle.license_plate }} · {{ vehicle.seat_count }} chỗ{{ vehicle.vehicle_model ? ` · ${vehicle.vehicle_model}` : '' }}
             </option>
-          </select></label
-        >
+          </select>
+          <small v-if="form.route_id && form.run_date && ratesLoaded && !eligibleVehicles.length" class="text-destructive">Chưa có xe nào có bảng giá hiệu lực cho tuyến và ngày đã chọn.</small>
+          <small v-if="selectedVehicle" class="text-muted-foreground">{{ selectedVehicle.ownership_type === OwnershipTypeEnum.COMPANY ? 'Xe công ty' : `Xe đối tác · ${selectedVehicle.partner_name ?? 'Chưa xác định'}` }}</small>
+          <small v-else-if="form.license_plate" class="text-muted-foreground">Chuyến lịch sử: {{ form.license_plate }}. Chọn xe khi cần thay đổi.</small>
+        </label>
         <label class="field"
           >Lái xe nội bộ<select
             v-model.number="form.driver_id"
@@ -133,14 +131,15 @@ import { OwnershipTypeEnum } from '@/modules/master-data/master-data.enum'
 import type {
   Customer,
   Driver,
-  Partner,
   Route as WorkerRoute,
+  Vehicle,
 } from '@/modules/master-data/master-data.type'
 import { CustomerService } from '@/services/customer.service'
 import { DriverService } from '@/services/driver.service'
-import { PartnerService } from '@/services/partner.service'
 import { RouteService } from '@/services/route.service'
-import { VehicleOperationsService } from '@/services/vehicle-operations.service'
+import { VehicleService } from '@/services/vehicle.service'
+import { VehicleOperationsService, type WorkerRate } from '@/services/vehicle-operations.service'
+import { toDateInputValue, toTimeInputValue } from '@/shared/helpers/date.helper'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
@@ -154,10 +153,13 @@ const isSaving = ref(false)
 const customers = ref<Customer[]>([])
 const routes = ref<WorkerRoute[]>([])
 const drivers = ref<Driver[]>([])
-const partners = ref<Partner[]>([])
+const vehicles = ref<Vehicle[]>([])
+const rates = ref<WorkerRate[]>([])
+const ratesLoaded = ref(false)
 const form = reactive({
   customer_id: null as number | null,
   route_id: null as number | null,
+  vehicle_id: null as number | null,
   shift_name: '',
   license_plate: '',
   run_date: new Date().toISOString().slice(0, 10),
@@ -181,6 +183,27 @@ const companyDrivers = computed(() =>
     (driver) => driver.type === OwnershipTypeEnum.COMPANY && driver.is_active !== false,
   ),
 )
+const selectedVehicle = computed(() => vehicles.value.find((vehicle) => vehicle.id === form.vehicle_id) ?? null)
+const eligibleVehicles = computed(() => {
+  if (!form.route_id || !form.run_date) return []
+
+  return vehicles.value.filter((vehicle) =>
+    rates.value.some(
+      (rate) =>
+        rate.is_active !== false &&
+        rate.route_id === form.route_id &&
+        rate.vehicle_id === vehicle.id &&
+        rate.effective_from <= form.run_date &&
+        (!rate.effective_to || rate.effective_to >= form.run_date),
+    ),
+  )
+})
+const vehiclePrompt = computed(() => {
+  if (!form.route_id) return 'Chọn tuyến trước'
+  if (!form.run_date) return 'Chọn ngày chạy trước'
+  if (!ratesLoaded.value) return 'Đang tải bảng giá…'
+  return eligibleVehicles.value.length ? 'Chọn xe có báo giá' : 'Không có xe có báo giá hiệu lực'
+})
 
 watch(
   () => form.customer_id,
@@ -195,6 +218,18 @@ watch(
     if (value) form.driver_id = null
   },
 )
+watch(
+  [() => form.route_id, () => form.run_date, ratesLoaded],
+  () => {
+    if (!ratesLoaded.value || !form.vehicle_id) return
+    if (!eligibleVehicles.value.some((vehicle) => vehicle.id === form.vehicle_id)) {
+      form.vehicle_id = null
+      form.license_plate = ''
+      form.partner_id = null
+      form.is_company_vehicle = true
+    }
+  },
+)
 function applyRouteDefaults() {
   const selected = routes.value.find((item) => item.id === form.route_id)
   if (!selected) return
@@ -204,26 +239,45 @@ function applyRouteDefaults() {
   form.pickup_time ||= selected.default_pickup_time ?? ''
   form.return_time ||= selected.default_return_time ?? ''
 }
+function applyVehicleDefaults() {
+  const vehicle = selectedVehicle.value
+  if (!vehicle) return
+  form.license_plate = vehicle.license_plate
+  form.is_company_vehicle = vehicle.ownership_type === OwnershipTypeEnum.COMPANY
+  form.partner_id = vehicle.partner_id
+}
 onMounted(async () => {
-  const [customerList, routeList, driverList, partnerList] = await Promise.all([
+  const [customerList, routeList, driverList, vehicleList, rateList] = await Promise.all([
     CustomerService.getCustomerList(),
     RouteService.getRouteList(),
     DriverService.getDriverList(),
-    PartnerService.getPartnerList(),
+    VehicleService.getVehicleOptions(),
+    VehicleOperationsService.rates(),
   ])
   customers.value = customerList
   routes.value = routeList
   drivers.value = driverList
-  partners.value = partnerList
-  if (isEdit.value)
-    Object.assign(form, await VehicleOperationsService.workerRun(Number(route.params.id)))
+  vehicles.value = vehicleList
+  rates.value = rateList
+  ratesLoaded.value = true
+  if (isEdit.value) {
+    const saved = await VehicleOperationsService.workerRun(Number(route.params.id))
+    Object.assign(form, {
+      ...saved,
+      run_date: toDateInputValue(saved.run_date),
+      pickup_time: toTimeInputValue(saved.pickup_time),
+      return_time: toTimeInputValue(saved.return_time),
+    })
+    // Bản ghi lịch sử chưa có vehicle_id vẫn chọn được xe trùng biển số nếu danh mục đã có.
+    if (!form.vehicle_id)
+      form.vehicle_id = vehicles.value.find((vehicle) => vehicle.license_plate === saved.license_plate)?.id ?? null
+  }
 })
 async function save() {
   isSaving.value = true
   try {
     const payload = {
       ...form,
-      schedule_rule_id: null,
       return_time: form.return_time || null,
       driver_id: form.is_hired_driver ? null : form.driver_id,
       partner_id: form.is_company_vehicle ? null : form.partner_id,

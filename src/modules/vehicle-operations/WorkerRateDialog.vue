@@ -25,16 +25,14 @@
         </label>
         <div class="grid gap-4 sm:grid-cols-2">
           <label class="field">
-            Biển số <span>*</span>
-            <Input
-              v-model.trim="form.license_plate"
-              required
-              placeholder="15B-123.45"
-              :aria-invalid="Boolean(errors.license_plate)"
-            />
-            <small v-if="errors.license_plate" class="text-destructive">{{
-              errors.license_plate
-            }}</small>
+            Xe <span>*</span>
+            <select v-model.number="form.vehicle_id" class="control" :required="!rate" @change="applyVehicle">
+              <option :value="null" disabled>Chọn xe</option>
+              <option v-for="vehicle in vehicles" :key="vehicle.id" :value="vehicle.id">{{ vehicle.license_plate }} · {{ vehicle.seat_count }} chỗ{{ vehicle.vehicle_model ? ` · ${vehicle.vehicle_model}` : '' }}</option>
+            </select>
+            <small v-if="selectedVehicle" class="text-muted-foreground">{{ selectedVehicle.license_plate }}</small>
+            <small v-else-if="form.license_plate" class="text-muted-foreground">Dữ liệu lịch sử: {{ form.license_plate }}</small>
+            <small v-if="errors.vehicle_id" class="text-destructive">{{ errors.vehicle_id }}</small>
           </label>
           <label class="field">
             Cước chuyến <span>*</span>
@@ -109,8 +107,9 @@
 </template>
 
 <script setup lang="ts">
-import type { Route } from '@/modules/master-data/master-data.type'
+import type { Route, Vehicle } from '@/modules/master-data/master-data.type'
 import { ApiError } from '@/shared/lib/api-error'
+import { toDateInputValue } from '@/shared/helpers/date.helper'
 import { Button } from '@/shared/components/ui/button'
 import {
   Dialog,
@@ -128,11 +127,13 @@ const props = defineProps<{
   open: boolean
   rate: WorkerRate | null
   routes: Route[]
+  vehicles: Vehicle[]
   pending?: boolean
 }>()
 const emit = defineEmits<{ close: []; save: [payload: Omit<WorkerRate, 'id' | 'route_name'>] }>()
 const form = reactive({
   route_id: null as number | null,
+  vehicle_id: null as number | null,
   license_plate: '',
   freight_amount: '',
   driver_wage: '',
@@ -150,11 +151,12 @@ watch(
     formError.value = ''
     Object.assign(form, {
       route_id: props.rate?.route_id ?? null,
+      vehicle_id: props.rate?.vehicle_id ?? null,
       license_plate: props.rate?.license_plate ?? '',
       freight_amount: props.rate?.freight_amount ?? '',
       driver_wage: props.rate?.driver_wage ?? '',
-      effective_from: props.rate?.effective_from ?? '',
-      effective_to: props.rate?.effective_to ?? '',
+      effective_from: toDateInputValue(props.rate?.effective_from),
+      effective_to: toDateInputValue(props.rate?.effective_to),
     })
   },
   { immediate: true },
@@ -163,12 +165,16 @@ watch(
 const valid = computed(() =>
   Boolean(
     form.route_id &&
-    form.license_plate &&
+    (form.vehicle_id || props.rate) &&
     form.effective_from &&
     form.freight_amount !== '' &&
     form.driver_wage !== '',
   ),
 )
+const selectedVehicle = computed(() => props.vehicles.find((vehicle) => vehicle.id === form.vehicle_id) ?? null)
+function applyVehicle() {
+  if (selectedVehicle.value) form.license_plate = selectedVehicle.value.license_plate
+}
 function submit() {
   errors.value = {}
   formError.value = ''
@@ -178,6 +184,7 @@ function submit() {
   }
   emit('save', {
     route_id: form.route_id!,
+    vehicle_id: form.vehicle_id,
     license_plate: form.license_plate,
     freight_amount: form.freight_amount,
     driver_wage: form.driver_wage,

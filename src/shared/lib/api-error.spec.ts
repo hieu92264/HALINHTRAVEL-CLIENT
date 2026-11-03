@@ -21,4 +21,19 @@ describe('toApiError', () => {
     expect(apiError.message).toBe('Đã xảy ra lỗi. Vui lòng thử lại.')
     expect(apiError.fieldErrors.customer_id).toEqual(['Giá trị không hợp lệ.'])
   })
+
+  it('chịu được lỗi trường dạng chuỗi do API cũ trả về', () => {
+    const response = {
+      data: {
+        message: 'Dữ liệu gửi lên không hợp lệ.',
+        metadata: { pickup_time: 'Trường pickup time phải có định dạng H:i.' },
+      },
+      status: 422,
+    } as AxiosResponse
+    const error = new AxiosError('Request failed', undefined, undefined, undefined, response)
+
+    expect(toApiError(error).fieldErrors.pickup_time).toEqual([
+      'Trường pickup time phải có định dạng H:i.',
+    ])
+  })
 })
