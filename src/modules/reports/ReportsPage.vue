@@ -13,6 +13,28 @@
         <label class="grid gap-1 text-xs font-medium text-muted-foreground"
           >Đến ngày<Input v-model="filters.to_date" type="date" class="h-9 min-w-40"
         /></label>
+        <template v-if="isTripReport">
+          <label class="grid gap-1 text-xs font-medium text-muted-foreground"
+            >Theo lái xe<select v-model="filters.driver_id" class="h-9 min-w-40 rounded-md border border-input bg-background px-2 text-sm"><option value="">Tất cả</option><option v-for="driver in driversQuery.data.value ?? []" :key="driver.id" :value="String(driver.id)">{{ driver.full_name }}</option></select>
+          </label>
+          <label class="grid gap-1 text-xs font-medium text-muted-foreground"
+            >Theo xe<select v-model="filters.vehicle_id" class="h-9 min-w-36 rounded-md border border-input bg-background px-2 text-sm"><option value="">Tất cả</option><option v-for="vehicle in vehiclesQuery.data.value ?? []" :key="vehicle.id" :value="String(vehicle.id)">{{ vehicle.license_plate }}</option></select>
+          </label>
+          <label class="grid gap-1 text-xs font-medium text-muted-foreground"
+            >Theo khách hàng<select v-model="filters.customer_id" class="h-9 min-w-40 rounded-md border border-input bg-background px-2 text-sm"><option value="">Tất cả</option><option v-for="customer in customersQuery.data.value ?? []" :key="customer.id" :value="String(customer.id)">{{ customer.name }}</option></select>
+          </label>
+        </template>
+        <template v-if="isBusinessTrips">
+          <label class="grid gap-1 text-xs font-medium text-muted-foreground"
+            >Theo chủ xe<select v-model="filters.partner_id" class="h-9 min-w-40 rounded-md border border-input bg-background px-2 text-sm"><option value="">Tất cả</option><option v-for="partner in partnersQuery.data.value ?? []" :key="partner.id" :value="String(partner.id)">{{ partner.name }}</option></select>
+          </label>
+          <label class="grid gap-1 text-xs font-medium text-muted-foreground"
+            >Theo tuyến<select v-model="filters.route_id" class="h-9 min-w-40 rounded-md border border-input bg-background px-2 text-sm"><option value="">Tất cả</option><option v-for="route in routesQuery.data.value ?? []" :key="route.id" :value="String(route.id)">{{ route.name }}</option></select>
+          </label>
+          <label class="grid gap-1 text-xs font-medium text-muted-foreground"
+            >Theo ca<Input v-model="filters.shift_name" class="h-9 min-w-32" placeholder="Nhập tên ca" />
+          </label>
+        </template>
         <Button variant="outline" :disabled="query.isFetching.value" @click="query.refetch()"
           ><RefreshCw class="size-4" />Cập nhật</Button
         >
@@ -154,6 +176,11 @@ import {
   type DataGridDataSource,
 } from '@/shared/components/data-grid'
 import { ReportService } from '@/services/report.service'
+import { CustomerService } from '@/services/customer.service'
+import { DriverService } from '@/services/driver.service'
+import { PartnerService } from '@/services/partner.service'
+import { RouteService } from '@/services/route.service'
+import { VehicleService } from '@/services/vehicle.service'
 import { formatDate, formatMoney } from '@/modules/finance/finance.format'
 import type { ReportFilters, ReportKind, ReportRow } from './reports.types'
 
@@ -213,6 +240,9 @@ const definitions: Record<
   },
 }
 const definition = computed(() => definitions[props.kind])
+const isBusinessTrips = computed(() => props.kind === 'business-trips')
+const isTourismTrips = computed(() => props.kind === 'tourism-trips')
+const isTripReport = computed(() => isBusinessTrips.value || isTourismTrips.value)
 const hasInlineDetails = computed(
   () =>
     props.kind === 'customer-debts' ||
@@ -223,6 +253,11 @@ const query = useQuery({
   queryKey: computed(() => ['restored-report', definition.value.slug, { ...filters }]),
   queryFn: () => ReportService.get(definition.value.slug, filters),
 })
+const customersQuery = useQuery({ queryKey: ['report-customers'], queryFn: CustomerService.getCustomerList, enabled: isTripReport })
+const driversQuery = useQuery({ queryKey: ['report-drivers'], queryFn: DriverService.getDriverList, enabled: isTripReport })
+const vehiclesQuery = useQuery({ queryKey: ['report-vehicles'], queryFn: VehicleService.getVehicleList, enabled: isTripReport })
+const partnersQuery = useQuery({ queryKey: ['report-partners'], queryFn: PartnerService.getPartnerList, enabled: isBusinessTrips })
+const routesQuery = useQuery({ queryKey: ['report-routes'], queryFn: RouteService.getRouteList, enabled: isBusinessTrips })
 const detailParameters = computed<ReportFilters | null>(() => {
   const detail = definition.value.detail
   if (!detail || !selected.value?.[detail.key]) return null
@@ -243,6 +278,7 @@ const isMoney = (key: string) =>
     key,
   )
 const reportFieldLabels: Record<string, string> = {
+  stt: 'STT',
   account_code: 'Mã tài khoản',
   advance_amount: 'Tạm ứng',
   base_amount: 'Mức lương cơ bản',
@@ -257,6 +293,11 @@ const reportFieldLabels: Record<string, string> = {
   document_date: 'Ngày chứng từ',
   document_no: 'Số chứng từ',
   driver_name: 'Tài xế',
+  driver_wage_rate: '% lương',
+  driver_collected_amount: 'Lái xe thu',
+  driver_remitted_amount: 'Lái xe nộp',
+  company_collected_amount: 'Công ty thu',
+  remaining_receivable: 'Còn lại phải thu',
   driver_wage: 'Lương lái xe',
   expense_date: 'Ngày chi',
   expense_no: 'Số phiếu chi',
@@ -308,12 +349,14 @@ const reportFieldLabels: Record<string, string> = {
   tourism_commission: 'Hoa hồng du lịch',
   vehicle_type: 'Loại xe',
   external_driver_cost: 'Chi phí lái xe ngoài',
+  external_vehicle_profit: 'Lợi nhuận xe',
   fuel_cost: 'Chi phí nhiên liệu',
   repair_cost: 'Chi phí sửa chữa',
   insurance_registration_cost: 'Chi phí bảo hiểm & đăng kiểm',
   other_cost: 'Chi phí khác',
   total_cost: 'Tổng chi phí',
   general_cost_allocated: 'Chi phí chung phân bổ',
+  hired_driver_name: 'Tên lái thuê',
   type: 'Loại',
   debit: 'Công nợ',
   credit: 'Đã thanh toán',
@@ -325,6 +368,26 @@ const reportFieldLabels: Record<string, string> = {
   amount: 'Số tiền',
 }
 const label = (key: string) => {
+  if (props.kind === 'business-trips') {
+    const businessLabels: Record<string, string> = {
+      route_name: 'Tên tuyến',
+      pickup_time: 'Giờ đi',
+      return_time: 'Giờ về',
+      driver_name: 'Tên lái xe',
+      revenue: 'Cước xe',
+      external_driver_cost: 'Tiền thuê lái',
+      partner_vehicle_cost: 'Tiền thuê xe',
+    }
+    if (businessLabels[key]) return businessLabels[key]
+  }
+  if (props.kind === 'tourism-trips') {
+    const tourismLabels: Record<string, string> = {
+      driver_name: 'Tên lái xe',
+      revenue: 'Cước xe',
+      external_driver_cost: 'Tiền thuê lái',
+    }
+    if (tourismLabels[key]) return tourismLabels[key]
+  }
   if (key === 'code') {
     if (props.kind === 'customer-debts') return 'Mã khách hàng'
     if (props.kind === 'partner-debts') return 'Mã chủ xe'
@@ -340,6 +403,7 @@ function formatReportCell(key: string, value: unknown): string {
   if (key === 'is_active' && typeof value === 'boolean')
     return value ? 'Đang hoạt động' : 'Ngừng hoạt động'
   if (key === 'date' || /(_date|_at)$/.test(key)) return formatDate(String(value ?? ''))
+  if (key === 'driver_wage_rate') return `${Number(value ?? 0) * 100}%`
   if (isMoney(key)) return money(value)
   return String(value ?? '—')
 }
@@ -347,15 +411,20 @@ const createColumns = (rows: ReportRow[]): DataGridColumnDef<ReportRow>[] =>
   Object.keys(rows[0] ?? {})
     .filter((key) => !/^(id|.*_id|stt)$/.test(key))
     .slice(0, 12)
-    .map((key) => ({
-      accessorKey: key,
-      header: label(key),
-      width: isMoney(key) ? 145 : 165,
-      cell: ({ getValue }: { getValue: () => unknown }) => formatReportCell(key, getValue()),
-      meta: { label: label(key) },
-    }))
+    .map(createColumn)
+const createColumn = (key: string): DataGridColumnDef<ReportRow> => ({
+  accessorKey: key,
+  header: label(key),
+  width: key === 'stt' ? 70 : isMoney(key) ? 145 : 165,
+  cell: ({ getValue }: { getValue: () => unknown }) => formatReportCell(key, getValue()),
+  meta: { label: label(key) },
+})
+const tripColumnKeys: Partial<Record<ReportKind, string[]>> = {
+  'business-trips': ['stt', 'date', 'vehicle_plate', 'customer_name', 'route_name', 'pickup_time', 'return_time', 'driver_name', 'revenue', 'driver_wage', 'external_driver_cost', 'partner_vehicle_cost', 'external_vehicle_profit', 'partner_name'],
+  'tourism-trips': ['stt', 'date', 'vehicle_plate', 'journey', 'driver_name', 'revenue', 'driver_wage_rate', 'driver_wage', 'external_driver_cost', 'hired_driver_name', 'driver_collected_amount', 'driver_remitted_amount', 'company_collected_amount', 'remaining_receivable'],
+}
 const columns = computed<DataGridColumnDef<ReportRow>[]>(() => [
-  ...createColumns(query.data.value?.rows ?? []),
+  ...(tripColumnKeys[props.kind]?.map(createColumn) ?? createColumns(query.data.value?.rows ?? [])),
   ...(definition.value.detail && !hasInlineDetails.value
     ? [
         {
