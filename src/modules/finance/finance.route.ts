@@ -5,7 +5,7 @@ export const FinanceRoute: RouteRecordRaw[] = [
     path: 'finance',
     name: 'finance',
     component: () => import('./FinancePage.vue'),
-    meta: { permission: 'receipts.view', title: 'Tài chính và công nợ' },
+    meta: { permission: 'receipts.view', title: 'Thu chi' },
   },
   {
     path: 'driver-payroll',

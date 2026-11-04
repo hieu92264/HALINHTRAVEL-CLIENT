@@ -17,7 +17,7 @@
           ><RefreshCw class="size-4" />Cập nhật</Button
         >
         <Button :disabled="query.isFetching.value" @click="download(definition.slug)"
-          ><Download class="size-4" />Xuất Word</Button
+          ><Download class="size-4" />Xuất PDF</Button
         >
       </div>
     </header>
@@ -63,7 +63,7 @@
               :disabled="detailQuery.isFetching.value || !selected"
               @click="download(definition.detail!.slug, true)"
             >
-              <Download class="size-4" />Xuất Word chi tiết
+              <Download class="size-4" />Xuất PDF chi tiết
             </Button>
           </header>
           <DataGrid
@@ -105,7 +105,7 @@
         <div>
           <h2 class="font-semibold">{{ definition.detail.label }}</h2>
           <p class="text-sm text-muted-foreground">
-            Chọn một dòng ở bảng tổng hợp để xem phát sinh và xuất Word chi tiết.
+            Chọn một dòng ở bảng tổng hợp để xem phát sinh và xuất PDF chi tiết.
           </p>
         </div>
         <Button
@@ -113,7 +113,7 @@
           size="sm"
           :disabled="detailQuery.isFetching.value"
           @click="download(definition.detail.slug, true)"
-          ><Download class="size-4" />Xuất Word chi tiết</Button
+          ><Download class="size-4" />Xuất PDF chi tiết</Button
         >
       </header>
       <DataGrid
@@ -155,7 +155,7 @@ import {
 } from '@/shared/components/data-grid'
 import { ReportService } from '@/services/report.service'
 import { formatDate, formatMoney } from '@/modules/finance/finance.format'
-import type { ReportFilters, ReportKind, ReportResponse, ReportRow } from './reports.types'
+import type { ReportFilters, ReportKind, ReportRow } from './reports.types'
 
 const props = defineProps<{ kind: ReportKind }>()
 const today = new Date()
@@ -314,6 +314,15 @@ const reportFieldLabels: Record<string, string> = {
   other_cost: 'Chi phí khác',
   total_cost: 'Tổng chi phí',
   general_cost_allocated: 'Chi phí chung phân bổ',
+  type: 'Loại',
+  debit: 'Công nợ',
+  credit: 'Đã thanh toán',
+  balance: 'Còn lại',
+  note: 'Ghi chú',
+  calculation_type: 'Loại tính lương',
+  worker_run_no: 'Mã xe chạy (công nhân)',
+  tourist_run_no: 'Mã xe chạy (du lịch)',
+  amount: 'Số tiền',
 }
 const label = (key: string) => {
   if (key === 'code') {
@@ -433,7 +442,7 @@ async function download(slug: string, detail = false) {
     link.click()
     URL.revokeObjectURL(url)
   } catch {
-    toast.error('Không thể xuất Word báo cáo.')
+    toast.error('Không thể xuất PDF báo cáo.')
   }
 }
 </script>

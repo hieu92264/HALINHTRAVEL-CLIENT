@@ -129,6 +129,7 @@ import { useCustomerQuery } from '@/modules/master-data/customer/composables/use
 import { useExpenseTypeQuery } from '@/modules/master-data/expense-type/composables/useExpenseTypeQueries'
 import { usePartnerQuery } from '@/modules/master-data/partner/composables/usePartnerQueries'
 import type { Expense, PartnerPayment, Receipt } from '@/modules/finance/finance.types'
+import { toDateInputValue } from '@/shared/helpers/date.helper'
 import { Button } from '@/shared/components/ui/button'
 import {
   Dialog,
@@ -197,12 +198,13 @@ watch(
       props.kind === 'expense' ? ((row as Expense | null)?.expense_type_id ?? null) : null
     form.receipt_type =
       props.kind === 'receipt' ? ((row as Receipt | null)?.receipt_type ?? 'other') : 'other'
-    form.date =
+    const documentDate =
       props.kind === 'receipt'
         ? ((row as Receipt | null)?.received_at ?? today())
         : props.kind === 'expense'
           ? ((row as Expense | null)?.expense_date ?? today())
           : ((row as PartnerPayment | null)?.paid_at ?? today())
+    form.date = toDateInputValue(documentDate) || today()
     form.amount = String(row?.amount ?? '')
     form.payment_method = row?.payment_method ?? 'cash'
     form.payer_name = props.kind === 'receipt' ? ((row as Receipt | null)?.payer_name ?? '') : ''

@@ -8,6 +8,6 @@ export const ReportService = {
     return httpService.get<ReportResponse>(`${baseUrl}/${slug}`, { params: filters })
   },
   download(slug: string, filters: ReportFilters) {
-    return httpService.download(`${baseUrl}/${slug}`, { params: { ...filters, format: 'docx' } })
+    return httpService.download(`${baseUrl}/${slug}`, { params: { ...filters, format: 'pdf' } })
   },
 }
