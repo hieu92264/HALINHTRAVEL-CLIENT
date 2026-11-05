@@ -12,6 +12,11 @@ export type ReportFilters = {
   customer_id?: string
   partner_id?: string
   payroll_id?: string
+  vehicle_id?: string
+  driver_id?: string
+  route_id?: string
+  license_plate?: string
+  shift_name?: string
 }
 
 export type ReportRow = Record<string, string | number | boolean | null | undefined>

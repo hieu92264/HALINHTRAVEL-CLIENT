@@ -126,7 +126,7 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
     items: [
       {
         kind: 'item',
-        label: 'Thu chi và công nợ',
+        label: 'Thu chi',
         to: { name: 'finance' },
         routeName: 'finance',
         icon: HandCoinsIcon,

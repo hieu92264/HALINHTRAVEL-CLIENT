@@ -2,21 +2,20 @@
   <section class="space-y-5">
     <header class="flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 class="text-2xl font-semibold">Tài chính và công nợ</h1>
+        <h1 class="text-2xl font-semibold">Tài chính</h1>
         <p class="mt-1 text-sm text-muted-foreground">
           Chứng từ độc lập và đối soát từ xe chạy đã hoàn tất.
         </p>
       </div>
-      <Button v-if="canManage && activeTab !== 'debts'" @click="openCreate"
+      <Button v-if="canManage" @click="openCreate"
         ><Plus class="size-4" />{{ createLabel }}</Button
       >
     </header>
     <Tabs v-model="activeTab" class="space-y-4"
       ><TabsList class="h-auto max-w-full justify-start overflow-x-auto whitespace-nowrap"
-        ><TabsTrigger value="receipts">Phiếu thu</TabsTrigger
+        ><TabsTrigger value="receipts">Phiếu thu khách hàng</TabsTrigger
         ><TabsTrigger value="expenses">Phiếu chi chung</TabsTrigger
-        ><TabsTrigger value="payments">Chi trả đối tác</TabsTrigger
-        ><TabsTrigger value="debts">Công nợ</TabsTrigger></TabsList
+        ><TabsTrigger value="payments">Chi trả chủ xe</TabsTrigger></TabsList
       >
       <TabsContent value="receipts"
         ><DataGrid
@@ -83,42 +82,6 @@
               @edit="openEdit('partner-payment', row)"
               @lock="ask('lock-payment', row)"
               @remove="ask('delete-payment', row)" /></template></DataGrid
-      ></TabsContent>
-      <TabsContent value="debts" class="space-y-4"
-        ><div
-          class="grid grid-cols-1 gap-3 rounded-lg border bg-card p-4 sm:grid-cols-3 sm:items-end"
-        >
-          <label class="grid gap-1 text-sm"
-            >Từ ngày<Input v-model="debtFilter.from_date" type="date" /></label
-          ><label class="grid gap-1 text-sm"
-            >Đến ngày<Input v-model="debtFilter.to_date" type="date" /></label
-          ><Button class="w-full sm:w-auto" variant="outline" @click="refetchDebts"
-            ><RefreshCw class="size-4" />Cập nhật</Button
-          >
-          <p class="text-sm text-muted-foreground sm:col-span-3">
-            Chỉ tính xe chạy đã hoàn tất và chứng từ độc lập.
-          </p>
-        </div>
-        <Tabs v-model="debtTab"
-          ><TabsList class="max-w-full overflow-x-auto whitespace-nowrap"
-            ><TabsTrigger value="customer">Khách hàng</TabsTrigger
-            ><TabsTrigger value="partner">Hãng vận tải</TabsTrigger
-            ><TabsTrigger value="external-driver">Thuê lái</TabsTrigger></TabsList
-          ><TabsContent value="customer"
-            ><DebtGrid
-              :source="customerDebtSource"
-              :query="customerDebts"
-              id-key="customer_id" /></TabsContent
-          ><TabsContent value="partner"
-            ><DebtGrid
-              :source="partnerDebtSource"
-              :query="partnerDebts"
-              id-key="partner_id" /></TabsContent
-          ><TabsContent value="external-driver"
-            ><DebtGrid
-              :source="externalDriverDebtSource"
-              :query="externalDriverDebts"
-              id-key="name" /></TabsContent></Tabs
       ></TabsContent>
     </Tabs>
   </section>
