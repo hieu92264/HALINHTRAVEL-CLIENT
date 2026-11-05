@@ -84,7 +84,7 @@
           <label v-if="kind === 'receipt'" class="grid gap-1.5 text-sm font-medium"
             >Người nộp<Input v-model="form.payer_name" placeholder="Tên người nộp" /></label
           ><label v-if="kind === 'expense'" class="grid gap-1.5 text-sm font-medium sm:col-span-2"
-            >Người nhận<Input v-model="form.recipient_name" placeholder="Tên người nhận tiền"
+            >Người chi<Input v-model="form.recipient_name" placeholder="Tên người chi tiền"
           /></label>
           <section
             v-if="kind === 'expense' && isHiredDriverPayment"
