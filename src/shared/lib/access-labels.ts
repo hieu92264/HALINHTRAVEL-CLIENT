@@ -8,8 +8,6 @@ const groups: Record<string, string> = {
   routes: 'Tuyến đường',
   'expense-types': 'Loại chi phí',
   'worker-vehicles': 'Xe chạy công nhân',
-  'worker-vehicle-schedules': 'Lịch xe công nhân',
-  'worker-vehicle-rates': 'Bảng giá xe công nhân',
   'tourist-vehicles': 'Xe chạy du lịch',
   receipts: 'Phiếu thu',
   expenses: 'Phiếu chi',

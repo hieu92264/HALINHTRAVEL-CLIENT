@@ -80,7 +80,7 @@
     <div class="rounded-xl border border-border bg-card p-5 shadow-sm">
       <h2 class="text-base font-semibold">Chấm công</h2>
       <p v-if="run.attendance" class="mt-2 text-sm">
-        Đã tạo chấm công <span class="font-medium">{{ run.attendance.status }}</span> với lương
+        Đã tạo chấm công <span class="font-medium">{{ attendanceStatusLabel }}</span> với lương
         {{ money(run.attendance.calculated_wage) }}.
       </p>
       <p v-else class="mt-2 text-sm text-muted-foreground">
@@ -116,6 +116,11 @@ const route = useRoute()
 const router = useRouter()
 const run = ref<VehicleRun | null>(null)
 const isSaving = ref(false)
+const attendanceStatusLabel = computed(() =>
+  ({ pending: 'Chờ xác nhận', confirmed: 'Đã xác nhận', payroll_locked: 'Đã chốt lương' })[
+    run.value?.attendance?.status ?? ''
+  ] ?? run.value?.attendance?.status ?? '—',
+)
 const statusLabel = computed(
   () =>
     ({ planned: 'Kế hoạch', in_progress: 'Đang chạy', completed: 'Hoàn tất', cancelled: 'Đã hủy' })[
