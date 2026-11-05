@@ -110,7 +110,7 @@
         </FormField>
 
         <section class="sm:col-span-2 space-y-3 rounded-lg border border-border p-3">
-          <div><h3 class="font-medium">Đơn giá và lương theo loại xe</h3><p class="text-sm text-muted-foreground">Mỗi loại xe phải có cước và lương lái xe lớn hơn 0.</p></div>
+          <div><h3 class="font-medium">Đơn giá và lương theo loại xe</h3><p class="text-sm text-muted-foreground">Chỉ nhập các loại xe cần dùng. Cước xe và lương lái phải được nhập cùng nhau.</p></div>
           <div v-for="(type, index) in vehicleTypes.data.value ?? []" :key="type.id" class="grid gap-3 sm:grid-cols-3">
             <p class="self-center text-sm font-medium">{{ type.code }} · {{ type.name }}</p>
             <FormField v-slot="{ componentField }" :name="`rates.${index}.freight_amount`"><FormItem><FormControl><Input type="number" min="1" placeholder="Cước xe" v-bind="componentField" /></FormControl><FormMessage /></FormItem></FormField>
@@ -216,7 +216,7 @@ function getFormValues(route?: Route | null) {
     default_pickup_time: route?.default_pickup_time?.slice(0, 5) ?? null,
     default_return_time: route?.default_return_time?.slice(0, 5) ?? null,
     estimated_distance_km: route?.estimated_distance_km ?? null,
-    rates: route?.rates?.map((rate) => ({ vehicle_type_id: rate.vehicle_type_id, freight_amount: Number(rate.freight_amount), driver_wage: Number(rate.driver_wage) })) ?? [],
+    rates: rateRows(route),
     is_active: false,
   }
 }
@@ -225,6 +225,25 @@ const form = useForm({
   validationSchema: toTypedSchema(createRouteSchema),
   initialValues: getFormValues(),
 })
+
+function rateRows(route?: Route | null, types = vehicleTypes.data.value ?? []) {
+  if (!types.length) {
+    return route?.rates?.map((rate) => ({
+      vehicle_type_id: rate.vehicle_type_id,
+      freight_amount: String(rate.freight_amount),
+      driver_wage: String(rate.driver_wage),
+    })) ?? []
+  }
+
+  return types.map((type) => {
+    const rate = route?.rates?.find((item) => item.vehicle_type_id === type.id)
+    return {
+      vehicle_type_id: type.id,
+      freight_amount: rate ? String(rate.freight_amount) : '',
+      driver_wage: rate ? String(rate.driver_wage) : '',
+    }
+  })
+}
 
 watch(
   [() => props.isOpen, () => props.row],
@@ -235,10 +254,9 @@ watch(
 )
 
 watch(
-  () => vehicleTypes.data.value,
-  (types) => {
-    if (!props.isOpen || !types?.length || form.values.rates?.length) return
-    form.setFieldValue('rates', types.map((type) => ({ vehicle_type_id: type.id, freight_amount: 0, driver_wage: 0 })))
+  [() => props.isOpen, () => vehicleTypes.data.value],
+  ([isOpen, types]) => {
+    if (isOpen && types?.length) form.setFieldValue('rates', rateRows(props.row, types))
   },
   { immediate: true },
 )

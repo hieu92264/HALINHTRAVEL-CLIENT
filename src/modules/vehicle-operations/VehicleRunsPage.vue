@@ -95,7 +95,9 @@ const sourceLabel = (run: VehicleRun) => (run.is_company_vehicle ? 'Xe công ty'
 const driverLabel = (run: VehicleRun) =>
   run.driver_name ?? run.hired_driver_name ?? 'Chưa phân công'
 const attendanceLabel = (run: VehicleRun) =>
-  run.attendance ? `${run.attendance.status} · ${moneyCell(run.attendance.calculated_wage)}` : 'Chưa có'
+  run.attendance
+    ? `${({ pending: 'Chờ xác nhận', confirmed: 'Đã xác nhận', payroll_locked: 'Đã chốt lương' }[run.attendance.status] ?? run.attendance.status)} · ${moneyCell(run.attendance.calculated_wage)}`
+    : 'Chưa có'
 const columns = computed<DataGridColumnDef<VehicleRun>[]>(() => [
   {
     accessorKey: 'run_no',

@@ -24,7 +24,5 @@ import { useRoute } from 'vue-router'
 const route = useRoute()
 const items = [
   { name: 'worker-vehicles', label: 'Chuyến chạy' },
-  { name: 'worker-vehicle-schedules', label: 'Lịch lặp' },
-  { name: 'worker-vehicle-rates', label: 'Bảng giá' },
 ]
 </script>

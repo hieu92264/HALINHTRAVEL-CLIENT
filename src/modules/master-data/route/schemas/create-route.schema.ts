@@ -52,6 +52,43 @@ export const estimatedDistanceKmSchema = numberInput(
     .nullable(),
 )
 
+const routeRateAmountSchema = numberInput(
+  z
+    .number()
+    .finite({ message: 'Giá trị phải là số hợp lệ' })
+    .positive({ message: 'Giá trị phải lớn hơn 0' })
+    .nullable(),
+)
+
+const routeRatesSchema = z
+  .array(
+    z.object({
+      vehicle_type_id: z.coerce.number().int().positive(),
+      freight_amount: routeRateAmountSchema,
+      driver_wage: routeRateAmountSchema,
+    }),
+  )
+  .superRefine((rates, context) => {
+    rates.forEach((rate, index) => {
+      const hasFreight = rate.freight_amount !== null
+      const hasWage = rate.driver_wage !== null
+
+      if (hasFreight !== hasWage) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [index, hasFreight ? 'driver_wage' : 'freight_amount'],
+          message: 'Cước xe và lương lái phải được nhập cùng nhau',
+        })
+      }
+    })
+  })
+  .transform((rates) =>
+    rates.filter(
+      (rate): rate is { vehicle_type_id: number; freight_amount: number; driver_wage: number } =>
+        rate.freight_amount !== null && rate.driver_wage !== null,
+    ),
+  )
+
 export const routeFieldsSchema = z.object({
   customer_id: customerIdSchema,
   name: z
@@ -73,11 +110,7 @@ export const routeFieldsSchema = z.object({
   default_pickup_time: timeSchema,
   default_return_time: timeSchema,
   estimated_distance_km: estimatedDistanceKmSchema.optional(),
-  rates: z.array(z.object({
-    vehicle_type_id: z.coerce.number().int().positive(),
-    freight_amount: z.coerce.number().positive({ message: 'Cước xe phải lớn hơn 0' }),
-    driver_wage: z.coerce.number().positive({ message: 'Lương lái phải lớn hơn 0' }),
-  })).length(6, { message: 'Cần khai báo giá cho đủ 6 loại xe' }),
+  rates: routeRatesSchema,
 })
 
 export const validateRouteTimes = <T extends z.ZodTypeAny>(schema: T) =>
