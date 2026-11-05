@@ -53,13 +53,13 @@ export const estimatedDistanceKmSchema = numberInput(
 )
 
 export const routeFieldsSchema = z.object({
-  customer_id: customerIdSchema.optional(),
+  customer_id: customerIdSchema,
   name: z
     .string()
     .trim()
     .min(1, { message: 'Tên tuyến không được để trống' })
     .max(255, { message: 'Tên tuyến không được vượt quá 255 ký tự' }),
-  shift_name: nullableText(100, 'Tên ca').optional(),
+  shift_name: z.string().trim().min(1, { message: 'Tên ca không được để trống' }).max(100),
   pickup_location: z
     .string()
     .trim()
@@ -70,9 +70,14 @@ export const routeFieldsSchema = z.object({
     .trim()
     .min(1, { message: 'Điểm trả không được để trống' })
     .max(500, { message: 'Điểm trả không được vượt quá 500 ký tự' }),
-  default_pickup_time: timeSchema.optional(),
-  default_return_time: timeSchema.optional(),
+  default_pickup_time: timeSchema,
+  default_return_time: timeSchema,
   estimated_distance_km: estimatedDistanceKmSchema.optional(),
+  rates: z.array(z.object({
+    vehicle_type_id: z.coerce.number().int().positive(),
+    freight_amount: z.coerce.number().positive({ message: 'Cước xe phải lớn hơn 0' }),
+    driver_wage: z.coerce.number().positive({ message: 'Lương lái phải lớn hơn 0' }),
+  })).length(6, { message: 'Cần khai báo giá cho đủ 6 loại xe' }),
 })
 
 export const validateRouteTimes = <T extends z.ZodTypeAny>(schema: T) =>

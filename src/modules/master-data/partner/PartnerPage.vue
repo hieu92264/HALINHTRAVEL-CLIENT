@@ -2,9 +2,9 @@
   <section class="space-y-5">
     <header class="flex items-end justify-between">
       <div>
-        <h1 class="text-2xl font-semibold tracking-tight text-foreground">Thông tin đối tác</h1>
+        <h1 class="text-2xl font-semibold tracking-tight text-foreground">Hãng vận tải</h1>
         <p class="mt-1 text-sm text-muted-foreground">
-          Tra cứu, lọc và quản lý danh sách đối tác vận hành.
+          Quản lý chủ xe dùng khi thuê xe theo từng chuyến.
         </p>
       </div>
     </header>

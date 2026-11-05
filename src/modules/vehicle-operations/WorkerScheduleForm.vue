@@ -304,8 +304,9 @@ function applyVehicleDefaults() {
   const vehicle = selectedVehicle.value
   if (!vehicle) return
   form.license_plate = vehicle.license_plate
-  form.is_company_vehicle = vehicle.ownership_type === OwnershipTypeEnum.COMPANY
-  form.partner_id = vehicle.partner_id
+  form.is_company_vehicle = true
+  form.partner_id = null
+  form.driver_id = vehicle.default_driver_id ?? form.driver_id
 }
 onMounted(async () => {
   const [customerList, routeList, driverList, vehicleList, rateList] = await Promise.all([

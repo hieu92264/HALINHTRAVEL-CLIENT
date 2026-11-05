@@ -32,8 +32,23 @@ describe('toApiError', () => {
     } as AxiosResponse
     const error = new AxiosError('Request failed', undefined, undefined, undefined, response)
 
-    expect(toApiError(error).fieldErrors.pickup_time).toEqual([
+    const apiError = toApiError(error)
+    expect(apiError.fieldErrors.pickup_time).toEqual([
       'Trường pickup time phải có định dạng H:i.',
     ])
+    expect(apiError.message).toBe('Trường pickup time phải có định dạng H:i.')
+  })
+
+  it('ưu tiên lỗi metadata chi tiết thay vì thông báo 422 tổng quát', () => {
+    const response = {
+      data: {
+        message: 'Dữ liệu gửi lên không hợp lệ.',
+        metadata: { vehicle_type_id: ['Tuyến chưa có bảng giá cho loại xe đã chọn.'] },
+      },
+      status: 422,
+    } as AxiosResponse
+    const error = new AxiosError('Request failed', undefined, undefined, undefined, response)
+
+    expect(toApiError(error).message).toBe('Tuyến chưa có bảng giá cho loại xe đã chọn.')
   })
 })
