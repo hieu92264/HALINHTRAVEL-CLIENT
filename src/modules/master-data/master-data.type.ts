@@ -71,15 +71,36 @@ export interface Route extends BaseEntity {
   default_pickup_time: string | null
   default_return_time: string | null
   estimated_distance_km: number | null
+  rates: RouteVehicleTypeRate[]
+}
+
+export interface VehicleType extends BaseEntity {
+  code: string
+  name: string
+  tourism_wage_rate: string
+}
+
+export interface RouteVehicleTypeRate {
+  vehicle_type_id: number
+  vehicle_type_code?: string | null
+  vehicle_type_name?: string | null
+  freight_amount: string | number
+  driver_wage: string | number
 }
 
 export interface Vehicle extends BaseEntity {
   code: string
   license_plate: string
-  seat_count: number
-  vehicle_model: string | null
-  ownership_type: OwnershipTypeEnum
-  partner_id: number | null
-  partner_name: string | null
+  vehicle_type_id: number | null
+  vehicle_type_code: string | null
+  vehicle_type_name: string | null
+  default_driver_id: number | null
+  default_driver_name: string | null
+  /** Legacy read-only fields retained while historical screens are migrated. */
+  seat_count?: number
+  vehicle_model?: string | null
+  ownership_type?: OwnershipTypeEnum
+  partner_id?: number | null
+  partner_name?: string | null
   note: string | null
 }

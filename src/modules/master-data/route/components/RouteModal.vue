@@ -8,12 +8,12 @@
         </DialogDescription>
       </DialogHeader>
 
-      <form class="grid gap-4 sm:grid-cols-2" @submit="onSubmit">
+      <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="onSubmit">
         <FormField v-slot="{ value, handleChange }" name="customer_id">
           <FormItem>
             <FormLabel>Khách hàng</FormLabel>
             <Select
-              :model-value="value == null ? noCustomerValue : String(value)"
+              :model-value="value == null ? undefined : String(value)"
               :disabled="customerOptionsQuery.isLoading.value"
               @update:model-value="handleCustomerChange(handleChange, $event)"
             >
@@ -23,7 +23,6 @@
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                <SelectItem :value="noCustomerValue">Không gán khách hàng</SelectItem>
                 <SelectItem
                   v-for="customer in customerOptionsQuery.data.value ?? []"
                   :key="customer.value"
@@ -107,6 +106,15 @@
           </FormItem>
         </FormField>
 
+        <section class="sm:col-span-2 space-y-3 rounded-lg border border-border p-3">
+          <div><h3 class="font-medium">Đơn giá và lương theo loại xe</h3><p class="text-sm text-muted-foreground">Mỗi loại xe phải có cước và lương lái xe lớn hơn 0.</p></div>
+          <div v-for="(type, index) in vehicleTypes.data.value ?? []" :key="type.id" class="grid gap-3 sm:grid-cols-3">
+            <p class="self-center text-sm font-medium">{{ type.code }} · {{ type.name }}</p>
+            <FormField v-slot="{ componentField }" :name="`rates.${index}.freight_amount`"><FormItem><FormControl><Input type="number" min="1" placeholder="Cước xe" v-bind="componentField" /></FormControl><FormMessage /></FormItem></FormField>
+            <FormField v-slot="{ componentField }" :name="`rates.${index}.driver_wage`"><FormItem><FormControl><Input type="number" min="1" placeholder="Lương lái" v-bind="componentField" /></FormControl><FormMessage /></FormItem></FormField>
+          </div>
+        </section>
+
         <FormField
           v-if="isEdit && !row?.is_active"
           v-slot="{ value, handleChange }"
@@ -148,6 +156,8 @@ import {
 import { createRouteSchema } from '@/modules/master-data/route/schemas/create-route.schema'
 import { updateRouteSchema } from '@/modules/master-data/route/schemas/update-route.schema'
 import type { Route } from '@/modules/master-data/master-data.type'
+import { VehicleTypeService } from '@/services/vehicle-type.service'
+import { useQuery } from '@tanstack/vue-query'
 import { Button } from '@/shared/components/ui/button'
 import {
   Dialog,
@@ -177,8 +187,6 @@ import { computed, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import { useForm } from 'vee-validate'
 
-const noCustomerValue = '__no_customer__'
-
 const props = defineProps<{
   isOpen: boolean
   row?: Route | null
@@ -189,19 +197,9 @@ const emit = defineEmits<{ close: [] }>()
 const createMutation = useStoreRouteMutation()
 const updateMutation = useUpdateRouteMutation()
 const customerOptionsQuery = useCustomerOptionsQuery()
+const vehicleTypes = useQuery({ queryKey: ['vehicle-types'], queryFn: VehicleTypeService.getList })
 const isEdit = computed(() => Boolean(props.row))
 const isPending = computed(() => createMutation.isPending.value || updateMutation.isPending.value)
-
-const routeFieldKeys = [
-  'customer_id',
-  'name',
-  'shift_name',
-  'pickup_location',
-  'dropoff_location',
-  'default_pickup_time',
-  'default_return_time',
-  'estimated_distance_km',
-] as const
 
 function getFormValues(route?: Route | null) {
   return {
@@ -213,6 +211,7 @@ function getFormValues(route?: Route | null) {
     default_pickup_time: route?.default_pickup_time?.slice(0, 5) ?? null,
     default_return_time: route?.default_return_time?.slice(0, 5) ?? null,
     estimated_distance_km: route?.estimated_distance_km ?? null,
+    rates: route?.rates?.map((rate) => ({ vehicle_type_id: rate.vehicle_type_id, freight_amount: Number(rate.freight_amount), driver_wage: Number(rate.driver_wage) })) ?? [],
     is_active: false,
   }
 }
@@ -230,6 +229,15 @@ watch(
   { immediate: true },
 )
 
+watch(
+  () => vehicleTypes.data.value,
+  (types) => {
+    if (!props.isOpen || !types?.length || form.values.rates?.length) return
+    form.setFieldValue('rates', types.map((type) => ({ vehicle_type_id: type.id, freight_amount: 0, driver_wage: 0 })))
+  },
+  { immediate: true },
+)
+
 const open = computed({
   get: () => props.isOpen,
   set: (value: boolean) => {
@@ -237,8 +245,8 @@ const open = computed({
   },
 })
 
-function handleCustomerChange(handleChange: (value: number | null) => void, value: unknown) {
-  handleChange(value === noCustomerValue || value == null ? null : Number(value))
+function handleCustomerChange(handleChange: (value: number) => void, value: unknown) {
+  handleChange(Number(value))
 }
 
 const onSubmit = form.handleSubmit(async (values) => {
@@ -246,22 +254,12 @@ const onSubmit = form.handleSubmit(async (values) => {
     const routeValues = createRouteSchema.parse(values)
 
     if (isEdit.value) {
-      const currentValues = createRouteSchema.parse(props.row)
-      const payload: Record<string, unknown> = {}
-
-      for (const key of routeFieldKeys) {
-        if (!Object.is(routeValues[key], currentValues[key])) {
-          payload[key] = routeValues[key]
-        }
-      }
+      // Send the full approved route snapshot.  Comparing nested rate rows by
+      // reference can incorrectly produce an empty or partial PATCH payload.
+      const payload: Record<string, unknown> = { ...routeValues }
 
       if (!props.row!.is_active && (form.values as { is_active?: boolean }).is_active === true) {
         payload.is_active = true
-      }
-
-      if (!Object.keys(payload).length) {
-        toast.info('Chưa có thay đổi để cập nhật')
-        return
       }
 
       await updateMutation.mutateAsync({
@@ -278,5 +276,8 @@ const onSubmit = form.handleSubmit(async (values) => {
   } catch (error) {
     toast.error(error instanceof Error ? error.message : 'Không thể lưu tuyến xe')
   }
+}, (context) => {
+  const firstMessage = Object.values(context.errors)[0]
+  toast.error(firstMessage ?? 'Vui lòng kiểm tra lại các trường bắt buộc.')
 })
 </script>

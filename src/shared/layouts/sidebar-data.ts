@@ -78,7 +78,7 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
       },
       {
         kind: 'item',
-        label: 'Đối tác',
+        label: 'Hãng vận tải',
         to: '/partners',
         routeName: 'partners',
         icon: HandshakeIcon,
@@ -97,6 +97,14 @@ export const sidebarNavigation: SidebarNavigationNode[] = [
         label: 'Xe',
         to: '/vehicles',
         routeName: 'vehicles',
+        icon: BusFrontIcon,
+        permission: 'vehicles.view',
+      },
+      {
+        kind: 'item',
+        label: 'Loại xe',
+        to: '/vehicle-types',
+        routeName: 'vehicle-types',
         icon: BusFrontIcon,
         permission: 'vehicles.view',
       },

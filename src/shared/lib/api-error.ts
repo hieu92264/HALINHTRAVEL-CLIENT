@@ -3,6 +3,11 @@ import { AxiosError } from 'axios'
 const fallbackMessage = 'Đã xảy ra lỗi. Vui lòng thử lại.'
 const fallbackFieldMessage = 'Giá trị không hợp lệ.'
 const vietnameseCharacterPattern = /[À-ỹĐđ]/u
+const genericApiMessages = new Set([
+  'Dữ liệu gửi lên không hợp lệ.',
+  'Đã xảy ra lỗi. Vui lòng thử lại.',
+  'Validation failed.',
+])
 
 function toVietnameseMessage(message: unknown, fallback = fallbackMessage): string {
   if (typeof message !== 'string') return fallback
@@ -23,6 +28,10 @@ function normalizeFieldErrors(
       return [[field, values.map((message) => toVietnameseMessage(message, fallbackFieldMessage))]]
     }),
   )
+}
+
+function firstFieldMessage(fieldErrors: Record<string, string[]>): string | undefined {
+  return Object.values(fieldErrors).flat().find((message) => message !== fallbackFieldMessage)
 }
 
 export class ApiError extends Error {
@@ -46,10 +55,14 @@ export function toApiError(error: unknown): ApiError {
           metadata?: unknown
         })
       | undefined
+    const fieldErrors = normalizeFieldErrors(response?.errors ?? response?.metadata)
+    const responseMessage = typeof response?.message === 'string' ? response.message.trim() : ''
+    const message = toVietnameseMessage(responseMessage || error.message)
+
     return new ApiError(
-      toVietnameseMessage(response?.message || error.message),
+      genericApiMessages.has(responseMessage) ? (firstFieldMessage(fieldErrors) ?? message) : message,
       error.response?.status,
-      normalizeFieldErrors(response?.errors ?? response?.metadata),
+      fieldErrors,
     )
   }
 

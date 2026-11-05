@@ -1,4 +1,3 @@
-import { ownershipTypeLabel } from '@/modules/master-data/type-labels'
 import type { Vehicle } from '@/modules/master-data/master-data.type'
 import type { DataGridColumnDef } from '@/shared/components/data-grid'
 import { h } from 'vue'
@@ -14,9 +13,8 @@ export const vehicleColumns: DataGridColumnDef<Vehicle>[] = [
   },
   { accessorKey: 'code', header: 'Mã xe', width: 110, meta: { label: 'Mã xe' } },
   { accessorKey: 'license_plate', header: 'Biển số', width: 145, fixed: 'left', meta: { label: 'Biển số' } },
-  { accessorKey: 'seat_count', header: 'Số chỗ', width: 100, align: 'right', meta: { label: 'Số chỗ' } },
-  { accessorKey: 'vehicle_model', header: 'Hãng/loại xe', width: 180, cell: ({ row }) => row.original.vehicle_model || '—', meta: { label: 'Hãng/loại xe' } },
-  { id: 'ownership_type', accessorFn: (row) => ownershipTypeLabel(row.ownership_type), header: 'Nguồn xe', width: 120, meta: { label: 'Nguồn xe' } },
-  { accessorKey: 'partner_name', header: 'Chủ xe/đối tác', width: 190, cell: ({ row }) => row.original.partner_name || '—', meta: { label: 'Chủ xe/đối tác' } },
+  { accessorKey: 'vehicle_type_code', header: 'Mã loại xe', width: 130, meta: { label: 'Mã loại xe' } },
+  { accessorKey: 'vehicle_type_name', header: 'Loại xe', width: 150, cell: ({ row }) => row.original.vehicle_type_name || 'Cần gán loại xe', meta: { label: 'Loại xe' } },
+  { accessorKey: 'default_driver_name', header: 'Tài xế mặc định', width: 190, cell: ({ row }) => row.original.default_driver_name || 'Cần gán tài xế', meta: { label: 'Tài xế mặc định' } },
   { accessorKey: 'note', header: 'Ghi chú', width: 240, cell: ({ row }) => row.original.note || '—', meta: { label: 'Ghi chú' } },
 ]

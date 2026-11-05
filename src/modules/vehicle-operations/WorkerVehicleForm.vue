@@ -6,7 +6,7 @@
         {{ isEdit ? 'Cập nhật chuyến ngoại lệ' : 'Tạo chuyến ngoại lệ' }}
       </h1>
       <p class="mt-1 text-sm text-muted-foreground">
-        Chuyến tạo tay không thuộc lịch lặp. Cước và lương được đối chiếu theo bảng giá khi lưu.
+        Chuyến tạo tay không thuộc lịch lặp. Cước và lương được lấy từ bảng giá của tuyến theo loại xe.
       </p>
     </header>
 
@@ -63,18 +63,23 @@
             v-model.number="form.vehicle_id"
             required
             class="control"
-            :disabled="!form.route_id || !form.run_date || !ratesLoaded"
+            :disabled="!form.route_id"
             @change="applyVehicleDefaults"
           >
             <option :value="null" disabled>{{ vehiclePrompt }}</option>
             <option v-for="vehicle in eligibleVehicles" :key="vehicle.id" :value="vehicle.id">
-              {{ vehicle.license_plate }} · {{ vehicle.seat_count }} chỗ{{ vehicle.vehicle_model ? ` · ${vehicle.vehicle_model}` : '' }}
+              {{ vehicle.license_plate }} · {{ vehicle.vehicle_type_code ?? 'Chưa gán loại' }} · {{ vehicleSeats(vehicle) ?? '?' }} chỗ
             </option>
           </select>
-          <small v-if="form.route_id && form.run_date && ratesLoaded && !eligibleVehicles.length" class="text-destructive">Chưa có xe nào có bảng giá hiệu lực cho tuyến và ngày đã chọn.</small>
-          <small v-if="selectedVehicle" class="text-muted-foreground">{{ selectedVehicle.ownership_type === OwnershipTypeEnum.COMPANY ? 'Xe công ty' : `Xe đối tác · ${selectedVehicle.partner_name ?? 'Chưa xác định'}` }}</small>
+          <small v-if="form.route_id && !eligibleVehicles.length" class="text-destructive">Tuyến chưa có giá cho loại xe của bất kỳ xe công ty nào.</small>
+          <small v-if="selectedVehicle" class="text-muted-foreground">Xe công ty · {{ selectedVehicle.vehicle_type_name ?? selectedVehicle.vehicle_type_code ?? 'Cần gán loại xe' }} · {{ vehicleSeats(selectedVehicle) ?? '?' }} chỗ</small>
           <small v-else-if="form.license_plate" class="text-muted-foreground">Chuyến lịch sử: {{ form.license_plate }}. Chọn xe khi cần thay đổi.</small>
         </label>
+        <div v-if="selectedRate" class="grid gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm sm:col-span-2 sm:grid-cols-3">
+          <div><p class="text-muted-foreground">Loại xe / số chỗ</p><p class="mt-1 font-semibold">{{ selectedVehicle?.vehicle_type_code ?? 'Chưa chọn xe' }} · {{ vehicleSeats(selectedVehicle) ?? '?' }} chỗ</p></div>
+          <div><p class="text-muted-foreground">Cước xe snapshot</p><p class="mt-1 font-semibold">{{ formatMoney(selectedRate.freight_amount) }}</p></div>
+          <div><p class="text-muted-foreground">Lương lái snapshot</p><p class="mt-1 font-semibold">{{ formatMoney(selectedRate.driver_wage) }}</p></div>
+        </div>
         <label class="field"
           >Lái xe nội bộ<select
             v-model.number="form.driver_id"
@@ -127,7 +132,6 @@
 </template>
 
 <script setup lang="ts">
-import { OwnershipTypeEnum } from '@/modules/master-data/master-data.enum'
 import type {
   Customer,
   Driver,
@@ -138,7 +142,7 @@ import { CustomerService } from '@/services/customer.service'
 import { DriverService } from '@/services/driver.service'
 import { RouteService } from '@/services/route.service'
 import { VehicleService } from '@/services/vehicle.service'
-import { VehicleOperationsService, type WorkerRate } from '@/services/vehicle-operations.service'
+import { VehicleOperationsService } from '@/services/vehicle-operations.service'
 import { toDateInputValue, toTimeInputValue } from '@/shared/helpers/date.helper'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -154,12 +158,11 @@ const customers = ref<Customer[]>([])
 const routes = ref<WorkerRoute[]>([])
 const drivers = ref<Driver[]>([])
 const vehicles = ref<Vehicle[]>([])
-const rates = ref<WorkerRate[]>([])
-const ratesLoaded = ref(false)
 const form = reactive({
   customer_id: null as number | null,
   route_id: null as number | null,
   vehicle_id: null as number | null,
+  vehicle_type_id: null as number | null,
   shift_name: '',
   license_plate: '',
   run_date: new Date().toISOString().slice(0, 10),
@@ -178,31 +181,23 @@ const form = reactive({
 const availableRoutes = computed(() =>
   routes.value.filter((item) => !form.customer_id || item.customer_id === form.customer_id),
 )
-const companyDrivers = computed(() =>
-  drivers.value.filter(
-    (driver) => driver.type === OwnershipTypeEnum.COMPANY && driver.is_active !== false,
-  ),
-)
+const companyDrivers = computed(() => drivers.value.filter((driver) => driver.is_active !== false))
 const selectedVehicle = computed(() => vehicles.value.find((vehicle) => vehicle.id === form.vehicle_id) ?? null)
+const selectedRoute = computed(() => routes.value.find((item) => item.id === form.route_id) ?? null)
+const selectedRate = computed(() => {
+  const vehicleTypeId = selectedVehicle.value?.vehicle_type_id ?? form.vehicle_type_id
+  return selectedRoute.value?.rates.find((rate) => rate.vehicle_type_id === vehicleTypeId) ?? null
+})
 const eligibleVehicles = computed(() => {
-  if (!form.route_id || !form.run_date) return []
+  if (!selectedRoute.value) return []
 
   return vehicles.value.filter((vehicle) =>
-    rates.value.some(
-      (rate) =>
-        rate.is_active !== false &&
-        rate.route_id === form.route_id &&
-        rate.vehicle_id === vehicle.id &&
-        rate.effective_from <= form.run_date &&
-        (!rate.effective_to || rate.effective_to >= form.run_date),
-    ),
+    vehicle.vehicle_type_id !== null && selectedRoute.value?.rates.some((rate) => rate.vehicle_type_id === vehicle.vehicle_type_id),
   )
 })
 const vehiclePrompt = computed(() => {
   if (!form.route_id) return 'Chọn tuyến trước'
-  if (!form.run_date) return 'Chọn ngày chạy trước'
-  if (!ratesLoaded.value) return 'Đang tải bảng giá…'
-  return eligibleVehicles.value.length ? 'Chọn xe có báo giá' : 'Không có xe có báo giá hiệu lực'
+  return eligibleVehicles.value.length ? 'Chọn xe công ty' : 'Không có xe phù hợp bảng giá tuyến'
 })
 
 watch(
@@ -219,9 +214,9 @@ watch(
   },
 )
 watch(
-  [() => form.route_id, () => form.run_date, ratesLoaded],
+  [() => form.route_id],
   () => {
-    if (!ratesLoaded.value || !form.vehicle_id) return
+    if (!form.vehicle_id) return
     if (!eligibleVehicles.value.some((vehicle) => vehicle.id === form.vehicle_id)) {
       form.vehicle_id = null
       form.license_plate = ''
@@ -243,23 +238,22 @@ function applyVehicleDefaults() {
   const vehicle = selectedVehicle.value
   if (!vehicle) return
   form.license_plate = vehicle.license_plate
-  form.is_company_vehicle = vehicle.ownership_type === OwnershipTypeEnum.COMPANY
-  form.partner_id = vehicle.partner_id
+  form.vehicle_type_id = vehicle.vehicle_type_id
+  form.is_company_vehicle = true
+  form.partner_id = null
+  form.driver_id = vehicle.default_driver_id ?? form.driver_id
 }
 onMounted(async () => {
-  const [customerList, routeList, driverList, vehicleList, rateList] = await Promise.all([
+  const [customerList, routeList, driverList, vehicleList] = await Promise.all([
     CustomerService.getCustomerList(),
     RouteService.getRouteList(),
     DriverService.getDriverList(),
     VehicleService.getVehicleOptions(),
-    VehicleOperationsService.rates(),
   ])
   customers.value = customerList
   routes.value = routeList
   drivers.value = driverList
   vehicles.value = vehicleList
-  rates.value = rateList
-  ratesLoaded.value = true
   if (isEdit.value) {
     const saved = await VehicleOperationsService.workerRun(Number(route.params.id))
     Object.assign(form, {
@@ -273,6 +267,15 @@ onMounted(async () => {
       form.vehicle_id = vehicles.value.find((vehicle) => vehicle.license_plate === saved.license_plate)?.id ?? null
   }
 })
+
+function vehicleSeats(vehicle: Vehicle | null): number | null {
+  const fromType = Number(vehicle?.vehicle_type_code?.replace(/\D/g, ''))
+  return Number.isFinite(fromType) && fromType > 0 ? fromType : vehicle?.seat_count ?? null
+}
+
+function formatMoney(value: string | number): string {
+  return `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(Number(value))} đ`
+}
 async function save() {
   isSaving.value = true
   try {
