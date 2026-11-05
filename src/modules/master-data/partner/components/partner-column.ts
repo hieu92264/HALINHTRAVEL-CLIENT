@@ -71,20 +71,6 @@ export const partnerColumns: DataGridColumnDef<Partner>[] = [
     meta: { label: 'Số điện thoại', filterPlaceholder: 'Số điện thoại...' },
   },
   {
-    accessorKey: 'email',
-    header: 'Email',
-    cell: ({ row }) => row.original.email || '—',
-    width: 220,
-    meta: { label: 'Email', filterPlaceholder: 'Email...' },
-  },
-  {
-    accessorKey: 'cccd',
-    header: 'CCCD',
-    cell: ({ row }) => row.original.cccd || '—',
-    width: 152,
-    meta: { label: 'CCCD', filterPlaceholder: 'CCCD...' },
-  },
-  {
     accessorKey: 'tax_code',
     header: 'Mã số thuế',
     cell: ({ row }) => row.original.tax_code || '—',
@@ -97,20 +83,6 @@ export const partnerColumns: DataGridColumnDef<Partner>[] = [
     cell: ({ row }) => row.original.address || '—',
     width: 220,
     meta: { label: 'Địa chỉ', filterPlaceholder: 'Địa chỉ...' },
-  },
-  {
-    accessorKey: 'bank_name',
-    header: 'Tên ngân hàng',
-    cell: ({ row }) => row.original.bank_name || '—',
-    width: 220,
-    meta: { label: 'Tên ngân hàng', filterPlaceholder: 'Tên ngân hàng...' },
-  },
-  {
-    accessorKey: 'bank_account',
-    header: 'Số tài khoản',
-    cell: ({ row }) => row.original.bank_account || '—',
-    width: 220,
-    meta: { label: 'Số tài khoản', filterPlaceholder: 'Số tài khoản...' },
   },
   {
     accessorKey: 'opening_balance',

@@ -1,14 +1,17 @@
 <template>
   <Dialog v-model:open="open">
-    <DialogContent class="sm:max-w-3xl">
-      <DialogHeader>
+    <DialogContent
+      class="max-h-[calc(100dvh-1rem)] max-w-[calc(100%-1rem)] grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden p-0 sm:max-h-[calc(100dvh-2rem)] sm:max-w-3xl"
+    >
+      <DialogHeader class="shrink-0 border-b border-border px-4 py-4 pr-12 sm:px-6">
         <DialogTitle>{{ isEdit ? 'Cập nhật tuyến xe' : 'Thêm tuyến xe' }}</DialogTitle>
         <DialogDescription>
           {{ isEdit ? 'Cập nhật điểm đón, điểm trả và giờ chạy tiêu chuẩn.' : 'Nhập thông tin tuyến xe mới.' }}
         </DialogDescription>
       </DialogHeader>
 
-      <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="onSubmit">
+      <form class="flex min-h-0 flex-col" @submit.prevent="onSubmit">
+        <div class="grid min-h-0 flex-1 content-start gap-4 overflow-y-auto overscroll-contain px-4 py-4 sm:grid-cols-2 sm:px-6">
         <FormField v-slot="{ value, handleChange }" name="customer_id">
           <FormItem>
             <FormLabel>Khách hàng</FormLabel>
@@ -134,7 +137,9 @@
           </FormItem>
         </FormField>
 
-        <DialogFooter class="sm:col-span-2">
+        </div>
+
+        <DialogFooter class="m-0 shrink-0 rounded-none border-x-0 border-b-0 px-4 py-3 sm:px-6">
           <Button type="button" variant="outline" :disabled="isPending" @click="open = false">
             Hủy
           </Button>
