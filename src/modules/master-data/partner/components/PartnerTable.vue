@@ -10,7 +10,7 @@
     :filter-row="isFilterRowVisible"
     show-actions
     :get-row-id="(partner) => String(partner.id)"
-    :persist="{ key: 'master-data-partners', url: true }"
+    :persist="{ key: 'master-data-partners-v2', url: true }"
     empty-title="Chưa có đối tác"
     empty-description="Danh sách đối tác sẽ hiển thị tại đây khi có dữ liệu."
     @retry="partnersQuery.refetch()"

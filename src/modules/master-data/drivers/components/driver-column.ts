@@ -1,4 +1,3 @@
-import { ownershipTypeLabel } from '@/modules/master-data/type-labels'
 import type { Driver } from '@/modules/master-data/master-data.type'
 import type { DataGridColumnDef } from '@/shared/components/data-grid'
 import { h } from 'vue'
@@ -48,28 +47,6 @@ export const driverColumns: DataGridColumnDef<Driver>[] = [
     meta: { label: 'Mã tài xế', filterPlaceholder: 'Mã tài xế...' },
   },
   {
-    accessorKey: 'user_name',
-    header: 'Tên đăng nhập',
-    cell: ({ row }) => row.original.user_name || '—',
-    width: 112,
-    meta: { label: 'Tên đăng nhập', filterPlaceholder: 'Tên đăng nhập...' },
-  },
-  {
-    accessorKey: 'partner_name',
-    header: 'Đối tác',
-    cell: ({ row }) => row.original.partner_name || '—',
-    width: 112,
-    meta: { label: 'Đối tác', filterPlaceholder: 'Đối tác...' },
-  },
-  {
-    id: 'type',
-    accessorFn: (row) => ownershipTypeLabel(row.type),
-    header: 'Loại tài xế',
-    cell: ({ getValue }) => getValue() || '—',
-    width: 112,
-    meta: { label: 'Loại tài xế', filterPlaceholder: 'Loại tài xế...' },
-  },
-  {
     accessorKey: 'full_name',
     header: 'Họ và tên',
     cell: ({ row }) => row.original.full_name || '—',
@@ -82,41 +59,6 @@ export const driverColumns: DataGridColumnDef<Driver>[] = [
     cell: ({ row }) => row.original.phone || '—',
     width: 112,
     meta: { label: 'Số điện thoại', filterPlaceholder: 'Số điện thoại...' },
-  },
-  {
-    accessorKey: 'cccd',
-    header: 'CCCD',
-    cell: ({ row }) => row.original.cccd || '—',
-    width: 112,
-    meta: { label: 'CCCD', filterPlaceholder: 'CCCD...' },
-  },
-  {
-    accessorKey: 'license_number',
-    header: 'Số GPLX',
-    cell: ({ row }) => row.original.license_number || '—',
-    width: 112,
-    meta: { label: 'Số GPLX', filterPlaceholder: 'Số GPLX...' },
-  },
-  {
-    accessorKey: 'license_class',
-    header: 'Hạng GPLX',
-    cell: ({ row }) => row.original.license_class || '—',
-    width: 112,
-    meta: { label: 'Hạng GPLX', filterPlaceholder: 'Hạng GPLX...' },
-  },
-  {
-    accessorKey: 'license_issued_at',
-    header: 'Ngày cấp GPLX',
-    cell: ({ row }) => row.original.license_issued_at || '—',
-    width: 112,
-    meta: { label: 'Ngày cấp GPLX', filterPlaceholder: 'Ngày cấp GPLX...' },
-  },
-  {
-    accessorKey: 'license_expired_at',
-    header: 'Ngày hết hạn GPLX',
-    cell: ({ row }) => row.original.license_expired_at || '—',
-    width: 112,
-    meta: { label: 'Ngày hết hạn GPLX', filterPlaceholder: 'Ngày hết hạn GPLX...' },
   },
   {
     accessorKey: 'responsibility_allowance',
