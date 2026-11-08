@@ -14,7 +14,7 @@
           >Đến ngày<Input v-model="filters.to_date" type="date" class="h-9 min-w-40"
         /></label>
         <template v-if="isTripReport">
-          <label class="grid gap-1 text-xs font-medium text-muted-foreground"
+          <label v-if="isTourismTrips" class="grid gap-1 text-xs font-medium text-muted-foreground"
             >Theo lái xe<select v-model="filters.driver_id" class="h-9 min-w-40 rounded-md border border-input bg-background px-2 text-sm"><option value="">Tất cả</option><option v-for="driver in driversQuery.data.value ?? []" :key="driver.id" :value="String(driver.id)">{{ driver.full_name }}</option></select>
           </label>
           <label class="grid gap-1 text-xs font-medium text-muted-foreground"
@@ -26,13 +26,7 @@
         </template>
         <template v-if="isBusinessTrips">
           <label class="grid gap-1 text-xs font-medium text-muted-foreground"
-            >Theo chủ xe<select v-model="filters.partner_id" class="h-9 min-w-40 rounded-md border border-input bg-background px-2 text-sm"><option value="">Tất cả</option><option v-for="partner in partnersQuery.data.value ?? []" :key="partner.id" :value="String(partner.id)">{{ partner.name }}</option></select>
-          </label>
-          <label class="grid gap-1 text-xs font-medium text-muted-foreground"
             >Theo tuyến<select v-model="filters.route_id" class="h-9 min-w-40 rounded-md border border-input bg-background px-2 text-sm"><option value="">Tất cả</option><option v-for="route in routesQuery.data.value ?? []" :key="route.id" :value="String(route.id)">{{ route.name }}</option></select>
-          </label>
-          <label class="grid gap-1 text-xs font-medium text-muted-foreground"
-            >Theo ca<Input v-model="filters.shift_name" class="h-9 min-w-32" placeholder="Nhập tên ca" />
           </label>
         </template>
         <Button variant="outline" :disabled="query.isFetching.value" @click="query.refetch()"

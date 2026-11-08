@@ -19,7 +19,7 @@ export const financeKeys = {
 export const useReceiptsQuery = () =>
   useQuery({ queryKey: financeKeys.receipts, queryFn: FinanceService.getReceipts })
 export const useExpensesQuery = () =>
-  useQuery({ queryKey: financeKeys.expenses, queryFn: FinanceService.getExpenses })
+  useQuery({ queryKey: financeKeys.expenses, queryFn: () => FinanceService.getExpenses() })
 export const usePartnerPaymentsQuery = () =>
   useQuery({ queryKey: financeKeys.partnerPayments, queryFn: FinanceService.getPartnerPayments })
 export const useCustomerDebtsQuery = (params: () => Record<string, string>) =>
