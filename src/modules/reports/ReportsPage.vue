@@ -14,7 +14,7 @@
           >Đến ngày<Input v-model="filters.to_date" type="date" class="h-9 min-w-40"
         /></label>
         <template v-if="isTripReport">
-          <label class="grid gap-1 text-xs font-medium text-muted-foreground"
+          <label v-if="isTourismTrips" class="grid gap-1 text-xs font-medium text-muted-foreground"
             >Theo lái xe<select v-model="filters.driver_id" class="h-9 min-w-40 rounded-md border border-input bg-background px-2 text-sm"><option value="">Tất cả</option><option v-for="driver in driversQuery.data.value ?? []" :key="driver.id" :value="String(driver.id)">{{ driver.full_name }}</option></select>
           </label>
           <label class="grid gap-1 text-xs font-medium text-muted-foreground"
@@ -26,13 +26,7 @@
         </template>
         <template v-if="isBusinessTrips">
           <label class="grid gap-1 text-xs font-medium text-muted-foreground"
-            >Theo chủ xe<select v-model="filters.partner_id" class="h-9 min-w-40 rounded-md border border-input bg-background px-2 text-sm"><option value="">Tất cả</option><option v-for="partner in partnersQuery.data.value ?? []" :key="partner.id" :value="String(partner.id)">{{ partner.name }}</option></select>
-          </label>
-          <label class="grid gap-1 text-xs font-medium text-muted-foreground"
             >Theo tuyến<select v-model="filters.route_id" class="h-9 min-w-40 rounded-md border border-input bg-background px-2 text-sm"><option value="">Tất cả</option><option v-for="route in routesQuery.data.value ?? []" :key="route.id" :value="String(route.id)">{{ route.name }}</option></select>
-          </label>
-          <label class="grid gap-1 text-xs font-medium text-muted-foreground"
-            >Theo ca<Input v-model="filters.shift_name" class="h-9 min-w-32" placeholder="Nhập tên ca" />
           </label>
         </template>
         <Button variant="outline" :disabled="query.isFetching.value" @click="query.refetch()"
@@ -176,6 +170,7 @@ import {
   type DataGridDataSource,
 } from '@/shared/components/data-grid'
 import { ReportService } from '@/services/report.service'
+import { downloadFile } from '@/shared/lib/download-file'
 import { CustomerService } from '@/services/customer.service'
 import { DriverService } from '@/services/driver.service'
 import { PartnerService } from '@/services/partner.service'
@@ -223,7 +218,7 @@ const definitions: Record<
   },
   'partner-debts': {
     title: 'Công nợ chủ xe',
-    description: 'Chi phí thuê xe đối tác trừ chứng từ đã chi trả.',
+    description: 'Chi phí thuê xe ngoài trừ chứng từ đã chi trả.',
     slug: 'partner-debt-summary',
     detail: { slug: 'partner-debt-details', key: 'partner_id', label: 'Chi tiết công nợ chủ xe' },
   },
@@ -296,6 +291,7 @@ const reportFieldLabels: Record<string, string> = {
   driver_wage_rate: '% lương',
   driver_collected_amount: 'Lái xe thu',
   driver_remitted_amount: 'Lái xe nộp',
+  driver_expense_amount: 'Lái xe chi',
   company_collected_amount: 'Công ty thu',
   remaining_receivable: 'Còn lại phải thu',
   driver_wage: 'Lương lái xe',
@@ -343,7 +339,7 @@ const reportFieldLabels: Record<string, string> = {
   vehicle_plate: 'Biển số xe',
   pickup_time: 'Giờ đón',
   trip_type: 'Loại chuyến',
-  partner_vehicle_cost: 'Chi phí thuê xe đối tác',
+  partner_vehicle_cost: 'Chi phí thuê xe ngoài',
   responsibility_allowance: 'Phụ cấp trách nhiệm',
   fixed_trip_wage: 'Lương chuyến cố định',
   tourism_commission: 'Hoa hồng du lịch',
@@ -504,14 +500,9 @@ async function download(slug: string, detail = false) {
     const parameters = detail ? detailParameters.value : { ...filters }
     if (!parameters) return
     const file = await ReportService.download(slug, parameters)
-    const url = URL.createObjectURL(file.blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = file.filename
-    link.click()
-    URL.revokeObjectURL(url)
-  } catch {
-    toast.error('Không thể xuất PDF báo cáo.')
+    downloadFile(file)
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : 'Không thể xuất PDF báo cáo.')
   }
 }
 </script>

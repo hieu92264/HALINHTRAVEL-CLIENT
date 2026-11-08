@@ -42,6 +42,9 @@
         label="Xe / lái xe"
         :value="`${run.license_plate} · ${run.driver_name ?? run.hired_driver_name ?? 'Chưa phân công'}`"
       /><Info
+        label="Nguồn xe"
+        :value="run.is_company_vehicle ? 'Xe công ty' : `Xe ngoài${run.partner_name ? ` · ${run.partner_name}` : ''}`"
+      /><Info
         label="Kế hoạch"
         :value="`${formatVietnameseDate(run.run_date)} ${run.pickup_time}${run.return_time ? ` — ${run.return_time}` : ''}`"
       /><Info label="Bắt đầu thực tế" :value="formatDateTime(run.actual_started_at)" /><Info
@@ -73,6 +76,10 @@
           <div>
             <dt class="text-muted-foreground">Lương lái</dt>
             <dd class="mt-1 font-semibold tabular-nums">{{ money(run.driver_wage) }}</dd>
+          </div>
+          <div v-if="!run.is_company_vehicle">
+            <dt class="text-muted-foreground">Tiền thuê xe ngoài</dt>
+            <dd class="mt-1 font-semibold tabular-nums">{{ money(run.partner_vehicle_cost ?? '0') }}</dd>
           </div>
         </dl>
       </div>

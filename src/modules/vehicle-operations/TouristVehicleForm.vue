@@ -34,7 +34,7 @@
 
       <div class="grid gap-5 rounded-xl border border-border bg-card p-5 shadow-sm sm:grid-cols-2">
         <h2 class="sm:col-span-2 text-base font-semibold">Xe và lái xe</h2>
-        <label class="field">Nguồn xe <select v-model="form.is_company_vehicle" class="control"><option :value="true">Xe công ty</option><option :value="false">Xe đối tác</option></select></label>
+        <label class="field">Nguồn xe <select v-model="form.is_company_vehicle" class="control"><option :value="true">Xe công ty</option><option :value="false">Xe ngoài</option></select></label>
         <label v-if="form.is_company_vehicle" class="field"
           >Xe <span>*</span
           ><select v-model.number="form.vehicle_id" :required="!isEdit" class="control" @change="applyVehicleDefaults">
@@ -58,7 +58,6 @@
             v-model.number="form.driver_id"
             class="control"
             :disabled="form.is_hired_driver"
-            @change="applyDriverRate"
           >
             <option :value="null">Chưa phân công</option>
             <option v-for="driver in companyDrivers" :key="driver.id" :value="driver.id">
@@ -82,46 +81,18 @@
       </div>
 
       <div class="grid gap-5 rounded-xl border border-border bg-card p-5 shadow-sm sm:grid-cols-2">
-        <div class="sm:col-span-2 flex flex-wrap items-center justify-between gap-2">
-          <h2 class="text-base font-semibold">Cước và lương lái xe</h2>
-          <label class="flex items-center gap-2 text-sm font-medium"
-            ><input
-              v-model="form.driver_wage_is_overridden"
-              class="size-4 rounded border-input text-primary"
-              type="checkbox"
-            />Chốt lương thủ công</label
-          >
-        </div>
+        <h2 class="sm:col-span-2 text-base font-semibold">Cước và lương lái xe</h2>
         <label class="field"
           >Cước xe <span>*</span
           ><Input
             v-model="form.freight_amount"
             min="0"
-            type="number"
-            @input="recalculateWage" /></label
+            type="number" /></label
         ><label class="field"
-          >Tỷ lệ lương (%)<Input
-            v-model="ratePercent"
-            :disabled="!canSetWage"
-            min="0"
-            max="100"
-            step="0.01"
-            type="number"
-            @input="recalculateWage"
-        /></label>
-        <label class="field"
-          >Lương lái xe<Input
-            v-model="form.driver_wage"
-            :disabled="!canSetWage || !form.driver_wage_is_overridden"
-            min="0"
-            type="number"
-        /></label>
+          >Tỷ lệ lương (%)<Input :model-value="ratePercent" disabled type="number" /></label
+        ><label class="field">Lương lái xe<Input :model-value="form.driver_wage" disabled type="number" /></label>
         <p class="self-end text-sm text-muted-foreground">
-          {{
-            form.driver_wage_is_overridden
-              ? 'Lương đã chốt thủ công.'
-              : 'Lương tự tính theo cước × tỷ lệ snapshot.'
-          }}
+          {{ canSetWage ? 'Lương tự tính theo cước × tỷ lệ Loại xe.' : 'Chỉ tính lương cho lái xe nội bộ.' }}
         </p>
       </div>
 
@@ -169,6 +140,7 @@ import { PartnerService } from '@/services/partner.service'
 import { VehicleService } from '@/services/vehicle.service'
 import { VehicleTypeService } from '@/services/vehicle-type.service'
 import { VehicleOperationsService } from '@/services/vehicle-operations.service'
+import { calculateTouristDriverWage } from './tourist-wage'
 import { toDateInputValue, toTimeInputValue } from '@/shared/helpers/date.helper'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -207,7 +179,6 @@ const form = reactive({
   freight_amount: '0',
   driver_wage_rate: '0',
   driver_wage: '0',
-  driver_wage_is_overridden: false,
   driver_collected_amount: '0',
   company_collected_amount: '0',
   driver_remitted_amount: '0',
@@ -220,33 +191,35 @@ const companyDrivers = computed(() =>
   ),
 )
 const selectedVehicle = computed(() => vehicles.value.find((vehicle) => vehicle.id === form.vehicle_id) ?? null)
+const selectedVehicleType = computed(() =>
+  vehicleTypes.value.find((vehicleType) => vehicleType.id === form.vehicle_type_id) ?? null,
+)
 const canSetWage = computed(
   () => form.is_company_vehicle && !form.is_hired_driver && Boolean(form.driver_id),
 )
-const ratePercent = computed({
-  get: () => String(Number(form.driver_wage_rate || 0) * 100),
-  set: (value: string) => {
-    form.driver_wage_rate = String(Number(value || 0) / 100)
-  },
-})
+const ratePercent = computed(() => String(Number(form.driver_wage_rate || 0) * 100))
 watch(
   () => form.is_hired_driver,
   (value) => {
     if (value) form.driver_id = null
-    recalculateWage()
+    syncTouristWage()
   },
 )
 watch(
   () => form.is_company_vehicle,
   (value) => {
     if (value) form.partner_id = null
-    recalculateWage()
+    syncTouristWage()
   },
 )
-function applyDriverRate() {
-  form.driver_wage_is_overridden = false
-  recalculateWage()
-}
+watch(
+  [
+    () => form.vehicle_type_id,
+    () => form.driver_id,
+    () => form.freight_amount,
+  ],
+  syncTouristWage,
+)
 function applyVehicleDefaults() {
   const vehicle = selectedVehicle.value
   if (!vehicle) return
@@ -254,11 +227,14 @@ function applyVehicleDefaults() {
   form.vehicle_type_id = vehicle.vehicle_type_id
   form.driver_id = vehicle.default_driver_id
 }
-function recalculateWage() {
-  if (!canSetWage.value || form.driver_wage_is_overridden) return
-  form.driver_wage = (
-    Number(form.freight_amount || 0) * Number(form.driver_wage_rate || 0)
-  ).toFixed(2)
+function syncTouristWage() {
+  const wage = calculateTouristDriverWage(
+    form.freight_amount,
+    selectedVehicleType.value?.tourism_wage_rate,
+    canSetWage.value,
+  )
+  form.driver_wage_rate = wage.driverWageRate
+  form.driver_wage = wage.driverWage
 }
 onMounted(async () => {
   const [driverList, vehicleList, partnerList, typeList] = await Promise.all([
@@ -283,7 +259,7 @@ onMounted(async () => {
     if (!form.vehicle_id)
       form.vehicle_id = vehicles.value.find((vehicle) => vehicle.license_plate === saved.license_plate)?.id ?? null
   }
-  recalculateWage()
+  syncTouristWage()
 })
 async function save() {
   isSaving.value = true

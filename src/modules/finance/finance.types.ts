@@ -25,10 +25,14 @@ export interface Expense extends FinancialDocument {
   expense_no: string
   expense_type_id: number
   expense_type_name?: string | null
+  expense_scope?: 'vehicle' | 'general' | 'trip' | null
+  vehicle_id?: number | null
+  vehicle_plate?: string | null
   expense_date: string
   amount: Money
   payment_method: PaymentMethod
   recipient_name: string | null
+  paid_by?: string | null
   hired_driver_name: string | null
   description: string | null
 }
@@ -115,6 +119,9 @@ export interface PayrollItem {
   tourism_commission: Money
   other_allowance: Money
   advance_amount: Money
+  driver_collected_amount: Money
+  driver_remitted_amount: Money
+  driver_expense_amount: Money
   deduction_amount: Money
   gross_salary: Money
   net_salary: Money
@@ -129,7 +136,7 @@ export interface Payroll {
   year: number
   from_date: string
   to_date: string
-  status: 'draft' | 'calculated' | 'approved' | 'paid' | 'locked'
+  status: 'draft' | 'calculated' | 'approved' | 'paid' | 'locked' | 'superseded' | 'cancelled'
   gross_salary?: Money
   net_salary?: Money
   total_gross?: Money
@@ -138,7 +145,7 @@ export interface Payroll {
 }
 
 export type ReceiptPayload = Pick<Receipt, 'customer_id' | 'receipt_type' | 'received_at' | 'amount' | 'payment_method' | 'payer_name' | 'description'>
-export type ExpensePayload = Pick<Expense, 'expense_type_id' | 'expense_date' | 'amount' | 'payment_method' | 'recipient_name' | 'hired_driver_name' | 'description'>
+export type ExpensePayload = Pick<Expense, 'expense_type_id' | 'vehicle_id' | 'expense_date' | 'amount' | 'payment_method' | 'paid_by' | 'hired_driver_name' | 'description'>
 export type PartnerPaymentPayload = Pick<PartnerPayment, 'partner_id' | 'paid_at' | 'amount' | 'payment_method' | 'description'>
 export type DriverAdvancePayload = Pick<DriverAdvance, 'driver_id' | 'advance_date' | 'amount' | 'description'>
 export type PayrollPayload = Pick<Payroll, 'month' | 'year' | 'from_date' | 'to_date'>

@@ -1,4 +1,5 @@
 import type { ExpenseType } from '@/modules/master-data/master-data.type'
+import { expenseScopeLabel } from '@/modules/master-data/type-labels'
 import type { DataGridColumnDef } from '@/shared/components/data-grid'
 import { h } from 'vue'
 
@@ -56,7 +57,7 @@ export const expenseTypeColumn: DataGridColumnDef<ExpenseType>[] = [
   {
     accessorKey: 'scope',
     header: 'Phạm vi',
-    cell: ({ row }) => row.original.scope || '—',
+    cell: ({ row }) => expenseScopeLabel(row.original.scope),
     width: 112,
     meta: { label: 'Phạm vi', filterPlaceholder: 'Phạm vi...' },
   },

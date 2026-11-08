@@ -7,14 +7,13 @@
           Chứng từ độc lập và đối soát từ xe chạy đã hoàn tất.
         </p>
       </div>
-      <Button v-if="canManage" @click="openCreate"
-        ><Plus class="size-4" />{{ createLabel }}</Button
-      >
+      <Button v-if="canManage" @click="openCreate"><Plus class="size-4" />{{ createLabel }}</Button>
     </header>
     <Tabs v-model="activeTab" class="space-y-4"
       ><TabsList class="h-auto max-w-full justify-start overflow-x-auto whitespace-nowrap"
         ><TabsTrigger value="receipts">Phiếu thu khách hàng</TabsTrigger
-        ><TabsTrigger value="expenses">Phiếu chi chung</TabsTrigger
+        ><TabsTrigger value="vehicle-expenses">Chi phí xe</TabsTrigger
+        ><TabsTrigger value="expenses">Chi phí chung</TabsTrigger
         ><TabsTrigger value="payments">Chi trả chủ xe</TabsTrigger></TabsList
       >
       <TabsContent value="receipts"
@@ -39,9 +38,30 @@
               @lock="ask('lock-receipt', row)"
               @remove="ask('delete-receipt', row)" /></template></DataGrid
       ></TabsContent>
+      <TabsContent value="vehicle-expenses"
+        ><DataGrid
+          :data-source="vehicleExpenseSource"
+          :columns="expenseColumns"
+          :pagination="pagination"
+          filter-row
+          global-filter
+          show-actions
+          mobile-mode="cards"
+          :get-row-id="(row) => String(row.id)"
+          empty-title="Chưa có chi phí xe"
+          empty-description="Ghi nhận dầu, sửa chữa, BH/ĐK và chi phí khác theo xe."
+          @retry="expenses.refetch()"
+          ><template #actions="{ row }"
+            ><DocumentActions
+              :locked="row.is_locked"
+              :manage="canManage"
+              @edit="openEdit('expense', row)"
+              @lock="ask('lock-expense', row)"
+              @remove="ask('delete-expense', row)" /></template></DataGrid
+      ></TabsContent>
       <TabsContent value="expenses"
         ><DataGrid
-          :data-source="expenseSource"
+          :data-source="generalExpenseSource"
           :columns="expenseColumns"
           :pagination="pagination"
           filter-row
@@ -90,6 +110,7 @@
     :kind="dialog?.kind ?? 'receipt'"
     :row="dialog?.row ?? null"
     :pending="isSaving"
+    :expense-scope="activeTab === 'vehicle-expenses' ? 'vehicle' : 'general'"
     @close="dialog = null"
     @save="save"
   />
@@ -109,7 +130,7 @@
 <script setup lang="ts">
 import { computed, defineComponent, h, reactive, ref, type PropType } from 'vue'
 import { toast } from 'vue-sonner'
-import { LockKeyhole, PencilLine, Plus, RefreshCw, Trash2 } from '@lucide/vue'
+import { LockKeyhole, PencilLine, Plus, Trash2 } from '@lucide/vue'
 import FinancialDocumentDialog from '@/modules/finance/components/FinancialDocumentDialog.vue'
 import {
   debtColumns,
@@ -131,7 +152,6 @@ import { useAuthStore } from '@/modules/auth/auth.store'
 import { DataGrid, type DataGridDataSource } from '@/shared/components/data-grid'
 import AccessDialog from '@/shared/components/feedback/AccessDialog.vue'
 import { Button } from '@/shared/components/ui/button'
-import { Input } from '@/shared/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 type Kind = 'receipt' | 'expense' | 'partner-payment'
 type Row = Receipt | Expense | PartnerPayment
@@ -181,15 +201,26 @@ const source = <T,>(query: {
   }))
 const receiptSource = source(receipts)
 const expenseSource = source(expenses)
+const vehicleExpenseSource = computed<DataGridDataSource<Expense>>(() => ({
+  ...expenseSource.value,
+  data: (expenses.data.value ?? []).filter((item) => item.expense_scope === 'vehicle'),
+}))
+const generalExpenseSource = computed<DataGridDataSource<Expense>>(() => ({
+  ...expenseSource.value,
+  data: (expenses.data.value ?? []).filter((item) => item.expense_scope === 'general'),
+}))
 const paymentSource = source(payments)
 const customerDebtSource = source(customerDebts)
 const partnerDebtSource = source(partnerDebts)
 const externalDriverDebtSource = source(externalDriverDebts)
 const createLabel = computed(
   () =>
-    ({ receipts: 'Tạo phiếu thu', expenses: 'Tạo phiếu chi', payments: 'Tạo chi trả đối tác' })[
-      activeTab.value
-    ] ?? '',
+    ({
+      receipts: 'Tạo phiếu thu',
+      expenses: 'Tạo chi phí chung',
+      'vehicle-expenses': 'Tạo chi phí xe',
+      payments: 'Tạo chi trả đối tác',
+    })[activeTab.value] ?? '',
 )
 const isSaving = computed(
   () =>
@@ -278,7 +309,11 @@ const DebtGrid = defineComponent({
 function openCreate() {
   dialog.value = {
     kind:
-      activeTab.value === 'payments' ? 'partner-payment' : (activeTab.value.slice(0, -1) as Kind),
+      activeTab.value === 'payments'
+        ? 'partner-payment'
+        : activeTab.value.includes('expense')
+          ? 'expense'
+          : 'receipt',
     row: null,
   }
 }

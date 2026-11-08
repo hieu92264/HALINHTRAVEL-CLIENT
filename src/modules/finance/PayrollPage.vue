@@ -102,7 +102,7 @@
                 ><CircleCheck class="size-4 text-success"
               /></Button></div></template></DataGrid></TabsContent
       ><TabsContent value="payrolls"
-        ><DataGrid
+        ><label class="mb-3 flex w-fit items-center gap-2 text-sm text-muted-foreground"><input v-model="includeCancelled" class="size-4 rounded border-input text-primary" type="checkbox" />Hiển thị kỳ đã hủy</label><DataGrid
           :data-source="payrollSource"
           :columns="payrollColumns"
           :pagination="pagination"
@@ -180,9 +180,10 @@ const auth = useAuthStore()
 const router = useRouter()
 const advances = useAdvancesQuery()
 const attendances = useAttendancesQuery()
-const payrolls = usePayrollsQuery()
-const mutations = useDriverPayrollMutations()
 const activeTab = ref('advances')
+const includeCancelled = ref(false)
+const payrolls = usePayrollsQuery(() => includeCancelled.value)
+const mutations = useDriverPayrollMutations()
 const advanceDialog = ref(false)
 const payrollDialog = ref(false)
 const selectedAdvance = ref<DriverAdvance | null>(null)

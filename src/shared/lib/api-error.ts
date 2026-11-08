@@ -45,25 +45,29 @@ export class ApiError extends Error {
   }
 }
 
+export function toApiErrorResponse(response: unknown, statusCode?: number, fallback?: string): ApiError {
+  const body = response as
+    | (Partial<ResponseBody<unknown>> & {
+        errors?: unknown
+        metadata?: unknown
+      })
+    | undefined
+  const fieldErrors = normalizeFieldErrors(body?.errors ?? body?.metadata)
+  const responseMessage = typeof body?.message === 'string' ? body.message.trim() : ''
+  const message = toVietnameseMessage(responseMessage || fallback)
+
+  return new ApiError(
+    genericApiMessages.has(responseMessage) ? (firstFieldMessage(fieldErrors) ?? message) : message,
+    statusCode,
+    fieldErrors,
+  )
+}
+
 export function toApiError(error: unknown): ApiError {
   if (error instanceof ApiError) return error
 
   if (error instanceof AxiosError) {
-    const response = error.response?.data as
-      | (Partial<ResponseBody<unknown>> & {
-          errors?: unknown
-          metadata?: unknown
-        })
-      | undefined
-    const fieldErrors = normalizeFieldErrors(response?.errors ?? response?.metadata)
-    const responseMessage = typeof response?.message === 'string' ? response.message.trim() : ''
-    const message = toVietnameseMessage(responseMessage || error.message)
-
-    return new ApiError(
-      genericApiMessages.has(responseMessage) ? (firstFieldMessage(fieldErrors) ?? message) : message,
-      error.response?.status,
-      fieldErrors,
-    )
+    return toApiErrorResponse(error.response?.data, error.response?.status, error.message)
   }
 
   if (error instanceof Error) return new ApiError(toVietnameseMessage(error.message))

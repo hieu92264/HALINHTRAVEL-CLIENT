@@ -12,14 +12,14 @@ export const financeKeys = {
   externalDriverDebts: (params: Record<string, string>) => ['finance', 'external-driver-debts', params] as const,
   advances: ['driver-payroll', 'advances'] as const,
   attendances: ['driver-payroll', 'attendances'] as const,
-  payrolls: ['driver-payroll', 'payrolls'] as const,
+  payrolls: (includeCancelled = false) => ['driver-payroll', 'payrolls', includeCancelled] as const,
   payroll: (id: number) => ['driver-payroll', 'payrolls', id] as const,
 }
 
 export const useReceiptsQuery = () =>
   useQuery({ queryKey: financeKeys.receipts, queryFn: FinanceService.getReceipts })
 export const useExpensesQuery = () =>
-  useQuery({ queryKey: financeKeys.expenses, queryFn: FinanceService.getExpenses })
+  useQuery({ queryKey: financeKeys.expenses, queryFn: () => FinanceService.getExpenses() })
 export const usePartnerPaymentsQuery = () =>
   useQuery({ queryKey: financeKeys.partnerPayments, queryFn: FinanceService.getPartnerPayments })
 export const useCustomerDebtsQuery = (params: () => Record<string, string>) =>
@@ -41,8 +41,11 @@ export const useAdvancesQuery = () =>
   useQuery({ queryKey: financeKeys.advances, queryFn: DriverPayrollService.getAdvances })
 export const useAttendancesQuery = () =>
   useQuery({ queryKey: financeKeys.attendances, queryFn: DriverPayrollService.getAttendances })
-export const usePayrollsQuery = () =>
-  useQuery({ queryKey: financeKeys.payrolls, queryFn: DriverPayrollService.getPayrolls })
+export const usePayrollsQuery = (includeCancelled: () => boolean = () => false) =>
+  useQuery({
+    queryKey: computed(() => financeKeys.payrolls(includeCancelled())),
+    queryFn: () => DriverPayrollService.getPayrolls(includeCancelled()),
+  })
 export const usePayrollQuery = (id: () => number) =>
   useQuery({
     queryKey: computed(() => financeKeys.payroll(id())),
@@ -151,6 +154,10 @@ export function useDriverPayrollMutations() {
     }),
     updatePayroll: useMutation({
       mutationFn: ({ id, data }: { id: number; data: Parameters<typeof DriverPayrollService.updatePayroll>[1] }) => DriverPayrollService.updatePayroll(id, data),
+      onSuccess: invalidate,
+    }),
+    cancelPayroll: useMutation({
+      mutationFn: DriverPayrollService.cancelPayroll,
       onSuccess: invalidate,
     }),
     calculatePayroll: useMutation({

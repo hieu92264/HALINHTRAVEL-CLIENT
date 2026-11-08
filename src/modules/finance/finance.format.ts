@@ -33,6 +33,8 @@ export const payrollStatusLabel = (value: string) =>
     approved: 'Đã duyệt',
     paid: 'Đã chi',
     locked: 'Đã chốt',
+    superseded: 'Đã thay thế',
+    cancelled: 'Đã hủy',
   })[value] ?? value
 
 export const workTypeLabel = (value: string) =>
@@ -40,7 +42,8 @@ export const workTypeLabel = (value: string) =>
   value
 
 export function stateClass(state: string) {
-  if (['locked', 'payroll_locked'].includes(state)) return 'bg-muted text-muted-foreground'
+  if (['locked', 'payroll_locked', 'superseded'].includes(state)) return 'bg-muted text-muted-foreground'
+  if (state === 'cancelled') return 'bg-destructive/10 text-destructive'
   if (['paid', 'confirmed', 'approved'].includes(state)) return 'bg-success/15 text-success'
   if (['calculated'].includes(state)) return 'bg-primary/10 text-primary'
   return 'bg-amber-500/15 text-amber-700 dark:text-amber-300'

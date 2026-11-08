@@ -46,11 +46,12 @@
               class="h-10 rounded-md border bg-background px-3 font-normal"
             >
               <option :value="null" disabled>Chọn loại chi phí</option>
-              <option v-for="type in expenseTypes.data.value ?? []" :key="type.id" :value="type.id">
+              <option v-for="type in scopedExpenseTypes" :key="type.id" :value="type.id">
                 {{ type.name }}
               </option>
             </select></label
           >
+          <label v-if="kind === 'expense' && expenseScope === 'vehicle'" class="grid gap-1.5 text-sm font-medium">Biển số xe<select v-model.number="form.vehicle_id" required class="h-10 rounded-md border bg-background px-3 font-normal"><option :value="null" disabled>Chọn xe</option><option v-for="vehicle in vehicles.data.value ?? []" :key="vehicle.id" :value="vehicle.id">{{ vehicle.license_plate }}</option></select></label>
           <label v-if="kind === 'receipt'" class="grid gap-1.5 text-sm font-medium"
             >Loại thu<select
               v-model="form.receipt_type"
@@ -83,8 +84,8 @@
           >
           <label v-if="kind === 'receipt'" class="grid gap-1.5 text-sm font-medium"
             >Người nộp<Input v-model="form.payer_name" placeholder="Tên người nộp" /></label
-          ><label v-if="kind === 'expense'" class="grid gap-1.5 text-sm font-medium sm:col-span-2"
-            >Người chi<Input v-model="form.recipient_name" placeholder="Tên người chi tiền"
+          ><label v-if="kind === 'expense' && expenseScope === 'vehicle'" class="grid gap-1.5 text-sm font-medium"
+            >Người chi<Input v-model="form.paid_by" placeholder="Tên người chi tiền"
           /></label>
           <section
             v-if="kind === 'expense' && isHiredDriverPayment"
@@ -128,6 +129,7 @@ import { computed, reactive, watch } from 'vue'
 import { useCustomerQuery } from '@/modules/master-data/customer/composables/useCustomerQueries'
 import { useExpenseTypeQuery } from '@/modules/master-data/expense-type/composables/useExpenseTypeQueries'
 import { usePartnerQuery } from '@/modules/master-data/partner/composables/usePartnerQueries'
+import { useVehicleQuery } from '@/modules/master-data/vehicle/composables/useVehicleQueries'
 import type { Expense, PartnerPayment, Receipt } from '@/modules/finance/finance.types'
 import { toDateInputValue } from '@/shared/helpers/date.helper'
 import { Button } from '@/shared/components/ui/button'
@@ -141,22 +143,24 @@ import {
 import { Input } from '@/shared/components/ui/input'
 type Kind = 'receipt' | 'expense' | 'partner-payment'
 type Row = Receipt | Expense | PartnerPayment
-const props = defineProps<{ open: boolean; kind: Kind; row: Row | null; pending?: boolean }>()
+const props = defineProps<{ open: boolean; kind: Kind; row: Row | null; pending?: boolean; expenseScope?: 'vehicle' | 'general' }>()
 const emit = defineEmits<{ close: []; save: [data: Record<string, unknown>] }>()
 const customers = useCustomerQuery()
 const partners = usePartnerQuery()
 const expenseTypes = useExpenseTypeQuery()
+const vehicles = useVehicleQuery()
 const today = () => new Date().toISOString().slice(0, 10)
 const form = reactive({
   customer_id: null as number | null,
   partner_id: null as number | null,
   expense_type_id: null as number | null,
+  vehicle_id: null as number | null,
   receipt_type: 'other',
   date: today(),
   amount: '',
   payment_method: 'cash' as 'cash' | 'bank_transfer',
   payer_name: '',
-  recipient_name: '',
+  paid_by: '',
   hired_driver_name: '',
   description: '',
 })
@@ -178,6 +182,7 @@ const dateLabel = computed(() => (props.kind === 'receipt' ? 'Ngày thu' : 'Ngà
 const selectedExpenseType = computed(() =>
   (expenseTypes.data.value ?? []).find((type) => type.id === form.expense_type_id),
 )
+const scopedExpenseTypes = computed(() => (expenseTypes.data.value ?? []).filter((type) => type.scope === (props.expenseScope ?? 'general')))
 const isHiredDriverPayment = computed(() =>
   /hired_driver|thuê lái/i.test(
     `${selectedExpenseType.value?.code ?? ''} ${selectedExpenseType.value?.name ?? ''}`,
@@ -208,8 +213,7 @@ watch(
     form.amount = String(row?.amount ?? '')
     form.payment_method = row?.payment_method ?? 'cash'
     form.payer_name = props.kind === 'receipt' ? ((row as Receipt | null)?.payer_name ?? '') : ''
-    form.recipient_name =
-      props.kind === 'expense' ? ((row as Expense | null)?.recipient_name ?? '') : ''
+    form.paid_by = props.kind === 'expense' ? ((row as Expense | null)?.paid_by ?? '') : ''
     form.hired_driver_name =
       props.kind === 'expense' ? ((row as Expense | null)?.hired_driver_name ?? '') : ''
     form.description = row?.description ?? ''
@@ -234,10 +238,12 @@ function submit() {
     emit('save', {
       ...base,
       expense_type_id: form.expense_type_id,
+      vehicle_id: props.expenseScope === 'vehicle' ? form.vehicle_id : null,
       expense_date: form.date,
-      recipient_name: form.recipient_name || null,
+      paid_by: form.paid_by || null,
       hired_driver_name: form.hired_driver_name || null,
     })
   else emit('save', { ...base, partner_id: form.partner_id, paid_at: form.date })
 }
 </script>
+    form.vehicle_id = props.kind === 'expense' ? ((row as Expense | null)?.vehicle_id ?? null) : null

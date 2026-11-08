@@ -29,6 +29,13 @@
             >Sửa kỳ lương</Button
           >
           <Button
+            v-if="payroll.status === 'draft'"
+            class="w-full sm:w-auto"
+            variant="destructive"
+            @click="ask('cancel')"
+            >Hủy kỳ nháp</Button
+          >
+          <Button
             v-if="payroll.status === 'draft' || payroll.status === 'calculated'"
             :disabled="Boolean(periodError)"
             class="w-full sm:w-auto"
@@ -124,6 +131,18 @@
                 </dd>
               </div>
               <div>
+                <dt class="text-xs text-muted-foreground">Lái xe thu</dt>
+                <dd class="mt-0.5 tabular-nums text-destructive">−{{ formatMoney(item.driver_collected_amount) }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs text-muted-foreground">Lái xe nộp</dt>
+                <dd class="mt-0.5 tabular-nums text-success">+{{ formatMoney(item.driver_remitted_amount) }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs text-muted-foreground">Lái xe chi</dt>
+                <dd class="mt-0.5 tabular-nums text-success">+{{ formatMoney(item.driver_expense_amount) }}</dd>
+              </div>
+              <div>
                 <dt class="text-xs text-muted-foreground">Lương trước khấu trừ</dt>
                 <dd class="mt-0.5 font-medium tabular-nums">
                   {{ formatMoney(item.gross_salary) }}
@@ -136,7 +155,7 @@
           </p>
         </div>
         <div class="hidden overflow-x-auto sm:block">
-          <table class="w-full min-w-[980px] text-sm">
+          <table class="w-full min-w-[1280px] text-sm">
             <thead class="border-b bg-muted/40 text-left text-muted-foreground">
               <tr>
                 <th class="px-4 py-3">Tài xế</th>
@@ -144,8 +163,11 @@
                 <th class="px-4 py-3 text-right">Lương CN</th>
                 <th class="px-4 py-3 text-right">Lương du lịch</th>
                 <th class="px-4 py-3 text-right">Tạm ứng</th>
+                <th class="px-4 py-3 text-right">Lái xe thu</th>
+                <th class="px-4 py-3 text-right">Lái xe nộp</th>
+                <th class="px-4 py-3 text-right">Lái xe chi</th>
                 <th class="px-4 py-3 text-right">Lương trước khấu trừ</th>
-                <th class="px-4 py-3 text-right">Thực nhận</th>
+                <th class="px-4 py-3 text-right">Thực lĩnh</th>
               </tr>
             </thead>
             <tbody>
@@ -175,6 +197,15 @@
                 <td class="px-4 py-3 text-right tabular-nums text-destructive">
                   −{{ formatMoney(item.advance_amount) }}
                 </td>
+                <td class="px-4 py-3 text-right tabular-nums text-destructive">
+                  −{{ formatMoney(item.driver_collected_amount) }}
+                </td>
+                <td class="px-4 py-3 text-right tabular-nums text-success">
+                  +{{ formatMoney(item.driver_remitted_amount) }}
+                </td>
+                <td class="px-4 py-3 text-right tabular-nums text-success">
+                  +{{ formatMoney(item.driver_expense_amount) }}
+                </td>
                 <td class="px-4 py-3 text-right font-medium tabular-nums">
                   {{ formatMoney(item.gross_salary) }}
                 </td>
@@ -183,7 +214,7 @@
                 </td>
               </tr>
               <tr v-if="!payroll.items?.length">
-                <td colspan="7" class="px-4 py-10 text-center text-muted-foreground">
+                <td colspan="10" class="px-4 py-10 text-center text-muted-foreground">
                   Chưa có dòng lương. Hãy chạy “Tính lương” sau khi xác nhận công và tạm ứng.
                 </td>
               </tr>
@@ -219,7 +250,7 @@
     :description="actionCopy.description"
     :confirm-label="actionCopy.confirmLabel"
     cancel-label="Quay lại"
-    :destructive="action === 'lock'"
+    :destructive="action === 'lock' || action === 'cancel'"
     :pending="isActionPending"
     @close="action = null"
     @confirm="runAction"
@@ -242,16 +273,17 @@ import { Button } from '@/shared/components/ui/button'
 import AccessDialog from '@/shared/components/feedback/AccessDialog.vue'
 import { BanknoteCheck, Calculator, CircleCheck, LockKeyhole } from '@lucide/vue'
 import { computed, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 const route = useRoute()
+const router = useRouter()
 const id = computed(() => Number(route.params.id))
 const query = usePayrollQuery(() => id.value)
 const payroll = computed(() => query.data.value)
 const mutations = useDriverPayrollMutations()
 const auth = useAuthStore()
 const editOpen = ref(false)
-const action = ref<'calculate' | 'approve' | 'paid' | 'lock' | null>(null)
+const action = ref<'calculate' | 'approve' | 'paid' | 'lock' | 'cancel' | null>(null)
 const canManage = computed(() => auth.user?.permissions.includes('payrolls.manage') ?? false)
 const periodError = computed(() =>
   payroll.value ? payrollPeriodIssues(payroll.value).join(' ') : '',
@@ -269,6 +301,7 @@ async function savePeriod(data: PayrollPayload) {
 const isActionPending = computed(
   () =>
     mutations.calculatePayroll.isPending.value ||
+    mutations.cancelPayroll.isPending.value ||
     mutations.approvePayroll.isPending.value ||
     mutations.markPayrollPaid.isPending.value ||
     mutations.lockPayroll.isPending.value,
@@ -280,6 +313,12 @@ const actionCopy = computed(
         title: 'Tính lại bảng lương',
         description: 'Các dòng lương sẽ được tạo lại từ công và tạm ứng đã xác nhận trong kỳ.',
         confirmLabel: 'Tính lương',
+      },
+      cancel: {
+        title: 'Hủy kỳ lương nháp',
+        description:
+          'Kỳ lương này sẽ được lưu lịch sử và không thể tính hoặc duyệt lại. Công, tạm ứng và chuyến xe nguồn không bị khóa.',
+        confirmLabel: 'Hủy kỳ nháp',
       },
       approve: {
         title: 'Duyệt bảng lương',
@@ -308,6 +347,12 @@ async function runAction() {
     if (action.value === 'calculate') await mutations.calculatePayroll.mutateAsync(id.value)
     else if (action.value === 'approve') await mutations.approvePayroll.mutateAsync(id.value)
     else if (action.value === 'paid') await mutations.markPayrollPaid.mutateAsync(id.value)
+    else if (action.value === 'cancel') {
+      await mutations.cancelPayroll.mutateAsync(id.value)
+      toast.success('Đã hủy kỳ lương nháp.')
+      await router.push({ name: 'driver-payroll' })
+      return
+    }
     else await mutations.lockPayroll.mutateAsync(id.value)
     toast.success('Đã cập nhật kỳ lương.')
     action.value = null
