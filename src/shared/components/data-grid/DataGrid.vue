@@ -1176,11 +1176,11 @@ function focusEditInput(): void {
                     :aria-label="`Đổi độ rộng cột ${getHeaderLabel(header)}`"
                     @dblclick.stop="header.column.resetSize()"
                     @mousedown.stop="
-                      onResizeStart(header.column.id);
+                      onResizeStart(header.column.id)
                       header.getResizeHandler()?.($event)
                     "
                     @touchstart.stop="
-                      onResizeStart(header.column.id);
+                      onResizeStart(header.column.id)
                       header.getResizeHandler()?.($event)
                     "
                   />
@@ -1314,7 +1314,7 @@ function focusEditInput(): void {
                   ]"
                   :style="getColumnStyle(cell.column)"
                   @dblclick.stop="
-                    startEditing(cell);
+                    startEditing(cell)
                     focusEditInput()
                   "
                 >
@@ -1450,7 +1450,7 @@ function focusEditInput(): void {
                     ]"
                     :style="getColumnStyle(cell.column)"
                     @dblclick.stop="
-                      startEditing(cell);
+                      startEditing(cell)
                       focusEditInput()
                     "
                   >

@@ -40,7 +40,7 @@
             :disabled="Boolean(periodError)"
             class="w-full sm:w-auto"
             @click="ask('calculate')"
-            ><Calculator class="size-4" />Tính lương</Button
+            ><Calculator class="size-4" />Cập nhật</Button
           ><Button
             v-if="payroll.status === 'calculated'"
             variant="outline"
@@ -132,15 +132,21 @@
               </div>
               <div>
                 <dt class="text-xs text-muted-foreground">Lái xe thu</dt>
-                <dd class="mt-0.5 tabular-nums text-destructive">−{{ formatMoney(item.driver_collected_amount) }}</dd>
+                <dd class="mt-0.5 tabular-nums text-destructive">
+                  −{{ formatMoney(item.driver_collected_amount) }}
+                </dd>
               </div>
               <div>
                 <dt class="text-xs text-muted-foreground">Lái xe nộp</dt>
-                <dd class="mt-0.5 tabular-nums text-success">+{{ formatMoney(item.driver_remitted_amount) }}</dd>
+                <dd class="mt-0.5 tabular-nums text-success">
+                  +{{ formatMoney(item.driver_remitted_amount) }}
+                </dd>
               </div>
               <div>
                 <dt class="text-xs text-muted-foreground">Lái xe chi</dt>
-                <dd class="mt-0.5 tabular-nums text-success">+{{ formatMoney(item.driver_expense_amount) }}</dd>
+                <dd class="mt-0.5 tabular-nums text-success">
+                  +{{ formatMoney(item.driver_expense_amount) }}
+                </dd>
               </div>
               <div>
                 <dt class="text-xs text-muted-foreground">Lương trước khấu trừ</dt>
@@ -352,8 +358,7 @@ async function runAction() {
       toast.success('Đã hủy kỳ lương nháp.')
       await router.push({ name: 'driver-payroll' })
       return
-    }
-    else await mutations.lockPayroll.mutateAsync(id.value)
+    } else await mutations.lockPayroll.mutateAsync(id.value)
     toast.success('Đã cập nhật kỳ lương.')
     action.value = null
     await query.refetch()
