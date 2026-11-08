@@ -426,7 +426,6 @@ const reportFieldLabels: Record<string, string> = {
   credit: 'Đã thanh toán',
   balance: 'Còn lại',
   note: 'Ghi chú',
-  calculation_type: 'Loại tính lương',
   worker_run_no: 'Mã xe chạy (công nhân)',
   tourist_run_no: 'Mã xe chạy (du lịch)',
   amount: 'Số tiền',
