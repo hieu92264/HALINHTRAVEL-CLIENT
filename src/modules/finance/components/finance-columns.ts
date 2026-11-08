@@ -16,15 +16,21 @@ export const receiptColumns: DataGridColumnDef<Receipt>[] = [
   { accessorKey: 'payment_method', header: 'Phương thức', cell: ({ getValue }) => paymentMethodLabel(String(getValue())), meta: { label: 'Phương thức' } },
 ]
 
-export const expenseColumns: DataGridColumnDef<Expense>[] = [
+export const vehicleExpenseColumns: DataGridColumnDef<Expense>[] = [
   { accessorKey: 'expense_no', header: 'Số phiếu chi', fixed: 'left', meta: { label: 'Số phiếu chi' } },
   { accessorKey: 'expense_date', header: 'Ngày chi', cell: ({ getValue }) => formatDate(String(getValue())), meta: { label: 'Ngày chi' } },
   { accessorKey: 'expense_type_name', header: 'Loại chi phí', meta: { label: 'Loại chi phí' } },
   { accessorKey: 'vehicle_plate', header: 'Biển số', cell: ({ getValue }) => String(getValue() ?? '—'), meta: { label: 'Biển số' } },
   { accessorKey: 'paid_by', header: 'Người chi', cell: ({ getValue }) => String(getValue() ?? '—'), meta: { label: 'Người chi' } },
-  { accessorKey: 'hired_driver_name', header: 'Lái thuê', cell: ({ getValue }) => String(getValue() ?? '—'), meta: { label: 'Lái thuê' } },
+  { accessorKey: 'description', header: 'Diễn giải', cell: ({ getValue }) => String(getValue() ?? '—'), meta: { label: 'Diễn giải' } },
   { accessorKey: 'amount', header: 'Số tiền', cell: ({ getValue }) => formatMoney(getValue() as string | number), align: 'right', meta: { label: 'Số tiền' } },
-  { accessorKey: 'payment_method', header: 'Phương thức', cell: ({ getValue }) => paymentMethodLabel(String(getValue())), meta: { label: 'Phương thức' } },
+]
+
+export const generalExpenseColumns: DataGridColumnDef<Expense>[] = [
+  { accessorKey: 'expense_date', header: 'Ngày chi', cell: ({ getValue }) => formatDate(String(getValue())), meta: { label: 'Ngày chi' } },
+  { accessorKey: 'expense_no', header: 'Số phiếu chi', fixed: 'left', meta: { label: 'Số phiếu chi' } },
+  { accessorKey: 'description', header: 'Diễn giải', cell: ({ getValue }) => String(getValue() ?? '—'), meta: { label: 'Diễn giải' } },
+  { accessorKey: 'amount', header: 'Số tiền', cell: ({ getValue }) => formatMoney(getValue() as string | number), align: 'right', meta: { label: 'Số tiền' } },
 ]
 
 export const partnerPaymentColumns: DataGridColumnDef<PartnerPayment>[] = [

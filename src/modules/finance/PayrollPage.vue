@@ -102,7 +102,7 @@
                 ><CircleCheck class="size-4 text-success"
               /></Button></div></template></DataGrid></TabsContent
       ><TabsContent value="payrolls"
-        ><label class="mb-3 flex w-fit items-center gap-2 text-sm text-muted-foreground"><input v-model="includeCancelled" class="size-4 rounded border-input text-primary" type="checkbox" />Hiển thị kỳ đã hủy</label><DataGrid
+        ><DataGrid
           :data-source="payrollSource"
           :columns="payrollColumns"
           :pagination="pagination"
@@ -120,7 +120,7 @@
               variant="ghost"
               size="icon-xs"
               title="Mở kỳ lương"
-              @click="router.push({ name: 'payroll-detail', params: { id: row.id } })"
+              @click="router.push({ name: 'payroll-detail', params: { id: row.id }, query: { tab: 'payrolls' } })"
               ><Eye class="size-4" /></Button></template></DataGrid></TabsContent
     ></Tabs>
   </section>
@@ -173,16 +173,22 @@ import AccessDialog from '@/shared/components/feedback/AccessDialog.vue'
 import { Button } from '@/shared/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { CircleCheck, Eye, PencilLine, Plus, Trash2 } from '@lucide/vue'
-import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 const auth = useAuthStore()
+const route = useRoute()
 const router = useRouter()
 const advances = useAdvancesQuery()
 const attendances = useAttendancesQuery()
-const activeTab = ref('advances')
-const includeCancelled = ref(false)
-const payrolls = usePayrollsQuery(() => includeCancelled.value)
+const tabValues = ['advances', 'attendances', 'payrolls'] as const
+type PayrollTab = (typeof tabValues)[number]
+const tabFromRoute = (value: unknown): PayrollTab =>
+  typeof value === 'string' && (tabValues as readonly string[]).includes(value)
+    ? (value as PayrollTab)
+    : 'advances'
+const activeTab = ref<PayrollTab>(tabFromRoute(route.query.tab))
+const payrolls = usePayrollsQuery()
 const mutations = useDriverPayrollMutations()
 const advanceDialog = ref(false)
 const payrollDialog = ref(false)
@@ -218,6 +224,16 @@ const advancePending = computed(
 const isConfirming = computed(
   () => mutations.confirmAdvance.isPending.value || mutations.confirmAttendance.isPending.value,
 )
+watch(
+  () => route.query.tab,
+  (tab) => {
+    activeTab.value = tabFromRoute(tab)
+  },
+)
+watch(activeTab, (tab) => {
+  if (route.query.tab === tab) return
+  void router.replace({ query: { ...route.query, tab } })
+})
 function closeAdvance() {
   advanceDialog.value = false
   selectedAdvance.value = null
@@ -248,7 +264,7 @@ async function savePayroll(data: {
     const payroll = await mutations.createPayroll.mutateAsync(data)
     payrollDialog.value = false
     toast.success('Đã tạo kỳ lương.')
-    await router.push({ name: 'payroll-detail', params: { id: payroll.id } })
+    await router.push({ name: 'payroll-detail', params: { id: payroll.id }, query: { tab: 'payrolls' } })
   } catch (error) {
     toast.error(
       error instanceof Error ? error.message : 'Không thể tạo kỳ lương. Kỳ này có thể đã tồn tại.',

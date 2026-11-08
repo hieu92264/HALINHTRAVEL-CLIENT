@@ -166,16 +166,24 @@ const form = reactive({
 })
 const title = computed(() =>
   props.row
-    ? 'Sửa chứng từ'
+    ? props.kind === 'expense'
+      ? props.expenseScope === 'vehicle'
+        ? 'Sửa phiếu chi phí xe'
+        : 'Sửa phiếu chi chung'
+      : 'Sửa chứng từ'
     : props.kind === 'receipt'
       ? 'Tạo phiếu thu'
       : props.kind === 'expense'
-        ? 'Tạo phiếu chi chung'
+        ? props.expenseScope === 'vehicle'
+          ? 'Tạo phiếu chi phí xe'
+          : 'Tạo phiếu chi chung'
         : 'Tạo chi trả đối tác',
 )
 const description = computed(() =>
   props.kind === 'expense'
-    ? 'Phiếu chi chung là chứng từ độc lập, không gắn lệnh điều xe.'
+    ? props.expenseScope === 'vehicle'
+      ? 'Phiếu chi phí xe được gắn với xe để tổng hợp chi phí vận hành.'
+      : 'Phiếu chi chung là chứng từ độc lập, không gắn xe.'
     : 'Ghi nhận chứng từ độc lập để đối soát công nợ.',
 )
 const dateLabel = computed(() => (props.kind === 'receipt' ? 'Ngày thu' : 'Ngày chi'))

@@ -12,7 +12,7 @@ export const financeKeys = {
   externalDriverDebts: (params: Record<string, string>) => ['finance', 'external-driver-debts', params] as const,
   advances: ['driver-payroll', 'advances'] as const,
   attendances: ['driver-payroll', 'attendances'] as const,
-  payrolls: (includeCancelled = false) => ['driver-payroll', 'payrolls', includeCancelled] as const,
+  payrolls: ['driver-payroll', 'payrolls'] as const,
   payroll: (id: number) => ['driver-payroll', 'payrolls', id] as const,
 }
 
@@ -41,11 +41,8 @@ export const useAdvancesQuery = () =>
   useQuery({ queryKey: financeKeys.advances, queryFn: DriverPayrollService.getAdvances })
 export const useAttendancesQuery = () =>
   useQuery({ queryKey: financeKeys.attendances, queryFn: DriverPayrollService.getAttendances })
-export const usePayrollsQuery = (includeCancelled: () => boolean = () => false) =>
-  useQuery({
-    queryKey: computed(() => financeKeys.payrolls(includeCancelled())),
-    queryFn: () => DriverPayrollService.getPayrolls(includeCancelled()),
-  })
+export const usePayrollsQuery = () =>
+  useQuery({ queryKey: financeKeys.payrolls, queryFn: () => DriverPayrollService.getPayrolls() })
 export const usePayrollQuery = (id: () => number) =>
   useQuery({
     queryKey: computed(() => financeKeys.payroll(id())),
