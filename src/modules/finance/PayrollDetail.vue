@@ -104,15 +104,6 @@
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
                 <p class="font-medium">{{ item.driver_name ?? `Tài xế #${item.driver_id}` }}</p>
-                <div
-                  v-if="item.details?.length"
-                  class="mt-1 space-y-0.5 text-xs text-muted-foreground"
-                >
-                  <p v-for="detail in item.details" :key="detail.id">
-                    {{ detail.worker_run_no ?? detail.tourist_run_no ?? 'Nguồn khác' }} ·
-                    {{ payrollCalculationLabel(detail.calculation_type) }}
-                  </p>
-                </div>
               </div>
               <p class="shrink-0 text-right text-sm font-semibold tabular-nums text-success">
                 {{ formatMoney(item.net_salary) }}
@@ -183,16 +174,6 @@
               <tr v-for="item in payroll.items ?? []" :key="item.id" class="border-b last:border-0">
                 <td class="px-4 py-3 font-medium">
                   {{ item.driver_name ?? `Tài xế #${item.driver_id}` }}
-                  <div
-                    v-if="item.details?.length"
-                    class="mt-1 space-y-0.5 text-xs font-normal text-muted-foreground"
-                  >
-                    <p v-for="detail in item.details" :key="detail.id">
-                      {{ detail.worker_run_no ?? detail.tourist_run_no ?? 'Nguồn khác' }}
-                      · {{ payrollCalculationLabel(detail.calculation_type) }} ·
-                      {{ formatMoney(detail.amount) }}
-                    </p>
-                  </div>
                 </td>
                 <td class="px-4 py-3 text-right tabular-nums">
                   {{ formatMoney(item.responsibility_allowance) }}
@@ -267,7 +248,6 @@
 </template>
 <script setup lang="ts">
 import { useAuthStore } from '@/modules/auth/auth.store'
-import { payrollCalculationLabel } from '@/modules/finance/payroll-labels'
 import PayrollPeriodDialog from '@/modules/finance/components/PayrollPeriodDialog.vue'
 import { payrollPeriodIssues } from '@/modules/finance/payroll-period'
 import type { PayrollPayload } from '@/modules/finance/finance.types'

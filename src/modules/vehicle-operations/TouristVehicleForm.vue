@@ -12,7 +12,10 @@
     <form class="space-y-6" @submit.prevent="save">
       <div class="grid gap-5 rounded-xl border border-border bg-card p-5 shadow-sm sm:grid-cols-2">
         <h2 class="sm:col-span-2 text-base font-semibold">Kế hoạch và khách hàng</h2>
-        <label class="field">Khách hàng <span>*</span><Input v-model.trim="form.customer_name" required placeholder="Nhập tên khách hàng" /></label>
+        <label class="field"
+          >Khách hàng <span>*</span
+          ><Input v-model.trim="form.customer_name" required placeholder="Nhập tên khách hàng"
+        /></label>
         <label class="field"
           >Hành trình <span>*</span
           ><Input v-model.trim="form.journey" required placeholder="Hải Phòng – Hạ Long"
@@ -34,21 +37,54 @@
 
       <div class="grid gap-5 rounded-xl border border-border bg-card p-5 shadow-sm sm:grid-cols-2">
         <h2 class="sm:col-span-2 text-base font-semibold">Xe và lái xe</h2>
-        <label class="field">Nguồn xe <select v-model="form.is_company_vehicle" class="control"><option :value="true">Xe công ty</option><option :value="false">Xe ngoài</option></select></label>
+        <label class="field"
+          >Nguồn xe
+          <select v-model="form.is_company_vehicle" class="control">
+            <option :value="true">Xe công ty</option>
+            <option :value="false">Xe ngoài</option>
+          </select></label
+        >
         <label v-if="form.is_company_vehicle" class="field"
           >Xe <span>*</span
-          ><select v-model.number="form.vehicle_id" :required="!isEdit" class="control" @change="applyVehicleDefaults">
+          ><select
+            v-model.number="form.vehicle_id"
+            :required="!isEdit"
+            class="control"
+            @change="applyVehicleDefaults"
+          >
             <option :value="null" disabled>Chọn xe</option>
             <option v-for="vehicle in vehicles" :key="vehicle.id" :value="vehicle.id">
               {{ vehicle.license_plate }} · {{ vehicle.vehicle_type_code ?? 'Chưa gán loại xe' }}
             </option>
           </select>
-          <small v-if="selectedVehicle" class="text-muted-foreground">Tài xế mặc định: {{ selectedVehicle.default_driver_name ?? 'Chưa gán' }}</small>
-          <small v-else-if="form.license_plate" class="text-muted-foreground">Chuyến lịch sử: {{ form.license_plate }}. Chọn xe khi cần thay đổi.</small>
+          <small v-if="selectedVehicle" class="text-muted-foreground"
+            >Tài xế mặc định: {{ selectedVehicle.default_driver_name ?? 'Chưa gán' }}</small
+          >
+          <small v-else-if="form.license_plate" class="text-muted-foreground"
+            >Chuyến lịch sử: {{ form.license_plate }}. Chọn xe khi cần thay đổi.</small
+          >
         </label>
-        <label v-if="!form.is_company_vehicle" class="field">Hãng vận tải <select v-model.number="form.partner_id" class="control" required><option :value="null" disabled>Chọn hãng vận tải</option><option v-for="partner in partners" :key="partner.id" :value="partner.id">{{ partner.name }}</option></select></label>
-        <label v-if="!form.is_company_vehicle" class="field">Biển số <span>*</span><Input v-model.trim="form.license_plate" required /></label>
-        <label v-if="!form.is_company_vehicle" class="field">Loại xe <select v-model.number="form.vehicle_type_id" class="control" required><option :value="null" disabled>Chọn loại xe</option><option v-for="type in vehicleTypes" :key="type.id" :value="type.id">{{ type.code }}</option></select></label>
+        <label v-if="!form.is_company_vehicle" class="field"
+          >Hãng vận tải
+          <select v-model.number="form.partner_id" class="control" required>
+            <option :value="null" disabled>Chọn hãng vận tải</option>
+            <option v-for="partner in partners" :key="partner.id" :value="partner.id">
+              {{ partner.name }}
+            </option>
+          </select></label
+        >
+        <label v-if="!form.is_company_vehicle" class="field"
+          >Biển số <span>*</span><Input v-model.trim="form.license_plate" required
+        /></label>
+        <label v-if="!form.is_company_vehicle" class="field"
+          >Loại xe
+          <select v-model.number="form.vehicle_type_id" class="control" required>
+            <option :value="null" disabled>Chọn loại xe</option>
+            <option v-for="type in vehicleTypes" :key="type.id" :value="type.id">
+              {{ type.code }}
+            </option>
+          </select></label
+        >
         <label v-if="!form.is_company_vehicle" class="field"
           >Tiền thuê xe <span>*</span
           ><Input v-model="form.partner_vehicle_cost" min="1" type="number" required
@@ -83,12 +119,9 @@
       <div class="grid gap-5 rounded-xl border border-border bg-card p-5 shadow-sm sm:grid-cols-2">
         <h2 class="sm:col-span-2 text-base font-semibold">Cước và lương lái xe</h2>
         <label class="field"
-          >Cước xe <span>*</span
-          ><Input
-            v-model="form.freight_amount"
-            min="0"
-            type="number" /></label
-        ><div class="field">
+          >Cước xe <span>*</span><Input v-model="form.freight_amount" min="0" type="number"
+        /></label>
+        <div class="field">
           <div class="flex items-center justify-between gap-3">
             <span>Tỷ lệ lương (%)</span>
             <Button
@@ -97,7 +130,10 @@
               size="sm"
               variant="outline"
               @click="toggleRateOverride"
-            >{{ form.driver_wage_is_overridden ? 'Dùng tỷ lệ Loại xe' : 'Sửa tỷ lệ lương' }}</Button>
+              >{{
+                form.driver_wage_is_overridden ? 'Dùng tỷ lệ Loại xe' : 'Sửa tỷ lệ lương'
+              }}</Button
+            >
           </div>
           <Input
             v-if="form.driver_wage_is_overridden && canOverrideRate"
@@ -109,11 +145,21 @@
             type="number"
           />
           <Input v-else :model-value="ratePercent" class="mt-1.5" disabled type="number" />
-          <small v-if="form.driver_wage_is_overridden && canOverrideRate" class="mt-1 text-muted-foreground">Tỷ lệ riêng của chuyến này; lương vẫn tự tính theo cước xe.</small>
+          <small
+            v-if="form.driver_wage_is_overridden && canOverrideRate"
+            class="mt-1 text-muted-foreground"
+            >Tỷ lệ riêng của chuyến này; lương vẫn tự tính theo cước xe.</small
+          >
         </div>
-        ><label class="field">Lương lái xe<Input :model-value="form.driver_wage" disabled type="number" /></label>
+        <label class="field"
+          >Lương lái xe<Input :model-value="form.driver_wage" disabled type="number"
+        /></label>
         <p class="self-end text-sm text-muted-foreground">
-          {{ canSetWage ? 'Lương tự tính theo cước × tỷ lệ Loại xe.' : 'Chỉ tính lương cho lái xe nội bộ.' }}
+          {{
+            canSetWage
+              ? 'Lương tự tính theo cước × tỷ lệ Loại xe.'
+              : 'Chỉ tính lương cho lái xe nội bộ.'
+          }}
         </p>
       </div>
 
@@ -213,9 +259,11 @@ const companyDrivers = computed(() =>
     (driver) => driver.type === OwnershipTypeEnum.COMPANY && driver.is_active !== false,
   ),
 )
-const selectedVehicle = computed(() => vehicles.value.find((vehicle) => vehicle.id === form.vehicle_id) ?? null)
-const selectedVehicleType = computed(() =>
-  vehicleTypes.value.find((vehicleType) => vehicleType.id === form.vehicle_type_id) ?? null,
+const selectedVehicle = computed(
+  () => vehicles.value.find((vehicle) => vehicle.id === form.vehicle_id) ?? null,
+)
+const selectedVehicleType = computed(
+  () => vehicleTypes.value.find((vehicleType) => vehicleType.id === form.vehicle_type_id) ?? null,
 )
 const canSetWage = computed(
   () => form.is_company_vehicle && !form.is_hired_driver && Boolean(form.driver_id),
@@ -245,11 +293,7 @@ watch(
   },
 )
 watch(
-  [
-    () => form.vehicle_type_id,
-    () => form.driver_id,
-    () => form.freight_amount,
-  ],
+  [() => form.vehicle_type_id, () => form.driver_id, () => form.freight_amount],
   syncTouristWage,
 )
 watch(
@@ -273,11 +317,7 @@ function syncTouristWage() {
   const rate = form.driver_wage_is_overridden
     ? form.driver_wage_rate
     : selectedVehicleType.value?.tourism_wage_rate
-  const wage = calculateTouristDriverWage(
-    form.freight_amount,
-    rate,
-    canSetWage.value,
-  )
+  const wage = calculateTouristDriverWage(form.freight_amount, rate, canSetWage.value)
   form.driver_wage_rate = wage.driverWageRate
   form.driver_wage = wage.driverWage
 }
@@ -306,7 +346,8 @@ onMounted(async () => {
       return_time: toTimeInputValue(saved.return_time),
     })
     if (!form.vehicle_id)
-      form.vehicle_id = vehicles.value.find((vehicle) => vehicle.license_plate === saved.license_plate)?.id ?? null
+      form.vehicle_id =
+        vehicles.value.find((vehicle) => vehicle.license_plate === saved.license_plate)?.id ?? null
   }
   syncTouristWage()
 })

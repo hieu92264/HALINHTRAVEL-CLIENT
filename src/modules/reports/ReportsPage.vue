@@ -384,7 +384,7 @@ const reportFieldLabels: Record<string, string> = {
   payment_no: 'Số phiếu thanh toán',
   payroll_code: 'Mã bảng lương',
   profit: 'Lợi nhuận',
-  rate: 'Tỷ lệ',
+  rate: 'Tỷ lệ %',
   received_amount: 'Đã thu',
   received_at: 'Ngày thu',
   receipt_no: 'Số phiếu thu',
@@ -426,7 +426,6 @@ const reportFieldLabels: Record<string, string> = {
   credit: 'Đã thanh toán',
   balance: 'Còn lại',
   note: 'Ghi chú',
-  calculation_type: 'Loại tính lương',
   worker_run_no: 'Mã xe chạy (công nhân)',
   tourist_run_no: 'Mã xe chạy (du lịch)',
   amount: 'Số tiền',
@@ -467,9 +466,14 @@ function formatReportCell(key: string, value: unknown): string {
   if (key === 'is_active' && typeof value === 'boolean')
     return value ? 'Đang hoạt động' : 'Ngừng hoạt động'
   if (key === 'date' || /(_date|_at)$/.test(key)) return formatDate(String(value ?? ''))
+  if (key === 'rate') return formatPercent(value)
   if (key === 'driver_wage_rate') return `${Number(value ?? 0) * 100}%`
   if (isMoney(key)) return money(value)
   return String(value ?? '—')
+}
+function formatPercent(value: unknown): string {
+  const percent = Number(value ?? 0) * 100
+  return Number.isFinite(percent) ? `${Number(percent.toFixed(2))}%` : '—'
 }
 const createColumns = (rows: ReportRow[]): DataGridColumnDef<ReportRow>[] =>
   Object.keys(rows[0] ?? {})
@@ -562,8 +566,11 @@ const totals = computed(() =>
     .map(([key, value]) => ({ key, label: label(key), value })),
 )
 const pagination = { mode: 'client' as const, pageSize: 20, pageSizeOptions: [20, 50, 100] }
-const rowId = (row: ReportRow) =>
-  String(
+const rowId = (row: ReportRow) => {
+  if (row.payroll_id !== undefined && row.driver_id !== undefined)
+    return `payroll-${row.payroll_id}-driver-${row.driver_id}`
+
+  return String(
     row.run_no ??
       row.payroll_id ??
       row.customer_id ??
@@ -571,6 +578,7 @@ const rowId = (row: ReportRow) =>
       row.vehicle_plate ??
       JSON.stringify(row),
   )
+}
 const detailRowId = (row: ReportRow) =>
   String(
     row.stt ?? row.document_no ?? row.worker_run_no ?? row.tourist_run_no ?? JSON.stringify(row),
