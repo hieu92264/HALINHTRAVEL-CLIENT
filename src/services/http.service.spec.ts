@@ -53,4 +53,32 @@ describe('httpService.downloadPdf', () => {
       statusCode: 422,
     })
   })
+
+  it('returns an Excel file and uses report.xlsx without a server filename', async () => {
+    const blob = new Blob(['PK spreadsheet'], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
+    mock.onGet('/reports/excel').reply(200, blob, {
+      'content-type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
+
+    await expect(httpService.downloadExcel('/reports/excel')).resolves.toMatchObject({
+      blob,
+      filename: 'report.xlsx',
+    })
+  })
+
+  it('rejects an empty or invalid Excel response', async () => {
+    mock.onGet('/reports/empty-excel').reply(200, new Blob([], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    }), {
+      'content-type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
+    mock.onGet('/reports/not-excel').reply(200, new Blob([JSON.stringify({ message: 'Báo cáo chưa sẵn sàng.' })], {
+      type: 'application/json',
+    }), { 'content-type': 'application/json' })
+
+    await expect(httpService.downloadExcel('/reports/empty-excel')).rejects.toThrow('Tệp Excel không có dữ liệu')
+    await expect(httpService.downloadExcel('/reports/not-excel')).rejects.toThrow('Báo cáo chưa sẵn sàng.')
+  })
 })
