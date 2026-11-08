@@ -44,6 +44,7 @@ export interface PartnerPayment extends FinancialDocument {
   paid_at: string
   amount: Money
   payment_method: PaymentMethod
+  recipient_name: string | null
   description: string | null
 }
 
@@ -146,6 +147,6 @@ export interface Payroll {
 
 export type ReceiptPayload = Pick<Receipt, 'customer_id' | 'receipt_type' | 'received_at' | 'amount' | 'payment_method' | 'payer_name' | 'description'>
 export type ExpensePayload = Pick<Expense, 'expense_type_id' | 'vehicle_id' | 'expense_date' | 'amount' | 'payment_method' | 'paid_by' | 'hired_driver_name' | 'description'>
-export type PartnerPaymentPayload = Pick<PartnerPayment, 'partner_id' | 'paid_at' | 'amount' | 'payment_method' | 'description'>
+export type PartnerPaymentPayload = Pick<PartnerPayment, 'partner_id' | 'paid_at' | 'amount' | 'payment_method' | 'recipient_name' | 'description'>
 export type DriverAdvancePayload = Pick<DriverAdvance, 'driver_id' | 'advance_date' | 'amount' | 'description'>
 export type PayrollPayload = Pick<Payroll, 'month' | 'year' | 'from_date' | 'to_date'>

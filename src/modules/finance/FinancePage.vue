@@ -92,7 +92,7 @@
           show-actions
           mobile-mode="cards"
           :get-row-id="(row) => String(row.id)"
-          :persist="{ key: 'finance-partner-payments', url: true, queryPrefix: 'partnerPayment' }"
+          :persist="{ key: 'finance-partner-payments-v2', url: true, queryPrefix: 'partnerPayment' }"
           empty-title="Chưa có phiếu chi đối tác"
           empty-description="Ghi nhận độc lập các khoản chi cho đối tác vận tải."
           @retry="payments.refetch()"

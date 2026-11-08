@@ -84,6 +84,9 @@
           >
           <label v-if="kind === 'receipt'" class="grid gap-1.5 text-sm font-medium"
             >Người nộp<Input v-model="form.payer_name" placeholder="Tên người nộp" /></label
+          ><label v-if="kind === 'partner-payment'" class="grid gap-1.5 text-sm font-medium"
+            >Người nhận <span class="text-destructive">*</span
+            ><Input v-model.trim="form.recipient_name" required placeholder="Tên người nhận tiền" /></label
           ><label v-if="kind === 'expense' && expenseScope === 'vehicle'" class="grid gap-1.5 text-sm font-medium"
             >Người chi<Input v-model="form.paid_by" placeholder="Tên người chi tiền"
           /></label>
@@ -160,6 +163,7 @@ const form = reactive({
   amount: '',
   payment_method: 'cash' as 'cash' | 'bank_transfer',
   payer_name: '',
+  recipient_name: '',
   paid_by: '',
   hired_driver_name: '',
   description: '',
@@ -221,6 +225,8 @@ watch(
     form.amount = String(row?.amount ?? '')
     form.payment_method = row?.payment_method ?? 'cash'
     form.payer_name = props.kind === 'receipt' ? ((row as Receipt | null)?.payer_name ?? '') : ''
+    form.recipient_name =
+      props.kind === 'partner-payment' ? ((row as PartnerPayment | null)?.recipient_name ?? '') : ''
     form.paid_by = props.kind === 'expense' ? ((row as Expense | null)?.paid_by ?? '') : ''
     form.hired_driver_name =
       props.kind === 'expense' ? ((row as Expense | null)?.hired_driver_name ?? '') : ''
@@ -251,7 +257,7 @@ function submit() {
       paid_by: form.paid_by || null,
       hired_driver_name: form.hired_driver_name || null,
     })
-  else emit('save', { ...base, partner_id: form.partner_id, paid_at: form.date })
+  else emit('save', { ...base, partner_id: form.partner_id, paid_at: form.date, recipient_name: form.recipient_name })
 }
 </script>
     form.vehicle_id = props.kind === 'expense' ? ((row as Expense | null)?.vehicle_id ?? null) : null

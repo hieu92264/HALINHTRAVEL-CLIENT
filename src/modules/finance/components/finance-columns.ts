@@ -37,6 +37,7 @@ export const partnerPaymentColumns: DataGridColumnDef<PartnerPayment>[] = [
   { accessorKey: 'payment_no', header: 'Số phiếu chi', fixed: 'left', meta: { label: 'Số phiếu chi' } },
   { accessorKey: 'paid_at', header: 'Ngày chi', cell: ({ getValue }) => formatDate(String(getValue())), meta: { label: 'Ngày chi' } },
   { accessorKey: 'partner_name', header: 'Đối tác', meta: { label: 'Đối tác' } },
+  { accessorKey: 'recipient_name', header: 'Người nhận', cell: ({ getValue }) => String(getValue() ?? '—'), meta: { label: 'Người nhận' } },
   { accessorKey: 'amount', header: 'Số tiền', cell: ({ getValue }) => formatMoney(getValue() as string | number), align: 'right', meta: { label: 'Số tiền' } },
   { accessorKey: 'payment_method', header: 'Phương thức', cell: ({ getValue }) => paymentMethodLabel(String(getValue())), meta: { label: 'Phương thức' } },
 ]
