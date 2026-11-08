@@ -115,6 +115,9 @@ export interface PayrollItem {
   tourism_commission: Money
   other_allowance: Money
   advance_amount: Money
+  driver_collected_amount: Money
+  driver_remitted_amount: Money
+  driver_expense_amount: Money
   deduction_amount: Money
   gross_salary: Money
   net_salary: Money
@@ -129,7 +132,7 @@ export interface Payroll {
   year: number
   from_date: string
   to_date: string
-  status: 'draft' | 'calculated' | 'approved' | 'paid' | 'locked'
+  status: 'draft' | 'calculated' | 'approved' | 'paid' | 'locked' | 'superseded' | 'cancelled'
   gross_salary?: Money
   net_salary?: Money
   total_gross?: Money

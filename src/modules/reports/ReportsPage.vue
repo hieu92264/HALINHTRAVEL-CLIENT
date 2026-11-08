@@ -176,6 +176,7 @@ import {
   type DataGridDataSource,
 } from '@/shared/components/data-grid'
 import { ReportService } from '@/services/report.service'
+import { downloadFile } from '@/shared/lib/download-file'
 import { CustomerService } from '@/services/customer.service'
 import { DriverService } from '@/services/driver.service'
 import { PartnerService } from '@/services/partner.service'
@@ -223,7 +224,7 @@ const definitions: Record<
   },
   'partner-debts': {
     title: 'Công nợ chủ xe',
-    description: 'Chi phí thuê xe đối tác trừ chứng từ đã chi trả.',
+    description: 'Chi phí thuê xe ngoài trừ chứng từ đã chi trả.',
     slug: 'partner-debt-summary',
     detail: { slug: 'partner-debt-details', key: 'partner_id', label: 'Chi tiết công nợ chủ xe' },
   },
@@ -296,6 +297,7 @@ const reportFieldLabels: Record<string, string> = {
   driver_wage_rate: '% lương',
   driver_collected_amount: 'Lái xe thu',
   driver_remitted_amount: 'Lái xe nộp',
+  driver_expense_amount: 'Lái xe chi',
   company_collected_amount: 'Công ty thu',
   remaining_receivable: 'Còn lại phải thu',
   driver_wage: 'Lương lái xe',
@@ -343,7 +345,7 @@ const reportFieldLabels: Record<string, string> = {
   vehicle_plate: 'Biển số xe',
   pickup_time: 'Giờ đón',
   trip_type: 'Loại chuyến',
-  partner_vehicle_cost: 'Chi phí thuê xe đối tác',
+  partner_vehicle_cost: 'Chi phí thuê xe ngoài',
   responsibility_allowance: 'Phụ cấp trách nhiệm',
   fixed_trip_wage: 'Lương chuyến cố định',
   tourism_commission: 'Hoa hồng du lịch',
@@ -504,14 +506,9 @@ async function download(slug: string, detail = false) {
     const parameters = detail ? detailParameters.value : { ...filters }
     if (!parameters) return
     const file = await ReportService.download(slug, parameters)
-    const url = URL.createObjectURL(file.blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = file.filename
-    link.click()
-    URL.revokeObjectURL(url)
-  } catch {
-    toast.error('Không thể xuất PDF báo cáo.')
+    downloadFile(file)
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : 'Không thể xuất PDF báo cáo.')
   }
 }
 </script>

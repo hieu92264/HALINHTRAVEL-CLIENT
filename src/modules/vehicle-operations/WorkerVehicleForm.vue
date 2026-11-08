@@ -3,10 +3,11 @@
     <header>
       <p class="text-sm font-medium text-primary">Điều hành xe chạy</p>
       <h1 class="mt-1 text-2xl font-semibold tracking-tight">
-        {{ isEdit ? 'Cập nhật chuyến ngoại lệ' : 'Tạo chuyến ngoại lệ' }}
+        {{ isEdit ? 'Cập nhật chuyến công nhân' : 'Tạo chuyến công nhân' }}
       </h1>
       <p class="mt-1 text-sm text-muted-foreground">
-        Chuyến tạo tay không thuộc lịch lặp. Cước và lương được lấy từ bảng giá của tuyến theo loại xe.
+        Chuyến tạo tay không thuộc lịch lặp. Cước và lương được lấy từ bảng giá của tuyến theo loại
+        xe.
       </p>
     </header>
 
@@ -68,17 +69,45 @@
           >
             <option :value="null" disabled>{{ vehiclePrompt }}</option>
             <option v-for="vehicle in eligibleVehicles" :key="vehicle.id" :value="vehicle.id">
-              {{ vehicle.license_plate }} · {{ vehicle.vehicle_type_code ?? 'Chưa gán loại' }} · {{ vehicleSeats(vehicle) ?? '?' }} chỗ
+              {{ vehicle.license_plate }} · {{ vehicle.vehicle_type_code ?? 'Chưa gán loại' }} ·
+              {{ vehicleSeats(vehicle) ?? '?' }} chỗ
             </option>
           </select>
-          <small v-if="form.route_id && !eligibleVehicles.length" class="text-destructive">Tuyến chưa có giá cho loại xe của bất kỳ xe công ty nào.</small>
-          <small v-if="selectedVehicle" class="text-muted-foreground">Xe công ty · {{ selectedVehicle.vehicle_type_name ?? selectedVehicle.vehicle_type_code ?? 'Cần gán loại xe' }} · {{ vehicleSeats(selectedVehicle) ?? '?' }} chỗ</small>
-          <small v-else-if="form.license_plate" class="text-muted-foreground">Chuyến lịch sử: {{ form.license_plate }}. Chọn xe khi cần thay đổi.</small>
+          <small v-if="form.route_id && !eligibleVehicles.length" class="text-destructive"
+            >Tuyến chưa có giá cho loại xe của bất kỳ xe công ty nào.</small
+          >
+          <small v-if="selectedVehicle" class="text-muted-foreground"
+            >Xe công ty ·
+            {{
+              selectedVehicle.vehicle_type_name ??
+              selectedVehicle.vehicle_type_code ??
+              'Cần gán loại xe'
+            }}
+            · {{ vehicleSeats(selectedVehicle) ?? '?' }} chỗ</small
+          >
+          <small v-else-if="form.license_plate" class="text-muted-foreground"
+            >Chuyến lịch sử: {{ form.license_plate }}. Chọn xe khi cần thay đổi.</small
+          >
         </label>
-        <div v-if="selectedRate" class="grid gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm sm:col-span-2 sm:grid-cols-3">
-          <div><p class="text-muted-foreground">Loại xe / số chỗ</p><p class="mt-1 font-semibold">{{ selectedVehicle?.vehicle_type_code ?? 'Chưa chọn xe' }} · {{ vehicleSeats(selectedVehicle) ?? '?' }} chỗ</p></div>
-          <div><p class="text-muted-foreground">Cước xe snapshot</p><p class="mt-1 font-semibold">{{ formatMoney(selectedRate.freight_amount) }}</p></div>
-          <div><p class="text-muted-foreground">Lương lái snapshot</p><p class="mt-1 font-semibold">{{ formatMoney(selectedRate.driver_wage) }}</p></div>
+        <div
+          v-if="selectedRate"
+          class="grid gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm sm:col-span-2 sm:grid-cols-3"
+        >
+          <div>
+            <p class="text-muted-foreground">Loại xe / số chỗ</p>
+            <p class="mt-1 font-semibold">
+              {{ selectedVehicle?.vehicle_type_code ?? 'Chưa chọn xe' }} ·
+              {{ vehicleSeats(selectedVehicle) ?? '?' }} chỗ
+            </p>
+          </div>
+          <div>
+            <p class="text-muted-foreground">Cước xe snapshot</p>
+            <p class="mt-1 font-semibold">{{ formatMoney(selectedRate.freight_amount) }}</p>
+          </div>
+          <div>
+            <p class="text-muted-foreground">Lương lái snapshot</p>
+            <p class="mt-1 font-semibold">{{ formatMoney(selectedRate.driver_wage) }}</p>
+          </div>
         </div>
         <label class="field"
           >Lái xe nội bộ<select
@@ -182,7 +211,9 @@ const availableRoutes = computed(() =>
   routes.value.filter((item) => !form.customer_id || item.customer_id === form.customer_id),
 )
 const companyDrivers = computed(() => drivers.value.filter((driver) => driver.is_active !== false))
-const selectedVehicle = computed(() => vehicles.value.find((vehicle) => vehicle.id === form.vehicle_id) ?? null)
+const selectedVehicle = computed(
+  () => vehicles.value.find((vehicle) => vehicle.id === form.vehicle_id) ?? null,
+)
 const selectedRoute = computed(() => routes.value.find((item) => item.id === form.route_id) ?? null)
 const selectedRate = computed(() => {
   const vehicleTypeId = selectedVehicle.value?.vehicle_type_id ?? form.vehicle_type_id
@@ -191,8 +222,10 @@ const selectedRate = computed(() => {
 const eligibleVehicles = computed(() => {
   if (!selectedRoute.value) return []
 
-  return vehicles.value.filter((vehicle) =>
-    vehicle.vehicle_type_id !== null && selectedRoute.value?.rates.some((rate) => rate.vehicle_type_id === vehicle.vehicle_type_id),
+  return vehicles.value.filter(
+    (vehicle) =>
+      vehicle.vehicle_type_id !== null &&
+      selectedRoute.value?.rates.some((rate) => rate.vehicle_type_id === vehicle.vehicle_type_id),
   )
 })
 const vehiclePrompt = computed(() => {
@@ -213,18 +246,15 @@ watch(
     if (value) form.driver_id = null
   },
 )
-watch(
-  [() => form.route_id],
-  () => {
-    if (!form.vehicle_id) return
-    if (!eligibleVehicles.value.some((vehicle) => vehicle.id === form.vehicle_id)) {
-      form.vehicle_id = null
-      form.license_plate = ''
-      form.partner_id = null
-      form.is_company_vehicle = true
-    }
-  },
-)
+watch([() => form.route_id], () => {
+  if (!form.vehicle_id) return
+  if (!eligibleVehicles.value.some((vehicle) => vehicle.id === form.vehicle_id)) {
+    form.vehicle_id = null
+    form.license_plate = ''
+    form.partner_id = null
+    form.is_company_vehicle = true
+  }
+})
 function applyRouteDefaults() {
   const selected = routes.value.find((item) => item.id === form.route_id)
   if (!selected) return
@@ -264,13 +294,14 @@ onMounted(async () => {
     })
     // Bản ghi lịch sử chưa có vehicle_id vẫn chọn được xe trùng biển số nếu danh mục đã có.
     if (!form.vehicle_id)
-      form.vehicle_id = vehicles.value.find((vehicle) => vehicle.license_plate === saved.license_plate)?.id ?? null
+      form.vehicle_id =
+        vehicles.value.find((vehicle) => vehicle.license_plate === saved.license_plate)?.id ?? null
   }
 })
 
 function vehicleSeats(vehicle: Vehicle | null): number | null {
   const fromType = Number(vehicle?.vehicle_type_code?.replace(/\D/g, ''))
-  return Number.isFinite(fromType) && fromType > 0 ? fromType : vehicle?.seat_count ?? null
+  return Number.isFinite(fromType) && fromType > 0 ? fromType : (vehicle?.seat_count ?? null)
 }
 
 function formatMoney(value: string | number): string {

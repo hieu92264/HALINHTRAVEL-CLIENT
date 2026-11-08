@@ -34,7 +34,7 @@
 
       <div class="grid gap-5 rounded-xl border border-border bg-card p-5 shadow-sm sm:grid-cols-2">
         <h2 class="sm:col-span-2 text-base font-semibold">Xe và lái xe</h2>
-        <label class="field">Nguồn xe <select v-model="form.is_company_vehicle" class="control"><option :value="true">Xe công ty</option><option :value="false">Xe đối tác</option></select></label>
+        <label class="field">Nguồn xe <select v-model="form.is_company_vehicle" class="control"><option :value="true">Xe công ty</option><option :value="false">Xe ngoài</option></select></label>
         <label v-if="form.is_company_vehicle" class="field"
           >Xe <span>*</span
           ><select v-model.number="form.vehicle_id" :required="!isEdit" class="control" @change="applyVehicleDefaults">

@@ -54,7 +54,7 @@
             label="Tỷ lệ lương"
             :value="`${Number(run.driver_wage_rate ?? 0) * 100}%`"
           /><Money label="Lương lái" :value="money(run.driver_wage)" /><Money
-            label="Thuê xe đối tác"
+            label="Thuê xe ngoài"
             :value="money(run.partner_vehicle_cost)"
           />
         </dl>
@@ -120,10 +120,13 @@ const route = useRoute()
 const router = useRouter()
 const run = ref<VehicleRun | null>(null)
 const isSaving = ref(false)
-const attendanceStatusLabel = computed(() =>
-  ({ pending: 'Chờ xác nhận', confirmed: 'Đã xác nhận', payroll_locked: 'Đã chốt lương' })[
-    run.value?.attendance?.status ?? ''
-  ] ?? run.value?.attendance?.status ?? '—',
+const attendanceStatusLabel = computed(
+  () =>
+    ({ pending: 'Chờ xác nhận', confirmed: 'Đã xác nhận', payroll_locked: 'Đã chốt lương' })[
+      run.value?.attendance?.status ?? ''
+    ] ??
+    run.value?.attendance?.status ??
+    '—',
 )
 const statusLabel = computed(
   () =>

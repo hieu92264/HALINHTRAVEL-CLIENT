@@ -52,8 +52,10 @@ export class DriverPayrollService {
     return httpService.post<DriverAttendance>(`${payrollUrl}/attendances/${id}/confirm`)
   }
 
-  static getPayrolls() {
-    return httpService.get<Payroll[]>(`${payrollUrl}/payrolls`)
+  static getPayrolls(includeCancelled = false) {
+    return httpService.get<Payroll[]>(`${payrollUrl}/payrolls`, {
+      params: includeCancelled ? { include_cancelled: '1' } : undefined,
+    })
   }
   static getPayroll(id: number) {
     return httpService.get<Payroll>(`${payrollUrl}/payrolls/${id}`)
@@ -66,6 +68,9 @@ export class DriverPayrollService {
       `${payrollUrl}/payrolls/${id}`,
       payload,
     )
+  }
+  static cancelPayroll(id: number) {
+    return httpService.post<Payroll>(`${payrollUrl}/payrolls/${id}/cancel`)
   }
   static calculatePayroll(id: number) {
     return httpService.post<Payroll>(`${payrollUrl}/payrolls/${id}/calculate`)
