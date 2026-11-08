@@ -20,8 +20,6 @@
         }}</Button
       >
     </header>
-    <WorkerOperationsTabs v-if="kind === 'worker'" />
-
     <DataGrid
       :data-source="dataSource"
       :columns="columns"
@@ -66,7 +64,6 @@ import {
   type DataGridDataSource,
 } from '@/shared/components/data-grid'
 import { Button } from '@/shared/components/ui/button'
-import WorkerOperationsTabs from './WorkerOperationsTabs.vue'
 import { ArrowUpRight, Plus, RefreshCw } from '@lucide/vue'
 import { computed, h, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
