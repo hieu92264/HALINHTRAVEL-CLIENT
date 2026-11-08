@@ -20,7 +20,9 @@
             Kỳ {{ formatDate(payroll.from_date) }} — {{ formatDate(payroll.to_date) }}
           </p>
         </div>
-        <div v-if="canManage" class="grid w-full grid-cols-1 gap-2 sm:flex sm:w-auto sm:flex-wrap">
+        <div class="grid w-full grid-cols-1 gap-2 sm:flex sm:w-auto sm:flex-wrap">
+          <Button class="w-full sm:w-auto" variant="outline" @click="returnToPayrolls">Quay lại kỳ lương</Button>
+          <template v-if="canManage">
           <Button
             v-if="payroll.status === 'draft'"
             class="w-full sm:w-auto"
@@ -40,7 +42,7 @@
             :disabled="Boolean(periodError)"
             class="w-full sm:w-auto"
             @click="ask('calculate')"
-            ><Calculator class="size-4" />Tính lương</Button
+            ><Calculator class="size-4" />Cập nhật</Button
           ><Button
             v-if="payroll.status === 'calculated'"
             variant="outline"
@@ -62,6 +64,7 @@
             @click="ask('lock')"
             ><LockKeyhole class="size-4" />Chốt lương</Button
           >
+          </template>
         </div>
       </header>
       <p
@@ -132,15 +135,21 @@
               </div>
               <div>
                 <dt class="text-xs text-muted-foreground">Lái xe thu</dt>
-                <dd class="mt-0.5 tabular-nums text-destructive">−{{ formatMoney(item.driver_collected_amount) }}</dd>
+                <dd class="mt-0.5 tabular-nums text-destructive">
+                  −{{ formatMoney(item.driver_collected_amount) }}
+                </dd>
               </div>
               <div>
                 <dt class="text-xs text-muted-foreground">Lái xe nộp</dt>
-                <dd class="mt-0.5 tabular-nums text-success">+{{ formatMoney(item.driver_remitted_amount) }}</dd>
+                <dd class="mt-0.5 tabular-nums text-success">
+                  +{{ formatMoney(item.driver_remitted_amount) }}
+                </dd>
               </div>
               <div>
                 <dt class="text-xs text-muted-foreground">Lái xe chi</dt>
-                <dd class="mt-0.5 tabular-nums text-success">+{{ formatMoney(item.driver_expense_amount) }}</dd>
+                <dd class="mt-0.5 tabular-nums text-success">
+                  +{{ formatMoney(item.driver_expense_amount) }}
+                </dd>
               </div>
               <div>
                 <dt class="text-xs text-muted-foreground">Lương trước khấu trừ</dt>
@@ -215,7 +224,7 @@
               </tr>
               <tr v-if="!payroll.items?.length">
                 <td colspan="10" class="px-4 py-10 text-center text-muted-foreground">
-                  Chưa có dòng lương. Hãy chạy “Tính lương” sau khi xác nhận công và tạm ứng.
+                Chưa có dòng lương. Hãy bấm “Cập nhật” sau khi xác nhận công và tạm ứng.
                 </td>
               </tr>
             </tbody>
@@ -310,9 +319,9 @@ const actionCopy = computed(
   () =>
     ({
       calculate: {
-        title: 'Tính lại bảng lương',
+        title: 'Cập nhật bảng lương',
         description: 'Các dòng lương sẽ được tạo lại từ công và tạm ứng đã xác nhận trong kỳ.',
-        confirmLabel: 'Tính lương',
+        confirmLabel: 'Cập nhật',
       },
       cancel: {
         title: 'Hủy kỳ lương nháp',
@@ -341,6 +350,9 @@ const actionCopy = computed(
 function ask(next: NonNullable<typeof action.value>) {
   action.value = next
 }
+async function returnToPayrolls() {
+  await router.push({ name: 'driver-payroll', query: { tab: 'payrolls' } })
+}
 async function runAction() {
   if (!action.value) return
   try {
@@ -350,10 +362,9 @@ async function runAction() {
     else if (action.value === 'cancel') {
       await mutations.cancelPayroll.mutateAsync(id.value)
       toast.success('Đã hủy kỳ lương nháp.')
-      await router.push({ name: 'driver-payroll' })
+      await returnToPayrolls()
       return
-    }
-    else await mutations.lockPayroll.mutateAsync(id.value)
+    } else await mutations.lockPayroll.mutateAsync(id.value)
     toast.success('Đã cập nhật kỳ lương.')
     action.value = null
     await query.refetch()

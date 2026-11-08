@@ -48,7 +48,7 @@
     </div>
     <div class="grid gap-5 rounded-xl border border-border bg-card p-5 shadow-sm sm:grid-cols-2">
       <div>
-        <h2 class="text-base font-semibold">Snapshot tài chính</h2>
+        <h2 class="text-base font-semibold">Tài chính</h2>
         <dl class="mt-4 grid grid-cols-1 gap-4 text-sm min-[420px]:grid-cols-2">
           <Money label="Cước xe" :value="run.freight_amount" /><Money
             label="Tỷ lệ lương"

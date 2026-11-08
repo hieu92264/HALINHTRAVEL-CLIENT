@@ -18,6 +18,8 @@ export type VehicleRun = {
   license_plate: string
   vehicle_model?: string | null
   seat_count?: number | null
+  vehicle_type_code?: string | null
+  vehicle_type_name?: string | null
   driver_name?: string | null
   partner_name?: string | null
   hired_driver_name?: string | null

@@ -41,13 +41,14 @@
       <TabsContent value="vehicle-expenses"
         ><DataGrid
           :data-source="vehicleExpenseSource"
-          :columns="expenseColumns"
+          :columns="vehicleExpenseColumns"
           :pagination="pagination"
           filter-row
           global-filter
           show-actions
           mobile-mode="cards"
           :get-row-id="(row) => String(row.id)"
+          :persist="{ key: 'finance-vehicle-expenses-v2', url: true, queryPrefix: 'vehicleExpense' }"
           empty-title="Chưa có chi phí xe"
           empty-description="Ghi nhận dầu, sửa chữa, BH/ĐK và chi phí khác theo xe."
           @retry="expenses.refetch()"
@@ -62,14 +63,14 @@
       <TabsContent value="expenses"
         ><DataGrid
           :data-source="generalExpenseSource"
-          :columns="expenseColumns"
+          :columns="generalExpenseColumns"
           :pagination="pagination"
           filter-row
           global-filter
           show-actions
           mobile-mode="cards"
           :get-row-id="(row) => String(row.id)"
-          :persist="{ key: 'finance-expenses', url: true, queryPrefix: 'expense' }"
+          :persist="{ key: 'finance-general-expenses-v2', url: true, queryPrefix: 'generalExpense' }"
           empty-title="Chưa có phiếu chi chung"
           empty-description="Ghi nhận các khoản chi không gắn với lệnh điều xe."
           @retry="expenses.refetch()"
@@ -134,9 +135,10 @@ import { LockKeyhole, PencilLine, Plus, Trash2 } from '@lucide/vue'
 import FinancialDocumentDialog from '@/modules/finance/components/FinancialDocumentDialog.vue'
 import {
   debtColumns,
-  expenseColumns,
+  generalExpenseColumns,
   partnerPaymentColumns,
   receiptColumns,
+  vehicleExpenseColumns,
 } from '@/modules/finance/components/finance-columns'
 import {
   useCustomerDebtsQuery,

@@ -30,7 +30,11 @@
         >
         <label class="field"
           >Khách hàng
-          <Input :model-value="selectedRoute?.customer_name ?? ''" disabled placeholder="Tự lấy từ tuyến" />
+          <Input
+            :model-value="selectedRoute?.customer_name ?? ''"
+            disabled
+            placeholder="Tự lấy từ tuyến"
+          />
         </label>
         <label class="field">Ca chạy<Input v-model="form.shift_name" disabled /></label>
         <label class="field"
@@ -50,7 +54,8 @@
 
       <div class="grid gap-5 rounded-xl border border-border bg-card p-5 shadow-sm sm:grid-cols-2">
         <h2 class="sm:col-span-2 text-base font-semibold">Xe và lái xe</h2>
-        <label class="field">Nguồn xe
+        <label class="field"
+          >Nguồn xe
           <select v-model="form.is_company_vehicle" class="control">
             <option :value="true">Xe công ty</option>
             <option :value="false">Xe ngoài</option>
@@ -84,20 +89,38 @@
             · {{ vehicleSeats(selectedVehicle) ?? '?' }} chỗ</small
           >
         </label>
-        <label v-if="!form.is_company_vehicle" class="field">Hãng vận tải <span>*</span>
+        <label v-if="!form.is_company_vehicle" class="field"
+          >Hãng vận tải <span>*</span>
           <select v-model.number="form.partner_id" class="control" required>
             <option :value="null" disabled>Chọn hãng vận tải</option>
-            <option v-for="partner in partners" :key="partner.id" :value="partner.id">{{ partner.name }}</option>
+            <option v-for="partner in partners" :key="partner.id" :value="partner.id">
+              {{ partner.name }}
+            </option>
           </select>
         </label>
-        <label v-if="!form.is_company_vehicle" class="field">Biển số <span>*</span><Input v-model.trim="form.license_plate" required /></label>
-        <label v-if="!form.is_company_vehicle" class="field">Loại xe <span>*</span>
-          <select v-model.number="form.vehicle_type_id" class="control" required :disabled="!form.route_id">
-            <option :value="null" disabled>{{ form.route_id ? 'Chọn loại xe' : 'Chọn tuyến trước' }}</option>
-            <option v-for="item in eligibleVehicleTypes" :key="item.id" :value="item.id">{{ item.code }} · {{ item.name }}</option>
+        <label v-if="!form.is_company_vehicle" class="field"
+          >Biển số <span>*</span><Input v-model.trim="form.license_plate" required
+        /></label>
+        <label v-if="!form.is_company_vehicle" class="field"
+          >Loại xe <span>*</span>
+          <select
+            v-model.number="form.vehicle_type_id"
+            class="control"
+            required
+            :disabled="!form.route_id"
+          >
+            <option :value="null" disabled>
+              {{ form.route_id ? 'Chọn loại xe' : 'Chọn tuyến trước' }}
+            </option>
+            <option v-for="item in eligibleVehicleTypes" :key="item.id" :value="item.id">
+              {{ item.code }} · {{ item.name }}
+            </option>
           </select>
         </label>
-        <label v-if="!form.is_company_vehicle" class="field">Tiền thuê xe <span>*</span><Input v-model="form.partner_vehicle_cost" min="1" type="number" required /></label>
+        <label v-if="!form.is_company_vehicle" class="field"
+          >Tiền thuê xe <span>*</span
+          ><Input v-model="form.partner_vehicle_cost" min="1" type="number" required
+        /></label>
         <div
           v-if="selectedRate"
           class="grid gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm sm:col-span-2 sm:grid-cols-3"
@@ -105,16 +128,18 @@
           <div>
             <p class="text-muted-foreground">Loại xe / số chỗ</p>
             <p class="mt-1 font-semibold">
-              {{ selectedVehicle?.vehicle_type_code ?? selectedVehicleType?.code ?? 'Chưa chọn loại' }} ·
-              {{ vehicleSeats(selectedVehicle) ?? '—' }} chỗ
+              {{
+                selectedVehicle?.vehicle_type_code ?? selectedVehicleType?.code ?? 'Chưa chọn loại'
+              }}
+              · {{ vehicleSeats(selectedVehicle) ?? '—' }} chỗ
             </p>
           </div>
           <div>
-            <p class="text-muted-foreground">Cước xe snapshot</p>
+            <p class="text-muted-foreground">Cước xe</p>
             <p class="mt-1 font-semibold">{{ formatMoney(selectedRate.freight_amount) }}</p>
           </div>
           <div>
-            <p class="text-muted-foreground">Lương lái snapshot</p>
+            <p class="text-muted-foreground">Lương lái</p>
             <p class="mt-1 font-semibold">{{ formatMoney(selectedRate.driver_wage) }}</p>
           </div>
         </div>
@@ -149,9 +174,7 @@
       <div class="grid gap-5 rounded-xl border border-border bg-card p-5 shadow-sm">
         <div class="flex flex-wrap items-baseline justify-between gap-2">
           <h2 class="text-base font-semibold">Ghi chú điều hành</h2>
-          <span class="text-xs text-muted-foreground"
-            >Cước/lương được snapshot từ bảng giá có hiệu lực.</span
-          >
+          <span class="text-xs text-muted-foreground">Cước/lương từ bảng giá có hiệu lực.</span>
         </div>
         <label class="field"
           >Ghi chú<textarea v-model.trim="form.note" class="control min-h-24 py-2" />
@@ -171,7 +194,13 @@
 
 <script setup lang="ts">
 import { OwnershipTypeEnum } from '@/modules/master-data/master-data.enum'
-import type { Driver, Partner, Route as WorkerRoute, Vehicle, VehicleType } from '@/modules/master-data/master-data.type'
+import type {
+  Driver,
+  Partner,
+  Route as WorkerRoute,
+  Vehicle,
+  VehicleType,
+} from '@/modules/master-data/master-data.type'
 import { DriverService } from '@/services/driver.service'
 import { PartnerService } from '@/services/partner.service'
 import { RouteService } from '@/services/route.service'
@@ -214,12 +243,18 @@ const form = reactive({
   partner_vehicle_cost: '',
   note: '',
 })
-const companyDrivers = computed(() => drivers.value.filter((driver) => driver.type === OwnershipTypeEnum.COMPANY && driver.is_active !== false))
+const companyDrivers = computed(() =>
+  drivers.value.filter(
+    (driver) => driver.type === OwnershipTypeEnum.COMPANY && driver.is_active !== false,
+  ),
+)
 const selectedVehicle = computed(
   () => vehicles.value.find((vehicle) => vehicle.id === form.vehicle_id) ?? null,
 )
 const selectedRoute = computed(() => routes.value.find((item) => item.id === form.route_id) ?? null)
-const selectedVehicleType = computed(() => vehicleTypes.value.find((item) => item.id === form.vehicle_type_id) ?? null)
+const selectedVehicleType = computed(
+  () => vehicleTypes.value.find((item) => item.id === form.vehicle_type_id) ?? null,
+)
 const selectedRate = computed(() => {
   const vehicleTypeId = selectedVehicle.value?.vehicle_type_id ?? form.vehicle_type_id
   return selectedRoute.value?.rates.find((rate) => rate.vehicle_type_id === vehicleTypeId) ?? null
@@ -249,19 +284,35 @@ watch(
     if (value) form.driver_id = null
   },
 )
-watch(() => form.is_company_vehicle, (isCompanyVehicle) => {
-  form.vehicle_id = null
-  form.vehicle_type_id = null
-  form.license_plate = ''
-  form.partner_id = null
-  form.partner_vehicle_cost = ''
-  if (isCompanyVehicle) form.driver_id = null
-})
-watch(() => form.route_id, () => {
-  if (form.is_company_vehicle && form.vehicle_id && !eligibleVehicles.value.some((vehicle) => vehicle.id === form.vehicle_id)) form.vehicle_id = null
-  if (!form.is_company_vehicle && form.vehicle_type_id && !eligibleVehicleTypes.value.some((type) => type.id === form.vehicle_type_id)) form.vehicle_type_id = null
-  applyRouteDefaults()
-})
+watch(
+  () => form.is_company_vehicle,
+  (isCompanyVehicle) => {
+    form.vehicle_id = null
+    form.vehicle_type_id = null
+    form.license_plate = ''
+    form.partner_id = null
+    form.partner_vehicle_cost = ''
+    if (isCompanyVehicle) form.driver_id = null
+  },
+)
+watch(
+  () => form.route_id,
+  () => {
+    if (
+      form.is_company_vehicle &&
+      form.vehicle_id &&
+      !eligibleVehicles.value.some((vehicle) => vehicle.id === form.vehicle_id)
+    )
+      form.vehicle_id = null
+    if (
+      !form.is_company_vehicle &&
+      form.vehicle_type_id &&
+      !eligibleVehicleTypes.value.some((type) => type.id === form.vehicle_type_id)
+    )
+      form.vehicle_type_id = null
+    applyRouteDefaults()
+  },
+)
 function applyRouteDefaults() {
   const selected = routes.value.find((item) => item.id === form.route_id)
   if (!selected) return
@@ -302,7 +353,8 @@ onMounted(async () => {
       return_time: toTimeInputValue(saved.return_time),
     })
     if (form.is_company_vehicle && !form.vehicle_id)
-      form.vehicle_id = vehicles.value.find((vehicle) => vehicle.license_plate === saved.license_plate)?.id ?? null
+      form.vehicle_id =
+        vehicles.value.find((vehicle) => vehicle.license_plate === saved.license_plate)?.id ?? null
   }
 })
 

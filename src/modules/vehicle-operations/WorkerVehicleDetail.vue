@@ -43,7 +43,11 @@
         :value="`${run.license_plate} · ${run.driver_name ?? run.hired_driver_name ?? 'Chưa phân công'}`"
       /><Info
         label="Nguồn xe"
-        :value="run.is_company_vehicle ? 'Xe công ty' : `Xe ngoài${run.partner_name ? ` · ${run.partner_name}` : ''}`"
+        :value="
+          run.is_company_vehicle
+            ? 'Xe công ty'
+            : `Xe ngoài${run.partner_name ? ` · ${run.partner_name}` : ''}`
+        "
       /><Info
         label="Kế hoạch"
         :value="`${formatVietnameseDate(run.run_date)} ${run.pickup_time}${run.return_time ? ` — ${run.return_time}` : ''}`"
@@ -67,7 +71,7 @@
         </dl>
       </div>
       <div>
-        <h2 class="text-base font-semibold">Snapshot tài chính</h2>
+        <h2 class="text-base font-semibold">Tài chính</h2>
         <dl class="mt-4 grid grid-cols-1 gap-4 text-sm min-[420px]:grid-cols-2">
           <div>
             <dt class="text-muted-foreground">Cước</dt>
@@ -79,7 +83,9 @@
           </div>
           <div v-if="!run.is_company_vehicle">
             <dt class="text-muted-foreground">Tiền thuê xe ngoài</dt>
-            <dd class="mt-1 font-semibold tabular-nums">{{ money(run.partner_vehicle_cost ?? '0') }}</dd>
+            <dd class="mt-1 font-semibold tabular-nums">
+              {{ money(run.partner_vehicle_cost ?? '0') }}
+            </dd>
           </div>
         </dl>
       </div>
@@ -123,10 +129,13 @@ const route = useRoute()
 const router = useRouter()
 const run = ref<VehicleRun | null>(null)
 const isSaving = ref(false)
-const attendanceStatusLabel = computed(() =>
-  ({ pending: 'Chờ xác nhận', confirmed: 'Đã xác nhận', payroll_locked: 'Đã chốt lương' })[
-    run.value?.attendance?.status ?? ''
-  ] ?? run.value?.attendance?.status ?? '—',
+const attendanceStatusLabel = computed(
+  () =>
+    ({ pending: 'Chờ xác nhận', confirmed: 'Đã xác nhận', payroll_locked: 'Đã chốt lương' })[
+      run.value?.attendance?.status ?? ''
+    ] ??
+    run.value?.attendance?.status ??
+    '—',
 )
 const statusLabel = computed(
   () =>

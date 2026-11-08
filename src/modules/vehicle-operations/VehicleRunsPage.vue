@@ -33,8 +33,8 @@
       mobile-mode="cards"
       height="calc(100svh - 260px)"
       :persist="{
-        key: `${kind}-vehicle-runs-v2`,
-        queryPrefix: `${kind}-vehicle-runs-v2`,
+        key: `${kind}-vehicle-runs-v3`,
+        queryPrefix: `${kind}-vehicle-runs-v3`,
         url: true,
       }"
       empty-title="Chưa có chuyến chạy"
@@ -47,16 +47,21 @@
           ><RefreshCw class="size-4" :class="isLoading ? 'animate-spin' : ''" />Làm mới</Button
         ></template
       >
-      <template #actions="{ row }"
-        ><Button variant="ghost" size="sm" @click.stop="openRun(row)"
-          ><span class="sr-only">Xem chi tiết</span><ArrowUpRight class="size-4" /></Button
-      ></template>
+      <template #actions="{ row }">
+        <div class="flex items-center">
+          <Button variant="ghost" size="sm" @click.stop="openRun(row)"><span class="sr-only">Xem chi tiết</span><ArrowUpRight class="size-4" /></Button>
+          <Button v-if="canManage && row.status === 'planned'" variant="ghost" size="sm" class="text-destructive hover:text-destructive" @click.stop="runToCancel = row"><span class="sr-only">Hủy kế hoạch</span><Trash2 class="size-4" /></Button>
+        </div>
+      </template>
     </DataGrid>
+    <AccessDialog :open="Boolean(runToCancel)" title="Hủy kế hoạch chuyến chạy" :description="`Chuyến «${runToCancel?.run_no}» sẽ được chuyển sang Đã hủy và vẫn được lưu trong lịch sử.`" confirm-label="Hủy kế hoạch" destructive :pending="isCancelling" @close="runToCancel = null" @confirm="cancelRun" />
   </section>
 </template>
 
 <script setup lang="ts">
 import { VehicleOperationsService, type VehicleRun } from '@/services/vehicle-operations.service'
+import { useAuthStore } from '@/modules/auth/auth.store'
+import AccessDialog from '@/shared/components/feedback/AccessDialog.vue'
 import { formatVietnameseDate, formatVietnameseDateTime } from '@/shared/helpers/date.helper'
 import {
   DataGrid,
@@ -64,15 +69,20 @@ import {
   type DataGridDataSource,
 } from '@/shared/components/data-grid'
 import { Button } from '@/shared/components/ui/button'
-import { ArrowUpRight, Plus, RefreshCw } from '@lucide/vue'
+import { ArrowUpRight, Plus, RefreshCw, Trash2 } from '@lucide/vue'
 import { computed, h, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
 
 const props = defineProps<{ kind: 'worker' | 'tourist' }>()
 const router = useRouter()
+const auth = useAuthStore()
 const runs = ref<VehicleRun[]>([])
 const isLoading = ref(false)
+const isCancelling = ref(false)
+const runToCancel = ref<VehicleRun | null>(null)
 const title = computed(() => (props.kind === 'worker' ? 'Xe chạy công nhân' : 'Xe chạy du lịch'))
+const canManage = computed(() => auth.user?.permissions.includes(props.kind === 'worker' ? 'worker-vehicles.manage' : 'tourist-vehicles.manage') ?? false)
 const currency = (amount: string) =>
   new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -95,6 +105,10 @@ const moneyCell = (value?: string) => currency(value ?? '0')
 const sourceLabel = (run: VehicleRun) => (run.is_company_vehicle ? 'Xe công ty' : 'Xe ngoài')
 const driverLabel = (run: VehicleRun) =>
   run.driver_name ?? run.hired_driver_name ?? 'Chưa phân công'
+const vehicleTypeLabel = (run: VehicleRun) =>
+  [run.is_company_vehicle ? run.vehicle_model : run.partner_name, run.vehicle_type_name ?? run.vehicle_type_code]
+    .filter(Boolean)
+    .join(' · ') || '—'
 const attendanceLabel = (run: VehicleRun) =>
   run.attendance
     ? `${{ pending: 'Chờ xác nhận', confirmed: 'Đã xác nhận', payroll_locked: 'Đã chốt lương' }[run.attendance.status] ?? run.attendance.status} · ${moneyCell(run.attendance.calculated_wage)}`
@@ -189,16 +203,8 @@ const columns = computed<DataGridColumnDef<VehicleRun>[]>(() => [
     accessorKey: 'vehicle_model',
     header: 'Hãng / loại xe',
     width: 180,
-    cell: ({ row }) => row.original.vehicle_model ?? '—',
+    cell: ({ row }) => vehicleTypeLabel(row.original),
     meta: { label: 'Hãng / loại xe' },
-  },
-  {
-    accessorKey: 'seat_count',
-    header: 'Số chỗ',
-    width: 95,
-    align: 'right',
-    cell: ({ row }) => (row.original.seat_count ? `${row.original.seat_count} chỗ` : '—'),
-    meta: { label: 'Số chỗ' },
   },
   {
     accessorKey: 'is_company_vehicle',
@@ -371,6 +377,21 @@ async function load() {
     runs.value = await VehicleOperationsService.runs(props.kind)
   } finally {
     isLoading.value = false
+  }
+}
+async function cancelRun() {
+  if (!runToCancel.value) return
+  isCancelling.value = true
+  try {
+    if (props.kind === 'worker') await VehicleOperationsService.deleteWorkerRun(runToCancel.value.id)
+    else await VehicleOperationsService.deleteTouristRun(runToCancel.value.id)
+    toast.success('Đã hủy kế hoạch chuyến chạy')
+    runToCancel.value = null
+    await load()
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : 'Không thể hủy kế hoạch chuyến chạy')
+  } finally {
+    isCancelling.value = false
   }
 }
 function openRun(run: VehicleRun) {

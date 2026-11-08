@@ -15,4 +15,11 @@ describe('calculateTouristDriverWage', () => {
       driverWage: '0.00',
     })
   })
+
+  it('calculates a manual trip-rate snapshot without accepting a manual wage', () => {
+    expect(calculateTouristDriverWage(5_000_000, '0.125', true)).toEqual({
+      driverWageRate: '0.125',
+      driverWage: '625000.00',
+    })
+  })
 })

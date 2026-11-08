@@ -6,7 +6,7 @@
         {{ isEdit ? 'Cập nhật xe chạy du lịch' : 'Tạo xe chạy du lịch' }}
       </h1>
       <p class="mt-1 text-sm text-muted-foreground">
-        Cước, tỷ lệ và lương được snapshot trực tiếp trên từng chuyến.
+        Cước, tỷ lệ và lương trực tiếp trên từng chuyến.
       </p>
     </header>
     <form class="space-y-6" @submit.prevent="save">
@@ -88,8 +88,29 @@
             v-model="form.freight_amount"
             min="0"
             type="number" /></label
-        ><label class="field"
-          >Tỷ lệ lương (%)<Input :model-value="ratePercent" disabled type="number" /></label
+        ><div class="field">
+          <div class="flex items-center justify-between gap-3">
+            <span>Tỷ lệ lương (%)</span>
+            <Button
+              v-if="canOverrideRate"
+              type="button"
+              size="sm"
+              variant="outline"
+              @click="toggleRateOverride"
+            >{{ form.driver_wage_is_overridden ? 'Dùng tỷ lệ Loại xe' : 'Sửa tỷ lệ lương' }}</Button>
+          </div>
+          <Input
+            v-if="form.driver_wage_is_overridden && canOverrideRate"
+            v-model="ratePercent"
+            class="mt-1.5"
+            min="0"
+            max="100"
+            step="0.01"
+            type="number"
+          />
+          <Input v-else :model-value="ratePercent" class="mt-1.5" disabled type="number" />
+          <small v-if="form.driver_wage_is_overridden && canOverrideRate" class="mt-1 text-muted-foreground">Tỷ lệ riêng của chuyến này; lương vẫn tự tính theo cước xe.</small>
+        </div>
         ><label class="field">Lương lái xe<Input :model-value="form.driver_wage" disabled type="number" /></label>
         <p class="self-end text-sm text-muted-foreground">
           {{ canSetWage ? 'Lương tự tính theo cước × tỷ lệ Loại xe.' : 'Chỉ tính lương cho lái xe nội bộ.' }}
@@ -179,6 +200,8 @@ const form = reactive({
   freight_amount: '0',
   driver_wage_rate: '0',
   driver_wage: '0',
+  driver_wage_is_overridden: false,
+  status: 'planned',
   driver_collected_amount: '0',
   company_collected_amount: '0',
   driver_remitted_amount: '0',
@@ -197,7 +220,16 @@ const selectedVehicleType = computed(() =>
 const canSetWage = computed(
   () => form.is_company_vehicle && !form.is_hired_driver && Boolean(form.driver_id),
 )
-const ratePercent = computed(() => String(Number(form.driver_wage_rate || 0) * 100))
+const canOverrideRate = computed(
+  () => canSetWage.value && !['completed', 'cancelled'].includes(form.status ?? 'planned'),
+)
+const ratePercent = computed({
+  get: () => String(Number(form.driver_wage_rate || 0) * 100),
+  set: (value: string) => {
+    form.driver_wage_rate = String(Number(value || 0) / 100)
+    syncTouristWage()
+  },
+})
 watch(
   () => form.is_hired_driver,
   (value) => {
@@ -220,21 +252,38 @@ watch(
   ],
   syncTouristWage,
 )
+watch(
+  () => form.vehicle_type_id,
+  (vehicleTypeId, previousVehicleTypeId) => {
+    if (previousVehicleTypeId !== null && previousVehicleTypeId !== vehicleTypeId) {
+      form.driver_wage_is_overridden = false
+    }
+    syncTouristWage()
+  },
+)
 function applyVehicleDefaults() {
   const vehicle = selectedVehicle.value
   if (!vehicle) return
   form.license_plate = vehicle.license_plate
   form.vehicle_type_id = vehicle.vehicle_type_id
   form.driver_id = vehicle.default_driver_id
+  form.driver_wage_is_overridden = false
 }
 function syncTouristWage() {
+  const rate = form.driver_wage_is_overridden
+    ? form.driver_wage_rate
+    : selectedVehicleType.value?.tourism_wage_rate
   const wage = calculateTouristDriverWage(
     form.freight_amount,
-    selectedVehicleType.value?.tourism_wage_rate,
+    rate,
     canSetWage.value,
   )
   form.driver_wage_rate = wage.driverWageRate
   form.driver_wage = wage.driverWage
+}
+function toggleRateOverride() {
+  form.driver_wage_is_overridden = !form.driver_wage_is_overridden
+  syncTouristWage()
 }
 onMounted(async () => {
   const [driverList, vehicleList, partnerList, typeList] = await Promise.all([
