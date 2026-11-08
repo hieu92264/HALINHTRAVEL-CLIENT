@@ -80,8 +80,11 @@
         <Button variant="outline" :disabled="query.isFetching.value" @click="query.refetch()"
           ><RefreshCw class="size-4" />Cập nhật</Button
         >
-        <Button :disabled="query.isFetching.value" @click="download(definition.slug)"
+        <Button :disabled="query.isFetching.value || isDownloading(definition.slug, 'pdf')" @click="download(definition.slug, 'pdf')"
           ><Download class="size-4" />Xuất PDF</Button
+        >
+        <Button variant="outline" :disabled="query.isFetching.value || isDownloading(definition.slug, 'xlsx')" @click="download(definition.slug, 'xlsx')"
+          ><Download class="size-4" />Xuất Excel</Button
         >
       </div>
     </header>
@@ -124,10 +127,18 @@
             </div>
             <Button
               size="sm"
-              :disabled="detailQuery.isFetching.value || !selected"
-              @click="download(definition.detail!.slug, true)"
+              :disabled="detailQuery.isFetching.value || !selected || isDownloading(definition.detail!.slug, 'pdf')"
+              @click="download(definition.detail!.slug, 'pdf', true)"
             >
               <Download class="size-4" />Xuất PDF chi tiết
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              :disabled="detailQuery.isFetching.value || !selected || isDownloading(definition.detail!.slug, 'xlsx')"
+              @click="download(definition.detail!.slug, 'xlsx', true)"
+            >
+              <Download class="size-4" />Xuất Excel chi tiết
             </Button>
           </header>
           <DataGrid
@@ -175,9 +186,17 @@
         <Button
           v-if="selected"
           size="sm"
-          :disabled="detailQuery.isFetching.value"
-          @click="download(definition.detail.slug, true)"
+          :disabled="detailQuery.isFetching.value || isDownloading(definition.detail.slug, 'pdf')"
+          @click="download(definition.detail.slug, 'pdf', true)"
           ><Download class="size-4" />Xuất PDF chi tiết</Button
+        >
+        <Button
+          v-if="selected"
+          size="sm"
+          variant="outline"
+          :disabled="detailQuery.isFetching.value || isDownloading(definition.detail.slug, 'xlsx')"
+          @click="download(definition.detail.slug, 'xlsx', true)"
+          ><Download class="size-4" />Xuất Excel chi tiết</Button
         >
       </header>
       <DataGrid
@@ -235,6 +254,7 @@ const filters = reactive<ReportFilters>({
 })
 const selected = ref<ReportRow | null>(null)
 const expandedDebtRowId = ref<string | null>(null)
+const downloading = ref<Record<string, boolean>>({})
 const definitions: Record<
   ReportKind,
   {
@@ -601,14 +621,22 @@ function detailSubjectLabel(row: ReportRow): string {
   return String(row.customer_name ?? row.partner_name ?? row.name ?? 'Đối tượng đã chọn')
 }
 watch(() => [filters.from_date, filters.to_date, props.kind], clearDetail)
-async function download(slug: string, detail = false) {
+const downloadKey = (slug: string, format: 'pdf' | 'xlsx') => `${slug}:${format}`
+const isDownloading = (slug: string, format: 'pdf' | 'xlsx') => Boolean(downloading.value[downloadKey(slug, format)])
+async function download(slug: string, format: 'pdf' | 'xlsx', detail = false) {
+  const key = downloadKey(slug, format)
   try {
     const parameters = detail ? detailParameters.value : { ...filters }
     if (!parameters) return
-    const file = await ReportService.download(slug, parameters)
+    downloading.value[key] = true
+    const file = format === 'xlsx'
+      ? await ReportService.downloadExcel(slug, parameters)
+      : await ReportService.download(slug, parameters)
     downloadFile(file)
   } catch (error) {
-    toast.error(error instanceof Error ? error.message : 'Không thể xuất PDF báo cáo.')
+    toast.error(error instanceof Error ? error.message : `Không thể xuất ${format === 'xlsx' ? 'Excel' : 'PDF'} báo cáo.`)
+  } finally {
+    delete downloading.value[key]
   }
 }
 </script>

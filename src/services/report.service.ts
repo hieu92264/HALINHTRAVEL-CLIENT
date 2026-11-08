@@ -12,4 +12,7 @@ export const ReportService = {
   download(slug: string, filters: ReportFilters) {
     return httpService.downloadPdf(`${baseUrl}/${slug}`, { params: { ...reportParams(filters), format: 'pdf' } })
   },
+  downloadExcel(slug: string, filters: ReportFilters) {
+    return httpService.downloadExcel(`${baseUrl}/${slug}`, { params: { ...reportParams(filters), format: 'xlsx' } })
+  },
 }
