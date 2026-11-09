@@ -12,6 +12,12 @@ import { httpService } from '@/services/http.service'
 const financeUrl = '/finance'
 
 export class FinanceService {
+  static downloadExport(table: 'receipts' | 'vehicle-expenses' | 'general-expenses' | 'partner-payments', format: 'pdf' | 'xlsx') {
+    const url = `${financeUrl}/exports/${table}`
+    return format === 'pdf'
+      ? httpService.downloadPdf(url, { params: { format } })
+      : httpService.downloadExcel(url, { params: { format } })
+  }
   static getReceipts() {
     return httpService.get<Receipt[]>(`${financeUrl}/receipts`)
   }

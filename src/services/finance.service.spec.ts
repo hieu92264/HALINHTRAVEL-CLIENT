@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { get } = vi.hoisted(() => ({ get: vi.fn() }))
+const { get, downloadPdf, downloadExcel } = vi.hoisted(() => ({ get: vi.fn(), downloadPdf: vi.fn(), downloadExcel: vi.fn() }))
 
 vi.mock('@/services/http.service', () => ({
-  httpService: { get },
+  httpService: { get, downloadPdf, downloadExcel },
 }))
 
 import { FinanceService } from './finance.service'
@@ -14,6 +14,8 @@ describe('FinanceService debt reports', () => {
 
   beforeEach(() => {
     get.mockReset()
+    downloadPdf.mockReset()
+    downloadExcel.mockReset()
   })
 
   it.each([
@@ -26,4 +28,18 @@ describe('FinanceService debt reports', () => {
     await expect(request()).resolves.toEqual(rows)
     expect(get).toHaveBeenCalledWith(url, { params })
   })
+
+  it.each(['receipts', 'vehicle-expenses', 'general-expenses', 'partner-payments'] as const)(
+    'downloads %s in the requested format',
+    async (table) => {
+      downloadPdf.mockResolvedValueOnce({ blob: new Blob(), filename: 'thu-chi.pdf', contentType: 'application/pdf' })
+      downloadExcel.mockResolvedValueOnce({ blob: new Blob(), filename: 'thu-chi.xlsx', contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+
+      await FinanceService.downloadExport(table, 'pdf')
+      await FinanceService.downloadExport(table, 'xlsx')
+
+      expect(downloadPdf).toHaveBeenCalledWith(`/finance/exports/${table}`, { params: { format: 'pdf' } })
+      expect(downloadExcel).toHaveBeenCalledWith(`/finance/exports/${table}`, { params: { format: 'xlsx' } })
+    },
+  )
 })
