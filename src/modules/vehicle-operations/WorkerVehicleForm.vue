@@ -140,7 +140,9 @@
           </div>
           <div>
             <p class="text-muted-foreground">Lương lái</p>
-            <p class="mt-1 font-semibold">{{ formatMoney(selectedRate.driver_wage) }}</p>
+            <p class="mt-1 font-semibold">
+              {{ formatMoney(form.is_hired_driver ? 0 : selectedRate.driver_wage) }}
+            </p>
           </div>
         </div>
         <label class="field"

@@ -7,7 +7,11 @@
           Chứng từ độc lập và đối soát từ xe chạy đã hoàn tất.
         </p>
       </div>
-      <Button v-if="canManage" @click="openCreate"><Plus class="size-4" />{{ createLabel }}</Button>
+      <div class="flex flex-wrap gap-2">
+        <Button variant="outline" :disabled="isDownloading" @click="download('pdf')"><Download class="size-4" />Xuất PDF</Button>
+        <Button variant="outline" :disabled="isDownloading" @click="download('xlsx')"><Download class="size-4" />Xuất Excel</Button>
+        <Button v-if="canManage" @click="openCreate"><Plus class="size-4" />{{ createLabel }}</Button>
+      </div>
     </header>
     <Tabs v-model="activeTab" class="space-y-4"
       ><TabsList class="h-auto max-w-full justify-start overflow-x-auto whitespace-nowrap"
@@ -131,7 +135,7 @@
 <script setup lang="ts">
 import { computed, defineComponent, h, reactive, ref, type PropType } from 'vue'
 import { toast } from 'vue-sonner'
-import { LockKeyhole, PencilLine, Plus, Trash2 } from '@lucide/vue'
+import { Download, LockKeyhole, PencilLine, Plus, Trash2 } from '@lucide/vue'
 import FinancialDocumentDialog from '@/modules/finance/components/FinancialDocumentDialog.vue'
 import {
   debtColumns,
@@ -151,6 +155,8 @@ import {
 } from '@/modules/finance/finance.composables'
 import type { DebtRow, Expense, PartnerPayment, Receipt } from '@/modules/finance/finance.types'
 import { useAuthStore } from '@/modules/auth/auth.store'
+import { FinanceService } from '@/services/finance.service'
+import { downloadFile } from '@/shared/lib/download-file'
 import { DataGrid, type DataGridDataSource } from '@/shared/components/data-grid'
 import AccessDialog from '@/shared/components/feedback/AccessDialog.vue'
 import { Button } from '@/shared/components/ui/button'
@@ -170,6 +176,7 @@ const expenses = useExpensesQuery()
 const payments = usePartnerPaymentsQuery()
 const mutations = useFinanceMutations()
 const activeTab = ref('receipts')
+const downloading = ref(false)
 const debtTab = ref('customer')
 const now = new Date()
 const debtFilter = reactive({
@@ -224,6 +231,8 @@ const createLabel = computed(
       payments: 'Tạo chi trả đối tác',
     })[activeTab.value] ?? '',
 )
+const exportTable = computed(() => ({ receipts: 'receipts', 'vehicle-expenses': 'vehicle-expenses', expenses: 'general-expenses', payments: 'partner-payments' })[activeTab.value] as 'receipts' | 'vehicle-expenses' | 'general-expenses' | 'partner-payments')
+const isDownloading = computed(() => downloading.value)
 const isSaving = computed(
   () =>
     mutations.createReceipt.isPending.value ||
@@ -317,6 +326,16 @@ function openCreate() {
           ? 'expense'
           : 'receipt',
     row: null,
+  }
+}
+async function download(format: 'pdf' | 'xlsx') {
+  downloading.value = true
+  try {
+    downloadFile(await FinanceService.downloadExport(exportTable.value, format))
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : `Không thể xuất ${format === 'pdf' ? 'PDF' : 'Excel'}.`)
+  } finally {
+    downloading.value = false
   }
 }
 function openEdit(kind: Kind, row: Row) {
