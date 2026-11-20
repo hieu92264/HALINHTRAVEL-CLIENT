@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import {
-  AlertTriangleIcon,
   BusFrontIcon,
   CalendarDaysIcon,
   CircleDollarSignIcon,
@@ -13,7 +12,6 @@ import { useQueryClient } from '@tanstack/vue-query'
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { dashboardQueryKeys, useDashboardOverviewQuery } from './dashboard.composables'
 import {
-  dashboardAlertClass,
   dashboardStatusClass,
   dashboardStatusLabel,
   formatDashboardDateTime,
@@ -29,10 +27,8 @@ let refreshTimer: ReturnType<typeof setTimeout> | null = null
 
 const overview = computed(() => overviewQuery.data.value)
 const operations = computed(() => overview.value?.operations.available ? overview.value.operations : null)
-const alerts = computed(() => overview.value?.alerts.available ? overview.value.alerts : null)
 const fleet = computed(() => overview.value?.fleet.available ? overview.value.fleet : null)
 const finance = computed(() => overview.value?.finance.available ? overview.value.finance : null)
-const alertCount = computed(() => alerts.value?.items.reduce((total, alert) => total + alert.count, 0) ?? 0)
 const dateLabel = computed(() => new Intl.DateTimeFormat('vi-VN', {
   weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric',
 }).format(new Date(`${selectedDate.value}T00:00:00`)))
@@ -80,10 +76,9 @@ onBeforeUnmount(() => {
     </template>
 
     <template v-else-if="overview">
-      <div v-if="operations" class="grid gap-4 sm:grid-cols-3">
+      <div v-if="operations" class="grid gap-4 sm:grid-cols-2">
         <article class="rounded-2xl border border-border bg-card p-5"><p class="text-sm text-muted-foreground">Chuyến trong ngày</p><p class="mt-2 text-3xl font-bold tabular-nums">{{ operations.counts.total }}</p></article>
         <article class="rounded-2xl border border-border bg-card p-5"><p class="text-sm text-muted-foreground">Đã hoàn tất</p><p class="mt-2 text-3xl font-bold tabular-nums text-emerald-600">{{ operations.counts.completed }}</p></article>
-        <article class="rounded-2xl border border-border bg-card p-5"><p class="text-sm text-muted-foreground">Việc cần xử lý</p><p class="mt-2 text-3xl font-bold tabular-nums text-amber-600">{{ alertCount }}</p></article>
       </div>
 
       <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -108,11 +103,6 @@ onBeforeUnmount(() => {
         </article>
 
         <aside class="space-y-6">
-          <article v-if="alerts" class="rounded-2xl border p-5" :class="alerts.items.length ? dashboardAlertClass[alerts.items[0]?.severity || 'info'] : 'border-border bg-card'">
-            <div class="flex items-start gap-3"><span class="grid size-9 shrink-0 place-items-center rounded-lg bg-amber-100 text-amber-700"><AlertTriangleIcon class="size-5" /></span><div><h2 class="text-sm font-bold">Cần xử lý</h2><p class="mt-1 text-xs leading-5 text-muted-foreground">{{ alertCount ? `${alertCount} ngoại lệ cần theo dõi.` : 'Chưa có ngoại lệ vận hành.' }}</p></div></div>
-            <ul v-if="alerts.items.length" class="mt-4 space-y-3 border-t border-border/60 pt-4"><li v-for="alert in alerts.items" :key="alert.type" class="text-sm leading-5">{{ alert.message }}</li></ul>
-          </article>
-
           <article v-if="finance" class="rounded-2xl border border-border bg-card p-5">
             <div class="flex items-center gap-3"><span class="grid size-9 place-items-center rounded-lg bg-primary/10 text-primary"><CircleDollarSignIcon class="size-5" /></span><div><h2 class="text-sm font-bold">Dòng tiền trong ngày</h2><p class="text-xs text-muted-foreground">Theo quyền tài chính của bạn</p></div></div>
             <dl class="mt-5 space-y-3 text-sm"><div class="flex justify-between gap-4"><dt class="text-muted-foreground">Đã thu</dt><dd class="font-bold tabular-nums">{{ formatDashboardMoney(finance.receipts) }}</dd></div><div class="flex justify-between gap-4"><dt class="text-muted-foreground">Chi phí</dt><dd class="font-bold tabular-nums">{{ formatDashboardMoney(finance.expenses) }}</dd></div><div class="flex justify-between gap-4"><dt class="text-muted-foreground">Chi đối tác</dt><dd class="font-bold tabular-nums">{{ formatDashboardMoney(finance.partner_payments) }}</dd></div><div class="flex justify-between gap-4 border-t border-border pt-3"><dt class="font-medium">Dòng tiền ròng</dt><dd class="font-bold tabular-nums text-emerald-600">{{ formatDashboardMoney(finance.net_cash) }}</dd></div></dl>
@@ -120,7 +110,7 @@ onBeforeUnmount(() => {
         </aside>
       </div>
 
-      <article v-if="fleet" class="overflow-hidden rounded-2xl border border-border bg-card"><div class="flex items-center gap-3 border-b border-border px-5 py-4 sm:px-6"><MapPinIcon class="size-5 text-primary" /><div><h2 class="text-base font-bold">Năng lực vận hành</h2><p class="mt-0.5 text-xs text-muted-foreground">Tình trạng đội xe và phân công trong ngày</p></div></div><div class="grid divide-y divide-border sm:grid-cols-4 sm:divide-x sm:divide-y-0"><div v-if="fleet.vehicles" class="p-5 sm:px-6"><p class="text-sm text-muted-foreground">Xe sẵn sàng</p><p class="mt-1 text-2xl font-bold tabular-nums">{{ fleet.vehicles.available }} <span class="text-sm font-medium text-muted-foreground">/ {{ fleet.vehicles.total }} xe</span></p></div><div v-if="fleet.vehicles" class="p-5 sm:px-6"><p class="text-sm text-muted-foreground">Xe cần kiểm tra</p><p class="mt-1 text-2xl font-bold tabular-nums text-amber-600">{{ fleet.vehicles.maintenance + fleet.vehicles.inactive }}</p></div><div v-if="fleet.drivers" class="p-5 sm:px-6"><p class="text-sm text-muted-foreground">Tài xế đã phân công</p><p class="mt-1 text-2xl font-bold tabular-nums">{{ fleet.drivers.assigned }} <span class="text-sm font-medium text-muted-foreground">/ {{ fleet.drivers.active }} người</span></p></div><div v-if="fleet.drivers" class="p-5 sm:px-6"><p class="text-sm text-muted-foreground">Tài xế còn sẵn sàng</p><p class="mt-1 text-2xl font-bold tabular-nums text-emerald-600">{{ fleet.drivers.available }}</p></div></div></article>
+      <article v-if="fleet" class="overflow-hidden rounded-2xl border border-border bg-card"><div class="flex items-center gap-3 border-b border-border px-5 py-4 sm:px-6"><MapPinIcon class="size-5 text-primary" /><div><h2 class="text-base font-bold">Năng lực vận hành</h2><p class="mt-0.5 text-xs text-muted-foreground">Tình trạng đội xe và phân công trong ngày</p></div></div><div class="grid divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0"><div v-if="fleet.vehicles" class="p-5 sm:px-6"><p class="text-sm text-muted-foreground">Xe sẵn sàng</p><p class="mt-1 text-2xl font-bold tabular-nums">{{ fleet.vehicles.available }} <span class="text-sm font-medium text-muted-foreground">/ {{ fleet.vehicles.total }} xe</span></p></div><div v-if="fleet.drivers" class="p-5 sm:px-6"><p class="text-sm text-muted-foreground">Tài xế đã phân công</p><p class="mt-1 text-2xl font-bold tabular-nums">{{ fleet.drivers.assigned }} <span class="text-sm font-medium text-muted-foreground">/ {{ fleet.drivers.active }} người</span></p></div><div v-if="fleet.drivers" class="p-5 sm:px-6"><p class="text-sm text-muted-foreground">Tài xế còn sẵn sàng</p><p class="mt-1 text-2xl font-bold tabular-nums text-emerald-600">{{ fleet.drivers.available }}</p></div></div></article>
     </template>
   </section>
 </template>

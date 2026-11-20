@@ -97,8 +97,8 @@
           mobile-mode="cards"
           :get-row-id="(row) => String(row.id)"
           :persist="{ key: 'finance-partner-payments-v2', url: true, queryPrefix: 'partnerPayment' }"
-          empty-title="Chưa có phiếu chi đối tác"
-          empty-description="Ghi nhận độc lập các khoản chi cho đối tác vận tải."
+          empty-title="Chưa có phiếu chi trả chủ xe"
+          empty-description="Ghi nhận độc lập các khoản chi trả cho chủ xe."
           @retry="payments.refetch()"
           ><template #actions="{ row }"
             ><DocumentActions
@@ -228,7 +228,7 @@ const createLabel = computed(
       receipts: 'Tạo phiếu thu',
       expenses: 'Tạo chi phí chung',
       'vehicle-expenses': 'Tạo chi phí xe',
-      payments: 'Tạo chi trả đối tác',
+      payments: 'Tạo chi trả chủ xe',
     })[activeTab.value] ?? '',
 )
 const exportTable = computed(() => ({ receipts: 'receipts', 'vehicle-expenses': 'vehicle-expenses', expenses: 'general-expenses', payments: 'partner-payments' })[activeTab.value] as 'receipts' | 'vehicle-expenses' | 'general-expenses' | 'partner-payments')
