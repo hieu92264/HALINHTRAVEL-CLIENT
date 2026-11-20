@@ -181,7 +181,7 @@ const title = computed(() =>
         ? props.expenseScope === 'vehicle'
           ? 'Tạo phiếu chi phí xe'
           : 'Tạo phiếu chi chung'
-        : 'Tạo chi trả đối tác',
+        : 'Tạo chi trả chủ xe',
 )
 const description = computed(() =>
   props.kind === 'expense'
